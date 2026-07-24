@@ -7,5 +7,6 @@ __pycache__/
 .conda/
 build/
 dist/
+OfflineWritingReviser.spec
 *.egg-info/
 *.log

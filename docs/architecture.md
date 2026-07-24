@@ -1,47 +1,106 @@
 # Architecture
 
-Offline Writing Reviser is split into four standalone layers.
+Offline Writing Reviser 0.2.0 keeps the proven revision pipeline isolated from a
+small Windows desktop shell.
 
-## Application
+## Boundaries
 
-`offline_writing_reviser.application` loads environment-backed configuration, configures file logging, creates the provider/service/controller graph, registers the global hotkey, runs the Windows message loop, and unregisters hotkeys on shutdown.
+### Entry point and application lifecycle
 
-## Core
+`offline_writing_reviser.__main__` owns argument parsing for normal tray startup,
+`--version`, and `--validate-startup`.
 
-`offline_writing_reviser.core` owns the revision contract:
+`offline_writing_reviser.application` composes the process:
 
-- prompt text
-- input validation
-- maximum-length enforcement
+1. Load and validate per-user settings.
+2. Acquire the Windows single-instance mutex.
+3. Configure per-user file logging.
+4. Create the Ollama service, revision controller, and hotkey thread.
+5. Start the tray and hidden settings UI host.
+6. Coordinate status, notifications, settings changes, restart, and exit.
+7. Stop the tray, close settings, unregister the hotkey, release the mutex, and
+   optionally launch a replacement process.
+
+The application continues into the tray when Ollama, the configured model, or
+the preferred hotkey is unavailable so the user can inspect status and change
+settings. Startup validation does not register a hotkey or contact a model.
+
+### Core revision engine
+
+`offline_writing_reviser.core` owns the provider-neutral revision contract:
+
+- tightly scoped revision prompt
+- input validation and maximum-length enforcement
 - concurrent revision guard
 - output sanitization
-- provider-neutral result and error handling
+- provider-neutral results and errors
 
-The core layer has no Windows, Ollama, network, database, or UI dependency.
+This layer has no tray, Tkinter, Windows, Ollama, network, or persistence
+dependency.
 
-## Providers
+### Local Ollama provider
 
-`offline_writing_reviser.providers` contains local model integrations. The initial provider is `OllamaCliOfflineWritingProvider`.
+`offline_writing_reviser.providers.ollama` is the only model integration. It:
 
-The Ollama provider:
+- resolves the configured local `ollama` executable
+- discovers local models through `ollama list`
+- verifies the configured model before revision
+- invokes `ollama run <model> <prompt>`
+- maps missing executable, missing model, timeout, and process failures
+- never downloads a model and has no cloud fallback
 
-- resolves the configured `ollama` executable
-- verifies the configured model with `ollama list`
-- never downloads models
-- runs `ollama run <model> <prompt>` locally
-- maps executable, model, timeout, and process failures to provider-specific exceptions
+### Settings and paths
 
-## Windows Integration
+`offline_writing_reviser.settings` validates the four user-editable values and
+performs atomic JSON writes using a sibling temporary file and `os.replace`.
+Invalid JSON or values are preserved as `settings.json.corrupt` before defaults
+are restored. Environment variables can override the loaded values for managed
+use.
 
-`offline_writing_reviser.windows` contains the proven hotkey and text-selection code adapted from the original implementation.
+`offline_writing_reviser.paths` centralizes `%LOCALAPPDATA%` and PyInstaller
+resource resolution. Configuration and logs never live beside the executable.
 
-The text adapter preserves the safety behavior from the source subsystem:
+### Desktop shell
 
-- waits for `Ctrl`, `Alt`, and `W` to be physically released after the hotkey
-- snapshots and restores clipboard formats where possible
-- captures only the selected foreground text
-- checks foreground-window identity before replacement
-- skips paste if focus assumptions become unsafe
-- serializes overlapping controller triggers
+`offline_writing_reviser.tray` is a narrow `pystray` adapter. It displays the
+current state and delegates menu actions to the application coordinator.
 
-Successful revisions do not show feedback. Failed revisions leave the selected text unchanged where the target application cooperates with normal copy/paste semantics.
+`offline_writing_reviser.settings_ui` uses standard Tk/ttk controls. Tk owns a
+dedicated UI thread and receives cross-thread requests through a queue. Model
+discovery runs off the UI thread.
+
+`offline_writing_reviser.desktop_status` defines the state enum and maps
+internal exception types to short user-facing messages. Detailed exceptions
+remain in file logs; stack traces are not placed in notifications.
+
+### Windows integration
+
+`offline_writing_reviser.windows` contains hotkey and selected-text behavior.
+The text adapter retains the baseline safety contract:
+
+- wait for hotkey modifiers to be physically released
+- snapshot and restore clipboard formats where practical
+- capture only selected foreground text
+- retain foreground window/process identity
+- abort replacement if focus assumptions change
+- serialize overlapping controller triggers
+
+Hotkey changes use a two-manager handoff: register the candidate shortcut first,
+then unregister the old shortcut only after success. A failed candidate leaves
+the old manager running.
+
+## State flow
+
+The desktop status is one of Ready, Revising, Ollama unavailable, Model
+unavailable, Hotkey unavailable, or Error. Revision start sets Revising. A
+successful replacement returns to Ready without a notification. Expected
+failures map to one notification and a meaningful state. A later successful
+availability check or revision restores Ready.
+
+## Packaging
+
+`scripts/build.ps1` runs tests and PyInstaller in one-file/windowed mode. The
+generated executable embeds the original icon and `pystray`/Pillow runtime while
+leaving Ollama external. Bundled resources resolve through PyInstaller's
+temporary extraction root; source execution resolves them relative to the
+package.

@@ -16,6 +16,7 @@ from offline_writing_reviser.providers.base import (
     OfflineWritingProviderTimeout,
     OfflineWritingProviderUnavailable,
 )
+from offline_writing_reviser.version import __version__
 
 __all__ = [
     "OfflineWritingBusy",
@@ -30,4 +31,5 @@ __all__ = [
     "OfflineWritingProviderUnavailable",
     "OfflineWritingService",
     "WritingRevisionResult",
+    "__version__",
 ]

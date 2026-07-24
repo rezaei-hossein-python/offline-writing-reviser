@@ -4,9 +4,11 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+from offline_writing_reviser.paths import app_data_dir
 
-APP_DATA_DIR = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "OfflineWritingReviser"
+APP_DATA_DIR = app_data_dir()
 DEFAULT_LOG_FILE = APP_DATA_DIR / "logs" / "writing-reviser.log"
+DEFAULT_SETTINGS_FILE = APP_DATA_DIR / "settings.json"
 
 
 @dataclass(frozen=True)

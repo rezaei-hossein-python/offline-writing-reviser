@@ -43,18 +43,18 @@ class OllamaCliOfflineWritingProvider(OfflineWritingProvider):
         return True
 
     def ensure_model_available(self, timeout_seconds: float = 5.0) -> None:
-        executable = self._resolve_executable()
-        result = self._run(
-            [executable, "list"],
-            timeout_seconds=timeout_seconds,
-        )
-        if result.returncode != 0:
-            raise OfflineWritingProviderUnavailable("Ollama model list failed")
-        installed = _parse_ollama_list(result.stdout)
+        installed = self.list_installed_models(timeout_seconds)
         if self._model not in installed:
             raise OfflineWritingModelMissing(
                 f"Configured Ollama model is missing model={self._model}"
             )
+
+    def list_installed_models(self, timeout_seconds: float = 5.0) -> list[str]:
+        executable = self._resolve_executable()
+        result = self._run([executable, "list"], timeout_seconds=timeout_seconds)
+        if result.returncode != 0:
+            raise OfflineWritingProviderUnavailable("Ollama model list failed")
+        return sorted(_parse_ollama_list(result.stdout), key=str.casefold)
 
     def revise(self, text: str, instruction: str, timeout_seconds: float) -> str:
         self.ensure_model_available(timeout_seconds=5.0)
