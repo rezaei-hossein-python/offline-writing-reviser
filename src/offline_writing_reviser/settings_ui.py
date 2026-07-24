@@ -4,13 +4,36 @@ import logging
 import queue
 import threading
 from collections.abc import Callable
+from dataclasses import dataclass
 
 from offline_writing_reviser.config import OfflineWritingConfig
+from offline_writing_reviser.desktop_status import UserMessage
 from offline_writing_reviser.settings import SettingsValidationError, config_with_updates
 
 
+@dataclass(frozen=True)
+class AccessibleControl:
+    name: str
+    role: str
+    tab_order: int
+
+
+# This is the UI contract exercised by structural tests and live UIA inspection.
+ACCESSIBLE_CONTROLS = (
+    AccessibleControl("Model", "combo box", 1),
+    AccessibleControl("Refresh installed models", "button", 2),
+    AccessibleControl("Revision timeout", "spin box", 3),
+    AccessibleControl("Maximum input length", "spin box", 4),
+    AccessibleControl("Global hotkey", "edit", 5),
+    AccessibleControl("Log location", "read-only edit", 6),
+    AccessibleControl("Reset to defaults", "button", 7),
+    AccessibleControl("Save settings", "button", 8),
+    AccessibleControl("Cancel", "button", 9),
+)
+
+
 class SettingsWindow:
-    """A single, keyboard-accessible native settings window."""
+    """A single Qt Widgets window exposed through Windows UI Automation."""
 
     def __init__(
         self,
@@ -25,244 +48,372 @@ class SettingsWindow:
         self.reset_callback = reset_callback
         self.model_loader = model_loader
         self.logger = logger or logging.getLogger("offline-writing-reviser")
-        self._root = None
-        self._window = None
         self._queue: queue.Queue[Callable[[], None]] = queue.Queue()
+        self._app = None
+        self._window = None
+        self._bridge = None
+        self._controls: dict[str, object] = {}
+        self._running = False
 
     def run(self, stop_event: threading.Event) -> None:
-        import tkinter as tk
+        from PySide6 import QtCore, QtWidgets
 
-        self._root = tk.Tk()
-        self._root.withdraw()
-        self._root.after(50, self._drain_queue)
-        self._root.after(100, lambda: self._check_stop(stop_event))
-        self._root.mainloop()
-        self._root = None
+        class DispatchBridge(QtCore.QObject):
+            requested = QtCore.Signal(object)
+
+        self._app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
+        self._running = True
+        self._app.setApplicationName("Offline Writing Reviser")
+        self._app.setQuitOnLastWindowClosed(False)
+        self._bridge = DispatchBridge()
+        self._bridge.requested.connect(self._execute_callback)
+
+        queue_timer = QtCore.QTimer()
+        queue_timer.timeout.connect(self._drain_queue)
+        queue_timer.start(25)
+        stop_timer = QtCore.QTimer()
+        stop_timer.timeout.connect(
+            lambda: self._stop_ui() if stop_event.is_set() else None
+        )
+        stop_timer.start(100)
+        self._drain_queue()
+        self._app.exec()
+        self._window = None
+        self._controls.clear()
+        self._bridge = None
+        self._app = None
+        self._running = False
 
     def show(self) -> None:
         self.dispatch(self._show_on_ui_thread)
 
-    def close(self) -> None:
-        def close_root() -> None:
-            if self._window:
-                self._window.destroy()
-                self._window = None
-            if self._root:
-                self._root.quit()
+    def show_error(self, message: UserMessage) -> None:
+        self.dispatch(lambda: self._show_error_dialog(message.title, message.message))
 
-        self.dispatch(close_root)
+    def close(self) -> None:
+        if not self._running:
+            return
+
+        def close_application() -> None:
+            self._stop_ui()
+
+        self.dispatch(close_application)
+
+    def _stop_ui(self) -> None:
+        self._close_window()
+        if self._app:
+            self._app.quit()
 
     def dispatch(self, callback: Callable[[], None]) -> None:
-        self._queue.put(callback)
+        bridge = self._bridge
+        if bridge:
+            bridge.requested.emit(callback)
+        else:
+            self._queue.put(callback)
+
+    def _execute_callback(self, callback: Callable[[], None]) -> None:
+        try:
+            callback()
+        except Exception:
+            self.logger.exception("Settings UI action failed")
 
     def _drain_queue(self) -> None:
         while True:
             try:
                 callback = self._queue.get_nowait()
             except queue.Empty:
-                break
-            try:
-                callback()
-            except Exception:
-                self.logger.exception("Settings UI action failed")
-        if self._root:
-            self._root.after(50, self._drain_queue)
-
-    def _check_stop(self, stop_event: threading.Event) -> None:
-        if stop_event.is_set():
-            self.close()
-            return
-        if self._root:
-            self._root.after(100, lambda: self._check_stop(stop_event))
+                return
+            self._execute_callback(callback)
 
     def _show_on_ui_thread(self) -> None:
-        import tkinter as tk
-        from tkinter import messagebox, ttk
+        from PySide6 import QtCore, QtGui, QtWidgets
 
-        if self._window and self._window.winfo_exists():
-            self._window.deiconify()
-            self._window.lift()
-            self._window.focus_force()
+        if self._window:
+            self._window.showNormal()
+            self._window.raise_()
+            self._window.activateWindow()
+            self._controls["model"].setFocus(QtCore.Qt.FocusReason.ActiveWindowFocusReason)
             return
 
+        owner = self
+
+        class AccessibleSettingsDialog(QtWidgets.QDialog):
+            def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+                owner._window = None
+                owner._controls.clear()
+                event.accept()
+
         config = self.config_getter()
-        window = tk.Toplevel(self._root)
+        window = AccessibleSettingsDialog()
         self._window = window
-        window.title("Offline Writing Reviser Settings")
-        window.resizable(False, False)
-        window.protocol("WM_DELETE_WINDOW", self._close_window)
-        window.bind("<Escape>", lambda _event: self._close_window())
+        window.setWindowTitle("Offline Writing Reviser Settings")
+        window.setAccessibleName("Offline Writing Reviser Settings")
+        window.setModal(False)
+        window.setMinimumWidth(640)
 
-        frame = ttk.Frame(window, padding=16)
-        frame.grid(sticky="nsew")
-        frame.columnconfigure(1, weight=1)
+        layout = QtWidgets.QVBoxLayout(window)
+        form = QtWidgets.QGridLayout()
+        form.setColumnStretch(1, 1)
+        layout.addLayout(form)
 
-        model_var = tk.StringVar(value=config.model)
-        timeout_var = tk.StringVar(value=str(config.timeout_seconds))
-        maximum_var = tk.StringVar(value=str(config.max_characters))
-        hotkey_var = tk.StringVar(value=config.hotkey)
-        status_var = tk.StringVar(value="")
+        model_label = QtWidgets.QLabel("&Model:")
+        model = QtWidgets.QComboBox()
+        model.setAccessibleName("Model")
+        model.setAccessibleDescription(
+            "Select an Ollama model already installed on this computer."
+        )
+        model_label.setBuddy(model)
+        refresh = QtWidgets.QPushButton("&Refresh installed models")
+        refresh.setAccessibleName("Refresh installed models")
+        form.addWidget(model_label, 0, 0)
+        form.addWidget(model, 0, 1)
+        form.addWidget(refresh, 0, 2)
 
-        ttk.Label(frame, text="Selected Ollama model:").grid(
-            row=0, column=0, sticky="w", padx=(0, 12), pady=5
-        )
-        model_combo = ttk.Combobox(
-            frame,
-            textvariable=model_var,
-            width=35,
-            state="readonly",
-            takefocus=True,
-        )
-        model_combo.grid(row=0, column=1, sticky="ew", pady=5)
-        refresh_button = ttk.Button(
-            frame,
-            text="Refresh models",
-            command=lambda: refresh_models(),
-            takefocus=True,
-        )
-        refresh_button.grid(row=0, column=2, padx=(8, 0), pady=5)
+        timeout_label = QtWidgets.QLabel("&Revision timeout:")
+        timeout = QtWidgets.QDoubleSpinBox()
+        timeout.setAccessibleName("Revision timeout")
+        timeout.setAccessibleDescription("Revision timeout in seconds.")
+        timeout.setRange(5, 600)
+        timeout.setDecimals(0)
+        timeout.setSingleStep(1)
+        timeout.setSuffix(" seconds")
+        timeout_label.setBuddy(timeout)
+        form.addWidget(timeout_label, 1, 0)
+        form.addWidget(timeout, 1, 1)
 
-        ttk.Label(frame, text="Revision timeout (seconds):").grid(
-            row=1, column=0, sticky="w", padx=(0, 12), pady=5
-        )
-        timeout_entry = ttk.Spinbox(
-            frame,
-            from_=5,
-            to=600,
-            increment=1,
-            textvariable=timeout_var,
-            width=12,
-            takefocus=True,
-        )
-        timeout_entry.grid(row=1, column=1, sticky="w", pady=5)
+        maximum_label = QtWidgets.QLabel("Ma&ximum input length:")
+        maximum = QtWidgets.QSpinBox()
+        maximum.setAccessibleName("Maximum input length")
+        maximum.setAccessibleDescription("Maximum selected text length in characters.")
+        maximum.setRange(100, 100_000)
+        maximum.setSingleStep(100)
+        maximum.setSuffix(" characters")
+        maximum_label.setBuddy(maximum)
+        form.addWidget(maximum_label, 2, 0)
+        form.addWidget(maximum, 2, 1)
 
-        ttk.Label(frame, text="Maximum input length:").grid(
-            row=2, column=0, sticky="w", padx=(0, 12), pady=5
+        hotkey_label = QtWidgets.QLabel("Global &hotkey:")
+        hotkey = QtWidgets.QLineEdit()
+        hotkey.setAccessibleName("Global hotkey")
+        hotkey.setAccessibleDescription(
+            "Use Ctrl and/or Alt plus one letter or number."
         )
-        maximum_entry = ttk.Spinbox(
-            frame,
-            from_=100,
-            to=100000,
-            increment=100,
-            textvariable=maximum_var,
-            width=12,
-            takefocus=True,
+        hotkey_label.setBuddy(hotkey)
+        form.addWidget(hotkey_label, 3, 0)
+        form.addWidget(hotkey, 3, 1)
+
+        log_label = QtWidgets.QLabel("&Log location:")
+        log_location = QtWidgets.QLineEdit()
+        log_location.setAccessibleName("Log location")
+        log_location.setAccessibleDescription(
+            "Read-only folder containing application logs."
         )
-        maximum_entry.grid(row=2, column=1, sticky="w", pady=5)
+        log_location.setReadOnly(True)
+        log_label.setBuddy(log_location)
+        form.addWidget(log_label, 4, 0)
+        form.addWidget(log_location, 4, 1, 1, 2)
 
-        ttk.Label(frame, text="Global hotkey:").grid(
-            row=3, column=0, sticky="w", padx=(0, 12), pady=5
+        status = QtWidgets.QLabel("Settings are ready.")
+        status.setAccessibleName("Settings status")
+        status.setWordWrap(True)
+        status.setTextInteractionFlags(QtCore.Qt.TextInteractionFlag.TextSelectableByKeyboard)
+        layout.addWidget(status)
+
+        buttons = QtWidgets.QDialogButtonBox()
+        reset = buttons.addButton(
+            "Reset to &defaults", QtWidgets.QDialogButtonBox.ButtonRole.ResetRole
         )
-        hotkey_entry = ttk.Entry(
-            frame, textvariable=hotkey_var, width=20, takefocus=True
+        save = buttons.addButton(
+            "&Save settings", QtWidgets.QDialogButtonBox.ButtonRole.AcceptRole
         )
-        hotkey_entry.grid(row=3, column=1, sticky="w", pady=5)
+        cancel = buttons.addButton(QtWidgets.QDialogButtonBox.StandardButton.Cancel)
+        reset.setAccessibleName("Reset to defaults")
+        save.setAccessibleName("Save settings")
+        cancel.setAccessibleName("Cancel")
+        save.setDefault(True)
+        layout.addWidget(buttons)
 
-        ttk.Label(frame, text="Log location:").grid(
-            row=4, column=0, sticky="nw", padx=(0, 12), pady=5
+        self._controls = {
+            "model": model,
+            "refresh": refresh,
+            "timeout": timeout,
+            "maximum": maximum,
+            "hotkey": hotkey,
+            "log_location": log_location,
+            "status": status,
+            "reset": reset,
+            "save": save,
+            "cancel": cancel,
+        }
+        self._set_tab_order(window)
+        self._set_values(config)
+
+        refresh.clicked.connect(self._refresh_models)
+        reset.clicked.connect(self._reset)
+        save.clicked.connect(self._save)
+        cancel.clicked.connect(self._close_window)
+        window.rejected.connect(self._close_window)
+
+        window.adjustSize()
+        window.show()
+        # A source background process may have STARTUPINFO=SW_HIDE. Defer the
+        # explicit user-requested activation until after Qt processes its first
+        # show request so --settings is never consumed by that startup flag.
+        QtCore.QTimer.singleShot(0, self._activate_window)
+        self._refresh_models()
+
+    def _activate_window(self) -> None:
+        from PySide6 import QtCore
+
+        if not self._window:
+            return
+        self._window.showNormal()
+        self._window.raise_()
+        self._window.activateWindow()
+        self._controls["model"].setFocus(
+            QtCore.Qt.FocusReason.ActiveWindowFocusReason
         )
-        log_label = ttk.Label(
-            frame,
-            text=str(config.log_file.parent),
-            wraplength=390,
-        )
-        log_label.grid(row=4, column=1, columnspan=2, sticky="w", pady=5)
 
-        ttk.Label(
-            frame,
-            textvariable=status_var,
-            wraplength=520,
-        ).grid(row=5, column=0, columnspan=3, sticky="w", pady=(8, 4))
+    def _set_tab_order(self, window) -> None:
+        names = [
+            "model",
+            "refresh",
+            "timeout",
+            "maximum",
+            "hotkey",
+            "log_location",
+            "reset",
+            "save",
+            "cancel",
+        ]
+        for first, second in zip(names, names[1:]):
+            window.setTabOrder(self._controls[first], self._controls[second])
 
-        buttons = ttk.Frame(frame)
-        buttons.grid(row=6, column=0, columnspan=3, sticky="e", pady=(12, 0))
+    def _save(self) -> None:
+        try:
+            candidate = config_with_updates(
+                self.config_getter(),
+                model=self._controls["model"].currentText(),
+                timeout_seconds=self._controls["timeout"].value(),
+                max_characters=self._controls["maximum"].value(),
+                hotkey=self._controls["hotkey"].text(),
+            )
+            applied = self.save_callback(candidate)
+        except (ValueError, SettingsValidationError) as exc:
+            self._validation_error(self._validation_control(str(exc)), str(exc))
+            return
+        except Exception:
+            self.logger.exception("Settings could not be saved")
+            self._validation_error(
+                "save", "Settings could not be saved. See the application log."
+            )
+            return
+        self._set_values(applied)
+        self._close_window()
 
-        def set_values(new_config: OfflineWritingConfig) -> None:
-            model_var.set(new_config.model)
-            timeout_var.set(str(new_config.timeout_seconds))
-            maximum_var.set(str(new_config.max_characters))
-            hotkey_var.set(new_config.hotkey)
+    def _reset(self) -> None:
+        try:
+            self._set_values(self.reset_callback())
+            self._set_status("Default settings restored.")
+            self._refresh_models()
+        except Exception:
+            self.logger.exception("Settings reset failed")
+            self._show_error_dialog(
+                "Settings error",
+                "Default settings could not be restored. See the application log.",
+            )
 
-        def save() -> None:
+    def _refresh_models(self) -> None:
+        refresh = self._controls["refresh"]
+        refresh.setEnabled(False)
+        self._set_status("Checking locally installed Ollama models.")
+
+        def load() -> None:
             try:
-                candidate = config_with_updates(
-                    self.config_getter(),
-                    model=model_var.get(),
-                    timeout_seconds=float(timeout_var.get()),
-                    max_characters=int(maximum_var.get()),
-                    hotkey=hotkey_var.get(),
-                )
-                applied = self.save_callback(candidate)
-            except (ValueError, SettingsValidationError) as exc:
-                messagebox.showerror("Invalid settings", str(exc), parent=window)
-                return
-            set_values(applied)
-            self._close_window()
+                models = self.model_loader()
+                error = None
+            except Exception as exc:
+                models = []
+                error = exc
+            self.dispatch(lambda: self._finish_model_refresh(models, error))
 
-        def reset() -> None:
-            set_values(self.reset_callback())
-            status_var.set("Default settings restored.")
-            refresh_models()
+        threading.Thread(
+            target=load, name="ollama-model-discovery", daemon=True
+        ).start()
 
-        def refresh_models() -> None:
-            refresh_button.state(["disabled"])
-            status_var.set("Checking locally installed Ollama models…")
+    def _finish_model_refresh(
+        self, models: list[str], error: Exception | None
+    ) -> None:
+        if not self._window:
+            return
+        self._controls["refresh"].setEnabled(True)
+        model = self._controls["model"]
+        current = model.currentText()
+        choices = list(models)
+        if current and current not in choices:
+            choices.insert(0, current)
+        model.clear()
+        model.addItems(choices)
+        if current:
+            model.setCurrentText(current)
+        if error:
+            self._set_status(
+                "Ollama is unavailable. Start or install Ollama, then refresh."
+            )
+        elif current not in models:
+            self._set_status(
+                "The configured model is not installed. Select an installed model."
+            )
+        else:
+            self._set_status(f"{len(models)} installed model(s) found.")
 
-            def load() -> None:
-                try:
-                    models = self.model_loader()
-                    error = None
-                except Exception as exc:
-                    models = []
-                    error = exc
+    def _set_values(self, config: OfflineWritingConfig) -> None:
+        model = self._controls["model"]
+        model.clear()
+        model.addItem(config.model)
+        model.setCurrentText(config.model)
+        self._controls["timeout"].setValue(config.timeout_seconds)
+        self._controls["maximum"].setValue(config.max_characters)
+        self._controls["hotkey"].setText(config.hotkey)
+        self._controls["log_location"].setText(str(config.log_file.parent))
 
-                def finish() -> None:
-                    refresh_button.state(["!disabled"])
-                    current = model_var.get()
-                    choices = list(models)
-                    if current and current not in choices:
-                        choices.insert(0, current)
-                    model_combo["values"] = choices
-                    if error:
-                        status_var.set(
-                            "Ollama is unavailable. Start or install Ollama, then refresh."
-                        )
-                    elif current not in models:
-                        status_var.set(
-                            "The configured model is not installed. Select an installed model."
-                        )
-                    else:
-                        status_var.set(f"{len(models)} installed model(s) found.")
+    def _set_status(self, text: str) -> None:
+        self._controls["status"].setText(text)
 
-                self.dispatch(finish)
+    def _validation_error(self, control_name: str, message: str) -> None:
+        from PySide6 import QtCore
 
-            threading.Thread(target=load, name="ollama-model-discovery", daemon=True).start()
+        self._set_status(f"Error: {message}")
+        control = self._controls[control_name]
+        control.setFocus(QtCore.Qt.FocusReason.OtherFocusReason)
+        self._show_error_dialog("Invalid settings", message)
+        if self._window:
+            control.setFocus(QtCore.Qt.FocusReason.OtherFocusReason)
 
-        ttk.Button(
-            buttons, text="Reset to defaults", command=reset, takefocus=True
-        ).grid(
-            row=0, column=0, padx=(0, 8)
-        )
-        ttk.Button(
-            buttons, text="Cancel", command=self._close_window, takefocus=True
-        ).grid(
-            row=0, column=1, padx=(0, 8)
-        )
-        save_button = ttk.Button(
-            buttons, text="Save", command=save, takefocus=True
-        )
-        save_button.grid(row=0, column=2)
+    def _show_error_dialog(self, title: str, message: str) -> None:
+        from PySide6 import QtWidgets
 
-        window.bind("<Return>", lambda _event: save())
-        window.update_idletasks()
-        window.geometry(
-            f"+{max(0, (window.winfo_screenwidth() - window.winfo_width()) // 2)}"
-            f"+{max(0, (window.winfo_screenheight() - window.winfo_height()) // 2)}"
-        )
-        model_combo.focus_set()
-        refresh_models()
+        QtWidgets.QMessageBox.critical(self._window, title, message)
+
+    @staticmethod
+    def _validation_control(message: str) -> str:
+        lowered = message.lower()
+        if "timeout" in lowered:
+            return "timeout"
+        if "maximum" in lowered:
+            return "maximum"
+        if "hotkey" in lowered:
+            return "hotkey"
+        if "model" in lowered:
+            return "model"
+        return "save"
 
     def _close_window(self) -> None:
-        if self._window:
+        if self._window and hasattr(self._window, "close"):
+            window = self._window
+            self._window = None
+            self._controls.clear()
+            window.close()
+        elif self._window and hasattr(self._window, "destroy"):
             self._window.destroy()
             self._window = None

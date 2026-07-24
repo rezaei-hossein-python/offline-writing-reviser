@@ -10,14 +10,11 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = {file = "LICENSE"}
 authors = [{name = "Offline Writing Reviser"}]
-dependencies = [
-    "Pillow>=10",
-    "pystray>=0.19",
-]
+dependencies = ["PySide6>=6.7,<7"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
-build = ["pyinstaller>=6"]
+build = ["pyinstaller>=6", "Pillow>=10"]
 
 [project.scripts]
 offline-writing-reviser = "offline_writing_reviser.__main__:main"

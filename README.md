@@ -1,14 +1,15 @@
 # Offline Writing Reviser
 
-Offline Writing Reviser is a local-only Windows tray utility that revises the
-currently selected text in the foreground application. Select text and press
-`Ctrl+Alt+W`, or choose **Revise selected text** from the tray menu. The app
-copies the selection, asks an already-installed local Ollama model to revise it,
-and safely pastes back only the revised text.
+Offline Writing Reviser is a local-only Windows background utility that revises
+the currently selected text in the foreground application. Select text and
+press `Ctrl+Alt+W`. The app copies the selection, asks an already-installed
+local Ollama model to revise it, and safely pastes back only the revised text.
 
-Successful revisions are intentionally silent. The app does not include a cloud
-provider, cloud fallback, account, telemetry, analytics, or automatic model
-downloads. Selected and revised document text is not written to the log.
+Normal operation is completely hidden: there is no taskbar window, console,
+system-tray icon, notification-area menu, or persistent notification-center
+presence. Successful revisions are silent. The app has no cloud provider,
+cloud fallback, account, telemetry, analytics, or automatic model downloads.
+Selected and revised document text is not written to the log.
 
 ## Prerequisites
 
@@ -36,21 +37,40 @@ python -m pip install -e ".[dev,build]"
 python -m offline_writing_reviser
 ```
 
-Or start the packaged `OfflineWritingReviser.exe`. The utility starts in the
-Windows notification area without leaving a main window open.
+Or launch `OfflineWritingReviser.exe`. Normal startup registers the configured
+global hotkey and remains hidden in the background. Select editable text in
+another application and press `Ctrl+Alt+W`.
 
-The tray menu provides:
+Only one background instance runs per Windows session. Starting the executable
+again does not create a duplicate.
 
-- **Status** — current Ready, Revising, Ollama, model, hotkey, or error state.
-- **Revise selected text** — the same action as the global hotkey.
-- **Settings** — model, timeout, input limit, hotkey, and log location.
-- **Open log folder** — opens the per-user log directory.
-- **Restart** — cleanly unregisters the hotkey and starts a replacement process.
-- **Exit** — unregisters the hotkey and terminates the app.
+## Settings and process control
 
-Double-clicking the tray icon opens Settings.
+Open Settings through the running background process:
 
-## Settings and local models
+```powershell
+python -m offline_writing_reviser --settings
+.\OfflineWritingReviser.exe --settings
+```
+
+If Settings is requested while the utility is not running, the command starts
+the hidden background process and then opens Settings. Closing Settings leaves
+the reviser running.
+
+Request a clean shutdown or restart:
+
+```powershell
+python -m offline_writing_reviser --exit
+python -m offline_writing_reviser --restart
+
+.\OfflineWritingReviser.exe --exit
+.\OfflineWritingReviser.exe --restart
+```
+
+These commands communicate with the existing process through a hidden local
+Win32 control window. They do not create another background reviser. Restart
+unregisters the hotkey, closes Settings if open, releases the single-instance
+mutex, and then launches a replacement process.
 
 Settings are stored as readable JSON at:
 
@@ -74,8 +94,13 @@ Defaults:
 - Maximum input length: 4,000 characters
 - Global hotkey: `Ctrl+Alt+W`
 
-The settings UI uses native controls, follows a logical Tab order, shows native
-focus indicators, supports Enter to save, and Escape to close.
+The Settings window uses Qt Widgets with the Windows UI Automation
+accessibility bridge. Every field has an explicit accessible name and
+programmatically associated label. Tab and Shift+Tab follow the documented
+control order; combo-box and spin-box arrow keys retain their standard
+behavior; Enter activates Save and Escape activates Cancel. Validation moves
+focus to the affected field and presents the error in a screen-reader-exposed
+dialog.
 
 Environment variables remain available for managed or diagnostic use:
 
@@ -93,29 +118,26 @@ Environment values override persisted settings for the current process.
 ```powershell
 python -m offline_writing_reviser --version
 python -m offline_writing_reviser --validate-startup
-```
 
-The packaged equivalents are:
-
-```powershell
 .\OfflineWritingReviser.exe --version
 .\OfflineWritingReviser.exe --validate-startup
 ```
 
-Both commands exit without registering the hotkey or opening the tray.
+Diagnostic commands exit without registering the hotkey or starting a
+background instance.
 
 ## Build
 
-Install the development and build dependencies, then run:
+Install development and build dependencies, then run:
 
 ```powershell
 python -m pip install -e ".[dev,build]"
 .\scripts\build.ps1
 ```
 
-The build script validates its cleanup paths, cleans `build` and `dist`, checks
-the required build tools, runs the test suite, generates the original
-application icon if necessary, and creates:
+The build script validates cleanup paths, cleans `build` and `dist`, checks the
+required build tools, runs tests, generates the original application icon if
+needed, and creates:
 
 ```text
 dist\OfflineWritingReviser.exe
@@ -131,17 +153,23 @@ No Python installation is required to run the resulting executable.
 
 ## Troubleshooting
 
-- **Ollama unavailable:** install/start Ollama and use **Refresh models**.
+- **Settings:** run `OfflineWritingReviser.exe --settings`.
+- **Ollama unavailable:** install or start Ollama, then refresh models.
 - **Model unavailable:** install it manually with Ollama or select another
   already-installed model.
-- **Hotkey unavailable:** another application may own the shortcut. Choose a
-  different `Ctrl`/`Alt` plus letter or number combination.
+- **Hotkey unavailable:** choose a different `Ctrl`/`Alt` plus letter or number
+  combination in Settings.
 - **No text selected:** select editable text in the active application first.
-- **Replacement cancelled:** focus changed while the local model was working;
-  the app deliberately leaves the target and clipboard unchanged.
+- **Replacement cancelled:** focus changed while the model was working, so the
+  app deliberately left the target unchanged.
 - **Timeout:** increase the timeout or choose a smaller local model.
 - **Elevated application:** Windows may prevent a non-elevated utility from
   sending copy/paste input to an elevated target.
+- **Stop a hidden instance:** run `OfflineWritingReviser.exe --exit`.
+
+Errors requiring direct intervention may use a short Windows dialog. Repeated
+dialogs are rate-limited. There are no routine success messages or
+notification-center entries.
 
 Detailed logs are stored at:
 
@@ -151,12 +179,16 @@ Detailed logs are stored at:
 
 The app logs startup/version, configured model, Ollama checks, hotkey lifecycle,
 revision timing and character counts, safe replacement aborts, settings changes,
-failures, and shutdown. It does not log full selected or revised text.
+control commands, failures, restart, and shutdown. It does not log full selected
+or revised text.
 
 ## Current limitations
 
-- Windows only; no installer or Windows autostart registration yet.
+- Windows only; no installer or Windows autostart registration.
 - Ollama CLI is the only provider.
 - Clipboard capture cannot support every custom or elevated editor.
 - Replacement is plain Unicode text; rich formatting is not preserved.
-- Notifications depend on Windows notification settings.
+- Local model output quality depends on the selected model.
+- Final NVDA acceptance should be repeated on the target Windows/NVDA version
+  because automated UI Automation inspection cannot substitute for listening
+  to an interactive screen-reader session.

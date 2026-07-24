@@ -12,12 +12,13 @@ if (-not (Test-Path -LiteralPath $Python -PathType Leaf)) {
 
 $OutputDir = [System.IO.Path]::GetFullPath((Join-Path $ProjectRoot "dist"))
 $BuildDir = [System.IO.Path]::GetFullPath((Join-Path $ProjectRoot "build"))
+$TempDir = [System.IO.Path]::GetFullPath((Join-Path $ProjectRoot ".build-temp"))
 $SpecFile = [System.IO.Path]::GetFullPath((Join-Path $ProjectRoot "OfflineWritingReviser.spec"))
 $IconFile = Join-Path $ProjectRoot "src\offline_writing_reviser\assets\offline-writing-reviser.ico"
 $EntryPoint = Join-Path $ProjectRoot "src\offline_writing_reviser\__main__.py"
 $ExpectedExecutable = Join-Path $OutputDir "OfflineWritingReviser.exe"
 
-foreach ($Target in @($OutputDir, $BuildDir)) {
+foreach ($Target in @($OutputDir, $BuildDir, $TempDir)) {
     if (
         -not $Target.StartsWith(
             $ProjectRoot + [System.IO.Path]::DirectorySeparatorChar,
@@ -30,11 +31,14 @@ foreach ($Target in @($OutputDir, $BuildDir)) {
         Remove-Item -LiteralPath $Target -Recurse -Force
     }
 }
+New-Item -ItemType Directory -Path $TempDir -Force | Out-Null
+$env:TEMP = $TempDir
+$env:TMP = $TempDir
 if (Test-Path -LiteralPath $SpecFile) {
     Remove-Item -LiteralPath $SpecFile -Force
 }
 
-& $Python -c "import PyInstaller, PIL, pystray"
+& $Python -c "import PyInstaller, PIL, PySide6"
 if ($LASTEXITCODE -ne 0) {
     throw 'Required build tooling is missing. Run: python -m pip install -e ".[dev,build]"'
 }
@@ -47,7 +51,7 @@ if (-not (Test-Path -LiteralPath $IconFile -PathType Leaf)) {
 }
 
 if (-not $SkipTests) {
-    & $Python -m pytest
+    & $Python -m pytest -p no:cacheprovider --basetemp (Join-Path $TempDir "pytest")
     if ($LASTEXITCODE -ne 0) {
         throw "Tests failed; packaging stopped."
     }
@@ -66,8 +70,30 @@ if (-not $SkipTests) {
     --exclude-module numpy `
     --exclude-module psutil `
     --exclude-module PyQt5 `
-    --exclude-module PySide6 `
-    --exclude-module tkinter.test `
+    --exclude-module tkinter `
+    --exclude-module PySide6.Qt3DCore `
+    --exclude-module PySide6.Qt3DRender `
+    --exclude-module PySide6.QtBluetooth `
+    --exclude-module PySide6.QtCharts `
+    --exclude-module PySide6.QtDataVisualization `
+    --exclude-module PySide6.QtLocation `
+    --exclude-module PySide6.QtMultimedia `
+    --exclude-module PySide6.QtNetworkAuth `
+    --exclude-module PySide6.QtPdf `
+    --exclude-module PySide6.QtPositioning `
+    --exclude-module PySide6.QtQml `
+    --exclude-module PySide6.QtQuick `
+    --exclude-module PySide6.QtRemoteObjects `
+    --exclude-module PySide6.QtScxml `
+    --exclude-module PySide6.QtSensors `
+    --exclude-module PySide6.QtSerialPort `
+    --exclude-module PySide6.QtSql `
+    --exclude-module PySide6.QtStateMachine `
+    --exclude-module PySide6.QtTest `
+    --exclude-module PySide6.QtWebChannel `
+    --exclude-module PySide6.QtWebEngineCore `
+    --exclude-module PySide6.QtWebEngineWidgets `
+    --exclude-module PySide6.QtWebSockets `
     --paths (Join-Path $ProjectRoot "src") `
     --distpath $OutputDir `
     --workpath $BuildDir `
@@ -79,6 +105,10 @@ if ($LASTEXITCODE -ne 0) {
 
 if (-not (Test-Path -LiteralPath $ExpectedExecutable -PathType Leaf)) {
     throw "Build finished without expected executable: $ExpectedExecutable"
+}
+
+if (Test-Path -LiteralPath $TempDir) {
+    Remove-Item -LiteralPath $TempDir -Recurse -Force
 }
 
 Write-Host "Offline Writing Reviser build created: $ExpectedExecutable"
