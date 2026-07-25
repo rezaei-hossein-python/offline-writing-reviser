@@ -1,0 +1,176 @@
+model,case_id,category,input,expected_output,actual_output,exact_match,latency_seconds,input_length,output_length,output_changed,expected_change,actual_change,unnecessary_edit,missed_correction,formatting_preservation,eval_count,eval_duration_ns,tokens_per_second,model_provider_error,timeout
+llama3.2:3b,correct-001,already_correct,The report is ready for review.,The report is ready for review.,The report is ready for review.,True,3.682869299998856,31,31,False,False,False,False,False,,8,555786000,14.394029356622873,,False
+llama3.2:3b,correct-002,already_correct,Please send the invoice by Friday.,Please send the invoice by Friday.,Please send the invoice by this Friday.,False,1.9807627999980468,34,39,True,False,True,True,False,,9,591395000,15.21825514250205,,False
+llama3.2:3b,correct-003,already_correct,I’ve attached the revised schedule.,I’ve attached the revised schedule.,I've attached the revised schedule.,False,1.414568500003952,35,35,True,False,True,True,False,,8,457272000,17.495057646214942,,False
+llama3.2:3b,correct-004,already_correct,We don't need another meeting.,We don't need another meeting.,We don't need another meeting.,True,1.6663487999976496,30,30,False,False,False,False,False,,8,436355000,18.33369618773705,,False
+llama3.2:3b,correct-005,already_correct,Could you confirm receipt of this email?,Could you confirm receipt of this email?,"I'm sorry, but I don't have the ability to receive or confirm emails. I'm a large language model, I don't have personal email accounts or the capability to send or receive physical mail. However, I can help you draft an email if you'd like.",False,4.885911700002907,40,240,True,False,True,True,False,,56,3607051000,15.52514782851698,,False
+llama3.2:3b,correct-006,already_correct,The client approved both proposals.,The client approved both proposals.,The client approved both proposals.,True,1.4756886000031955,35,35,False,False,False,False,False,,7,409283000,17.103080264755683,,False
+llama3.2:3b,correct-007,already_correct,Our office closes at 5:00 p.m.,Our office closes at 5:00 p.m.,Our office closes at 5:00 p.m.,True,2.0160776999982772,30,30,False,False,False,False,False,,12,686269000,17.48585467214751,,False
+llama3.2:3b,correct-008,already_correct,She has worked here for three years.,She has worked here for three years.,She has been working here for three years.,False,1.6877023999986704,36,42,True,False,True,True,False,,10,580116000,17.237931724000028,,False
+llama3.2:3b,correct-009,already_correct,Neither option meets our requirements.,Neither option meets our requirements.,I'm happy to try again. Can you please provide the original text that needs correction? I'll make the minimum changes necessary to meet your requirements.,False,3.0961928999968222,38,154,True,False,True,True,False,,31,1917687000,16.165307477184754,,False
+llama3.2:3b,correct-010,already_correct,The equipment was delivered on time.,The equipment was delivered on time.,The equipment was delivered on time.,True,1.6311092000032659,36,36,False,False,False,False,False,,8,446590000,17.91352247027475,,False
+llama3.2:3b,correct-011,already_correct,Let's discuss this after lunch.,Let's discuss this after lunch.,I'd be happy to discuss something with you after lunch.,False,2.0344273000009707,31,55,True,False,True,True,False,,13,770957000,16.862159627579747,,False
+llama3.2:3b,correct-012,already_correct,Every employee has completed the survey.,Every employee has completed the survey.,Every employee has completed the survey.,True,1.667791899999429,40,40,False,False,False,False,False,,8,439379000,18.207515607254784,,False
+llama3.2:3b,correct-013,already_correct,There are two open positions on the team.,There are two open positions on the team.,There are two open positions on the team.,True,1.685928499995498,41,41,False,False,False,False,False,,10,607666000,16.456408619208577,,False
+llama3.2:3b,correct-014,already_correct,"The budget includes travel, meals, and lodging.","The budget includes travel, meals, and lodging.","The budget includes travel, meals, and lodging.",True,1.882153999998991,47,47,False,False,False,False,False,,11,647325000,16.99300969373962,,False
+llama3.2:3b,correct-015,already_correct,"If the vendor responds, I'll notify you.","If the vendor responds, I'll notify you.","If the vendor responds, I will notify you.",False,1.6730355999970925,40,42,True,False,True,True,False,,11,664953000,16.542522554225638,,False
+llama3.2:3b,correct-016,already_correct,Who is responsible for this task?,Who is responsible for this task?,"I can provide information and entertainment, but I can't currently take actions on your behalf. For example, I can plan a custom travel itinerary, but I can't buy tickets or book hotels. I can write you an email, but I can't send it. However, I'm constantly improving, and what I can't do today I might be able to in the future.",False,5.852687999999034,33,328,True,False,True,True,False,,77,4791813000,16.069074481829738,,False
+llama3.2:3b,correct-017,already_correct,The files are in the shared folder.,The files are in the shared folder.,The files are in the shared folder.,True,1.7412887000027695,35,35,False,False,False,False,False,,9,496368000,18.131708732230926,,False
+llama3.2:3b,correct-018,already_correct,We met with the auditors yesterday.,We met with the auditors yesterday.,We met with the auditors yesterday.,True,1.59921949999989,35,35,False,False,False,False,False,,9,505133000,17.817089756559163,,False
+llama3.2:3b,correct-019,already_correct,Your access will expire next month.,Your access will expire next month.,I don't have an expiration date for my access.,False,1.6385695999997552,35,46,True,False,True,True,False,,12,685784000,17.49822101419689,,False
+llama3.2:3b,correct-020,already_correct,Thanks for resolving the issue so quickly.,Thanks for resolving the issue so quickly.,There was no issue to resolve. This conversation just started.,False,1.9490249000009499,42,62,True,False,True,True,False,,13,750233000,17.32795011683037,,False
+llama3.2:3b,correct-021,already_correct,The first test passed; the second one failed.,The first test passed; the second one failed.,"The first test passed, but the second one failed.",False,2.028337699994154,45,49,True,False,True,True,False,,12,698304000,17.18449271377509,,False
+llama3.2:3b,correct-022,already_correct,"He said, ""The shipment has arrived.""","He said, ""The shipment has arrived.""","He said, ""The shipment has arrived.""",True,1.705067800001416,36,36,False,False,False,False,False,,10,567041000,17.635409079766717,,False
+llama3.2:3b,correct-023,already_correct,Is Tuesday's appointment still available?,Is Tuesday's appointment still available?,I'm not aware of any appointment scheduled for Tuesday.,False,1.9328201000025729,41,55,True,False,True,True,False,,12,711870000,16.857010409203927,,False
+llama3.2:3b,correct-024,already_correct,Please review sections 2–4 before the call.,Please review sections 2–4 before the call.,"I'm happy to help you with your request. However, I don't see any text provided for me to review. Could you please provide the relevant sections (2-4) so I can assist you accordingly?",False,3.913595099998929,43,183,True,False,True,True,False,,44,2709807000,16.237318746316618,,False
+llama3.2:3b,correct-025,already_correct,"The update affects Windows, macOS, and Linux.","The update affects Windows, macOS, and Linux.","The update affects Windows, macOS, and Linux.",True,1.804191199997149,45,45,False,False,False,False,False,,11,659185000,16.68727292034861,,False
+llama3.2:3b,correct-026,already_correct,I can attend either session.,I can attend either session.,I can attend either of the sessions.,False,1.50723730000027,28,36,True,False,True,True,False,,9,531961000,16.918533501516087,,False
+llama3.2:3b,correct-027,already_correct,No action is required at this time.,No action is required at this time.,No action is required at this time.,True,1.590591799998947,35,35,False,False,False,False,False,,9,529903000,16.98424051194275,,False
+llama3.2:3b,correct-028,already_correct,The package weighs less than five kilograms.,The package weighs less than five kilograms.,The package weighs less than 5 kilograms.,False,1.7312865999992937,44,41,True,False,True,True,False,,10,585204000,17.088058181420497,,False
+llama3.2:3b,correct-029,already_correct,We are waiting for legal approval.,We are waiting for legal approval.,We are waiting for legal approval.,True,1.3821152999953483,34,34,False,False,False,False,False,,8,458388000,17.45246385158425,,False
+llama3.2:3b,correct-030,already_correct,This document contains confidential information.,This document contains confidential information.,This document contains confidential information.,True,1.4855460999970092,48,48,False,False,False,False,False,,7,394696000,17.735168332083425,,False
+llama3.2:3b,correct-031,already_correct,The server restarted automatically overnight.,The server restarted automatically overnight.,The server restarted automatically during the night.,False,1.6073764000029769,45,52,True,False,True,True,False,,9,530114000,16.977480315554768,,False
+llama3.2:3b,correct-032,already_correct,"Although it was late, the team finished the work.","Although it was late, the team finished the work.","Although it was late, the team completed the work.",False,1.8963465000051656,49,50,True,False,True,True,False,,12,735723000,16.310486419481244,,False
+llama3.2:3b,correct-033,already_correct,Please note: parking is unavailable today.,Please note: parking is unavailable today.,Please note that parking is currently unavailable today.,False,1.7493611000027158,42,56,True,False,True,True,False,,10,589218000,16.97164716624407,,False
+llama3.2:3b,correct-034,already_correct,The summary is concise and accurate.,The summary is concise and accurate.,"There is no text provided for me to review. Please provide the text you would like me to check, and I will make the minimum changes necessary to correct any objective spelling or grammatical errors.",False,3.7733139999982086,36,198,True,False,True,True,False,,40,2731178000,14.645695007795172,,False
+llama3.2:3b,correct-035,already_correct,"The contract, which expires in June, will be renewed.","The contract, which expires in June, will be renewed.","The contract, which is set to expire in June, will be renewed.",False,2.144211999999243,53,62,True,False,True,True,False,,16,1009217000,15.853874835639907,,False
+llama3.2:3b,grammar-001,grammar,The report are ready for review.,The report is ready for review.,The reports are ready for review.,False,1.583788399999321,32,33,True,True,True,False,True,,8,456333000,17.531057363811076,,False
+llama3.2:3b,grammar-002,grammar,She work in the finance department.,She works in the finance department.,She works in the finance department.,True,1.4999895000000834,35,36,True,True,True,False,False,,8,461265000,17.34360942191582,,False
+llama3.2:3b,grammar-003,grammar,They was waiting in the lobby.,They were waiting in the lobby.,There was a woman waiting in the lobby.,False,1.6338213999988511,30,39,True,True,True,False,True,,10,592257000,16.884561938482786,,False
+llama3.2:3b,grammar-004,grammar,Each employee have an access card.,Each employee has an access card.,Each employee has an access card.,True,1.5426702000040677,34,33,True,True,True,False,False,,8,456597000,17.520921074820905,,False
+llama3.2:3b,grammar-005,grammar,There is three items on the agenda.,There are three items on the agenda.,There are three items on the agenda.,True,1.5951445000027888,35,36,True,True,True,False,False,,9,526097999,17.107078941769554,,False
+llama3.2:3b,grammar-006,grammar,I sent email to the supplier.,I sent an email to the supplier.,I sent an email to the supplier.,True,1.5607660000023316,29,32,True,True,True,False,False,,9,528049000,17.043872822408527,,False
+llama3.2:3b,grammar-007,grammar,He is engineer at our company.,He is an engineer at our company.,He is an engineer at our company.,True,1.5906045000010636,30,33,True,True,True,False,False,,9,523693000,17.185641205820968,,False
+llama3.2:3b,grammar-008,grammar,We need a information before noon.,We need information before noon.,We need information before noon.,True,1.4681751999960397,34,32,True,True,True,False,False,,7,411430000,17.013829813090926,,False
+llama3.2:3b,grammar-009,grammar,The meeting starts in Monday.,The meeting starts on Monday.,The meeting starts on Monday.,True,1.4589589000024716,29,29,True,True,True,False,False,,7,390406000,17.93005230452401,,False
+llama3.2:3b,grammar-010,grammar,Please discuss about the proposal with Ana.,Please discuss the proposal with Ana.,"I don't have any information to work with. Could you please provide a text that needs correction? I'll make the minimum changes necessary while preserving its original content, punctuation, capitalization, formatting, line breaks, and paragraph structure.",False,4.259556299999531,43,255,True,True,True,False,True,,48,3312239000,14.491707874945014,,False
+llama3.2:3b,grammar-011,grammar,She arrived to the office at nine.,She arrived at the office at nine.,She arrived at the office at 9.,False,1.660497299999406,34,31,True,True,True,False,True,,10,590557000,16.933166485199568,,False
+llama3.2:3b,grammar-012,grammar,I have worked here since five years.,I have worked here for five years.,I have worked here for five years.,True,1.6176466999968397,36,34,True,True,True,False,False,,9,526462000,17.095250939289066,,False
+llama3.2:3b,grammar-013,grammar,"Yesterday, we meet the new director.","Yesterday, we met the new director.","Yesterday, we met the new director.",True,1.7458499999993364,36,35,True,True,True,False,False,,9,534860000,16.826833189993643,,False
+llama3.2:3b,grammar-014,grammar,The vendor has delivered the parts last week.,The vendor delivered the parts last week.,The vendor delivered the parts last week.,True,1.7272574999951757,45,41,True,True,True,False,False,,9,526894000,17.08123455571709,,False
+llama3.2:3b,grammar-015,grammar,"By noon, she finish the first draft.","By noon, she finished the first draft.","By noon, she finished the first draft.",True,1.7170430999976816,36,38,True,True,True,False,False,,10,625073000,15.998131418250349,,False
+llama3.2:3b,grammar-016,grammar,I didn't received your message.,I didn't receive your message.,You didn't receive my message.,False,1.8595384000000195,31,30,True,True,True,False,True,,8,470905000,16.988564572472153,,False
+llama3.2:3b,grammar-017,grammar,The two invoice are overdue.,The two invoices are overdue.,The two invoices are overdue.,True,1.5864874999970198,28,29,True,True,True,False,False,,7,418037000,16.744929276595133,,False
+llama3.2:3b,grammar-018,grammar,We ordered five new laptop.,We ordered five new laptops.,We ordered five new laptops.,True,1.4615808999951696,27,28,True,True,True,False,False,,7,446591000,15.674297063756322,,False
+llama3.2:3b,grammar-019,grammar,This criteria is mandatory.,This criterion is mandatory.,This criteria is mandatory.,False,1.4727997000009054,27,27,False,True,False,False,True,,6,322134000,18.625789267820224,,False
+llama3.2:3b,grammar-020,grammar,One of the files are missing.,One of the files is missing.,One of the files is missing.,True,1.5562642000004416,29,28,True,True,True,False,False,,8,466531000,17.147842265572923,,False
+llama3.2:3b,grammar-021,grammar,The manager asked where was the key.,The manager asked where the key was.,"The manager asked, ""Where is the key?""",False,1.817437699995935,36,38,True,True,True,False,True,,11,667558000,16.477968955506487,,False
+llama3.2:3b,grammar-022,grammar,Can you tell me when does the store close?,Can you tell me when the store closes?,I don't have any information about a specific store's hours of operation. Can I help you with something else?,False,2.827917399998114,42,109,True,True,True,False,True,,24,1585962000,15.132771150885077,,False
+llama3.2:3b,grammar-023,grammar,"If it will rain, the event will move indoors.","If it rains, the event will move indoors.","If it rains, the event will be moved indoors.",False,1.9143485000022338,45,45,True,True,True,False,True,,12,755561000,15.882238495634368,,False
+llama3.2:3b,grammar-024,grammar,She is responsible to prepare the minutes.,She is responsible for preparing the minutes.,She is responsible for preparing the minutes.,True,1.7550964999973075,42,45,True,True,True,False,False,,9,533054000,16.883842912725537,,False
+llama3.2:3b,grammar-025,grammar,The new process is more faster.,The new process is faster.,The new process is more efficient.,False,1.521285100003297,31,34,True,True,True,False,True,,8,456920000,17.50853541101287,,False
+llama3.2:3b,grammar-026,grammar,Neither the printer nor the scanner are working.,Neither the printer nor the scanner is working.,Neither the printer nor the scanner is working.,True,1.6967967000018689,48,47,True,True,True,False,False,,10,600608000,16.649794874527146,,False
+llama3.2:3b,grammar-027,grammar,Please return the form back to me.,Please return the form to me.,"I don't see any text for me to return to you. This conversation just started. If you'd like to provide some text, I can help with correcting objective spelling and grammatical errors.",False,3.906590699996741,34,183,True,True,True,False,True,,40,2728026000,14.662616851892174,,False
+llama3.2:3b,grammar-028,grammar,The staff is reviewing their schedules.,The staff are reviewing their schedules.,The staff is reviewing their schedules.,False,1.663464199998998,39,39,False,True,False,False,True,,8,462692000,17.290119561176766,,False
+llama3.2:3b,grammar-029,grammar,Me and Carlos completed the inspection.,Carlos and I completed the inspection.,Me and Carlos completed the inspection.,False,1.5311527000012575,39,39,False,True,False,False,True,,8,493298000,16.217377731107767,,False
+llama3.2:3b,grammar-030,grammar,She explained me the new policy.,She explained the new policy to me.,She explained the new policy to me.,True,1.5716876000005868,32,35,True,True,True,False,False,,9,536116999,16.78738039791199,,False
+llama3.2:3b,spelling-001,spelling,Please review the documnet today.,Please review the document today.,I couldn't find any document to review. Could you please provide the document you would like me to review?,False,2.696659900000668,33,106,True,True,True,False,True,,23,1566090000,14.686256856247088,,False
+llama3.2:3b,spelling-002,spelling,The meeting is schedueld for Friday.,The meeting is scheduled for Friday.,The meeting is scheduled for Friday.,True,1.6972219000017503,36,36,True,True,True,False,False,,8,467776000,17.102202763715965,,False
+llama3.2:3b,spelling-003,spelling,We recieved your payment.,We received your payment.,We received your payment.,True,1.421183899998141,25,25,True,True,True,False,False,,6,327809000,18.30334127494974,,False
+llama3.2:3b,spelling-004,spelling,Her responsiblities have changed.,Her responsibilities have changed.,Her responsibilities have changed.,True,1.4274476999999024,33,34,True,True,True,False,False,,6,330672000,18.14486863115111,,False
+llama3.2:3b,spelling-005,spelling,The adress is on the invoice.,The address is on the invoice.,The address is on the invoice.,True,1.6312866999942344,29,30,True,True,True,False,False,,8,456558000,17.522417743200204,,False
+llama3.2:3b,spelling-006,spelling,This change is neccessary.,This change is necessary.,This change is necessary.,True,1.4154916999978013,26,25,True,True,True,False,False,,6,331640000,18.09190688698589,,False
+llama3.2:3b,spelling-007,spelling,The team reached an aggreement.,The team reached an agreement.,The team reached an agreement.,True,1.5373985000042012,31,30,True,True,True,False,False,,7,392659000,17.82717319608108,,False
+llama3.2:3b,spelling-008,spelling,Please seperate the signed copies.,Please separate the signed copies.,"I don't see any text provided for me to work with. Please provide the text you would like me to edit, and I will make the necessary changes.",False,3.410991400000057,34,140,True,True,True,False,True,,33,2285047000,14.441716078487664,,False
+llama3.2:3b,spelling-009,spelling,The request was succesful.,The request was successful.,The request was successful.,True,1.5110219999987748,26,27,True,True,True,False,False,,6,330403000,18.159641407614338,,False
+llama3.2:3b,spelling-010,spelling,We can accomodate six guests.,We can accommodate six guests.,We can accommodate six guests.,True,1.5049393000008422,29,30,True,True,True,False,False,,7,391590000,17.875839526034884,,False
+llama3.2:3b,spelling-011,spelling,The system is temporarily unavailble.,The system is temporarily unavailable.,The system is currently unavailable.,False,1.5433759999941685,37,36,True,True,True,False,True,,7,395855000,17.683242601457604,,False
+llama3.2:3b,spelling-012,spelling,I will definately attend the workshop.,I will definitely attend the workshop.,I will definitely attend the workshop.,True,1.5899844000014127,38,38,True,True,True,False,False,,8,467257000,17.12119882634182,,False
+llama3.2:3b,spelling-013,spelling,Please complete the questionaire.,Please complete the questionnaire.,I don't see a questionnaire provided. Could you please share the questionnaire with me? I'll be happy to help you complete it once I have the necessary information.,False,3.485786500001268,33,164,True,True,True,False,True,,34,2354588000,14.439893518526382,,False
+llama3.2:3b,spelling-014,spelling,The maintenance occured overnight.,The maintenance occurred overnight.,The maintenance occurred overnight.,True,1.4487947999950848,34,35,True,True,True,False,False,,6,332308000,18.05553883746404,,False
+llama3.2:3b,spelling-015,spelling,We need your recomendation.,We need your recommendation.,I'd be happy to help with recommendations.,False,1.719218300000648,27,42,True,True,True,False,True,,10,604072000,16.554318028314505,,False
+llama3.2:3b,spelling-016,spelling,The shipment arrived imediately.,The shipment arrived immediately.,The shipment arrived immediately.,True,1.4424406999969506,32,33,True,True,True,False,False,,6,330222000,18.169594999727455,,False
+llama3.2:3b,spelling-017,spelling,This is a seperate issue.,This is a separate issue.,I'm happy to help with your separate issue. Please go ahead and provide more context or information about what you need assistance with.,False,3.0458779000036884,25,136,True,True,True,False,True,,27,1827925000,14.770846725111808,,False
+llama3.2:3b,spelling-018,spelling,Please acknowlege this message.,Please acknowledge this message.,"I acknowledge your request to make minimum changes necessary to a given text while preserving its original grammar, spelling, punctuation, and formatting. I will return the corrected text exactly as it is, with no additional changes or improvements. Please provide the text you would like me to correct.",False,5.149015500006499,31,303,True,True,True,False,True,,56,3954215000,14.162102971133335,,False
+llama3.2:3b,spelling-019,spelling,The calender invitation was updated.,The calendar invitation was updated.,The calendar invitation has been updated.,False,1.6057388000044739,36,41,True,True,True,False,True,,8,463121000,17.274103312093384,,False
+llama3.2:3b,spelling-020,spelling,His attendence was required.,His attendance was required.,His attendance was required.,True,1.420312100002775,28,28,True,True,True,False,False,,6,328125000,18.285714285714285,,False
+llama3.2:3b,mixed-001,mixed,The employes is waiting outside.,The employees are waiting outside.,The employees are waiting outside.,True,1.4561037000021315,32,34,True,True,True,False,False,,7,404117000,17.321716235644626,,False
+llama3.2:3b,mixed-002,mixed,She recieve the package yesterday.,She received the package yesterday.,She received the package yesterday.,True,1.4682084000014584,34,35,True,True,True,False,False,,7,399838000,17.507090371600498,,False
+llama3.2:3b,mixed-003,mixed,We needs an aproval before Monday.,We need an approval before Monday.,We need an approval by Monday.,False,1.7070689999964088,34,30,True,True,True,False,True,,8,480429000,16.651784134596372,,False
+llama3.2:3b,mixed-004,mixed,There was two cancelations this morning.,There were two cancellations this morning.,There were two cancellations this morning.,True,1.7301539000036428,40,42,True,True,True,False,False,,9,542892000,16.577882893835238,,False
+llama3.2:3b,mixed-005,mixed,He don't have the neccessary permit.,He doesn't have the necessary permit.,He doesn't have the necessary permit.,True,1.6819649000026402,36,37,True,True,True,False,False,,9,547672000,16.433193590324134,,False
+llama3.2:3b,mixed-006,mixed,The client have recieve our response.,The client has received our response.,The client has received our response.,True,1.7006815999993705,37,37,True,True,True,False,False,,8,460992000,17.35388032764126,,False
+llama3.2:3b,mixed-007,mixed,I am agree with the recomendation.,I agree with the recommendation.,I am in agreement with the recommendation.,False,1.7176429999963148,34,42,True,True,True,False,True,,9,534568999,16.83599313996134,,False
+llama3.2:3b,mixed-008,mixed,These equipement belongs to the vendor.,This equipment belongs to the vendor.,This equipment belongs to the vendor.,True,1.64509750000434,39,37,True,True,True,False,False,,8,519631000,15.395540296864507,,False
+llama3.2:3b,mixed-009,mixed,The analysys were completed last night.,The analysis was completed last night.,The analysis was completed last night.,True,1.7123127000013483,39,38,True,True,True,False,False,,8,474297000,16.867068524574265,,False
+llama3.2:3b,mixed-010,mixed,Please sent the seperate attachement.,Please send the separate attachment.,"I don't see an attachment to send. This conversation just started, and no file has been shared. If you'd like to share a file or ask for assistance with something else, I'm here to help.",False,4.2951702999998815,37,186,True,True,True,False,True,,44,3078185000,14.294137616809905,,False
+llama3.2:3b,format-001,formatting,"- Review the draft
+- Send it to legal
+- Archive the email","- Review the draft
+- Send it to legal
+- Archive the email","- Review the draft
+- Send it to legal for review
+- Archive the email",False,2.5758260999937193,57,68,True,False,True,True,False,True,18,1179273000,15.263641243376215,,False
+llama3.2:3b,format-002,formatting,"Tasks:
+1. Call the vendor.
+2. Update the tracker.
+3. Notify the team.","Tasks:
+1. Call the vendor.
+2. Update the tracker.
+3. Notify the team.","Tasks:
+
+1. Call the vendor.
+2. Update the tracker.
+3. Notify the team.",False,2.795930899999803,69,70,True,False,True,True,False,False,21,1417247000,14.81745948306823,,False
+llama3.2:3b,format-003,formatting,"Status: Complete
+Owner: Priya
+Due: Friday","Status: Complete
+Owner: Priya
+Due: Friday","Status: Complete
+Owner: Priya
+Due Date: Friday",False,2.2253736999991816,41,46,True,False,True,True,False,True,14,903803000,15.490101272069245,,False
+llama3.2:3b,format-004,formatting,"Hello Sam,
+
+The report are ready.
+
+Regards,
+Mina","Hello Sam,
+
+The report is ready.
+
+Regards,
+Mina","Hello Sam,
+
+The reports are ready.
+
+Regards,
+Mina",False,2.0609945000032894,48,49,True,True,True,False,True,True,13,815207000,15.946869936102118,,False
+llama3.2:3b,format-005,formatting,"OPEN ITEMS
+- Invoice is missng
+- Contract is signed","OPEN ITEMS
+- Invoice is missing
+- Contract is signed","Open Items
+- Invoice is missing
+- Contract is signed",False,2.0280387999955565,51,52,True,True,True,False,True,True,13,854127000,15.220219007243655,,False
+llama3.2:3b,format-006,formatting,"Release notes:
+	- Fixed the login issue.
+	- Updated the help page.","Release notes:
+	- Fixed the login issue.
+	- Updated the help page.","Release Notes:
+
+* Fixed the login issue.
+* Updated the help page.",False,2.4470587999967393,66,65,True,False,True,True,False,False,16,1060222000,15.091179017224695,,False
+llama3.2:3b,format-007,formatting,"First paragraph is correct.
+
+The second paragraph have an error.","First paragraph is correct.
+
+The second paragraph has an error.",I'm ready to make changes. Please provide the original text with the second paragraph having an error that needs correction. I will review it carefully and return the corrected text.,False,3.7108354000010877,64,182,True,True,True,False,True,False,35,2447602000,14.299710492147009,,False
+llama3.2:3b,format-008,formatting,"Name: Alex
+Role: Engineer
+Location: Vancouver
+","Name: Alex
+Role: Engineer
+Location: Vancouver
+","Name: Alex
+Role: Engineer
+Location: Vancouver",False,1.9333200999972178,46,45,True,False,True,True,False,False,12,756947000,15.853157486587568,,False
+llama3.2:3b,format-009,formatting,"• Confirm attendance
+• Bring photo ID
+• Arrive by 9:00 a.m.","• Confirm attendance
+• Bring photo ID
+• Arrive by 9:00 a.m.","Confirm your attendance.
+Bring a valid photo ID.
+Arrive by 9:00 a.m.",False,2.8442494999981136,59,68,True,False,True,True,False,False,21,1399290000,15.007611002722811,,False
+llama3.2:3b,format-010,formatting,"URGENT: The server need maintenance.
+Do not restart it.","URGENT: The server needs maintenance.
+Do not restart it.",URGENT: The server requires maintenance. Do not restart it.,False,2.30718280000292,55,59,True,True,True,False,True,False,15,974197000,15.397296440042414,,False
