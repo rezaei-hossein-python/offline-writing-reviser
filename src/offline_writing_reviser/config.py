@@ -18,7 +18,8 @@ class OfflineWritingConfig:
     model: str = "gemma3:4b"
     hotkey: str = "Ctrl+Alt+W"
     timeout_seconds: float = 45.0
-    max_characters: int = 4000
+    max_characters: int = 20_000
+    chunk_characters: int = 2000
     ollama_executable: str = "ollama"
     log_file: Path = DEFAULT_LOG_FILE
 
@@ -32,6 +33,11 @@ def load_config_from_env() -> OfflineWritingConfig:
         ),
         max_characters=int(
             os.environ.get("OWR_MAX_CHARACTERS", OfflineWritingConfig.max_characters)
+        ),
+        chunk_characters=int(
+            os.environ.get(
+                "OWR_CHUNK_CHARACTERS", OfflineWritingConfig.chunk_characters
+            )
         ),
         ollama_executable=os.environ.get(
             "OWR_OLLAMA_EXECUTABLE", OfflineWritingConfig.ollama_executable

@@ -59,10 +59,22 @@ background runtimes.
 - tightly scoped revision prompt
 - input validation and maximum-length enforcement
 - concurrent revision guard
+- sequential paragraph/sentence/word-aware chunking for long selections
 - output sanitization
 - conservative typography, line-break, paragraph, list, commentary, and
   minimal-edit validation before replacement
 - provider-neutral results and errors
+
+Each chunk is a contiguous slice of the original selection and is validated
+independently. The service joins only fully validated chunks, validates the
+complete result again, and returns nothing if any chunk fails. The Windows
+controller therefore cannot partially replace a selection.
+
+Chunk processing is intentionally sequential to keep memory use bounded and
+failure behavior predictable. Chunking improves reliability and the safe
+processing ceiling; it does not materially solve large-text latency. CPU-only
+Gemma inference remains the dominant bottleneck, very large selections may
+take minutes, and model-based proofreading can still miss corrections.
 
 This layer has no Tkinter, Windows control, Ollama, network, or persistence
 dependency.
@@ -76,6 +88,7 @@ dependency.
 - verifies the configured model before revision
 - invokes the loopback-only Ollama chat API with deterministic proofreading
   settings after confirming the configured model through `ollama list`
+- requests a ten-minute keep-alive so nearby jobs can reuse one loaded model
 - maps missing executable, missing model, timeout, and process failures
 - never downloads a model and has no cloud fallback
 

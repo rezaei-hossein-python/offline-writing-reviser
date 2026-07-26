@@ -31,6 +31,10 @@ def validate_config(config: OfflineWritingConfig) -> OfflineWritingConfig:
         raise SettingsValidationError("Revision timeout must be between 5 and 600 seconds.")
     if not 100 <= int(config.max_characters) <= 100_000:
         raise SettingsValidationError("Maximum input length must be between 100 and 100,000.")
+    if not 200 <= int(config.chunk_characters) <= 20_000:
+        raise SettingsValidationError(
+            "Internal chunk size must be between 200 and 20,000 characters."
+        )
     try:
         modifiers, _key = parse_hotkey(hotkey)
     except ValueError as exc:
@@ -47,6 +51,7 @@ def validate_config(config: OfflineWritingConfig) -> OfflineWritingConfig:
         hotkey=canonicalize_hotkey(hotkey),
         timeout_seconds=float(config.timeout_seconds),
         max_characters=int(config.max_characters),
+        chunk_characters=int(config.chunk_characters),
     )
 
 
@@ -167,6 +172,8 @@ def _apply_environment_overrides(config: OfflineWritingConfig) -> OfflineWriting
         updates["timeout_seconds"] = float(os.environ["OWR_TIMEOUT_SECONDS"])
     if "OWR_MAX_CHARACTERS" in os.environ:
         updates["max_characters"] = int(os.environ["OWR_MAX_CHARACTERS"])
+    if "OWR_CHUNK_CHARACTERS" in os.environ:
+        updates["chunk_characters"] = int(os.environ["OWR_CHUNK_CHARACTERS"])
     if "OWR_OLLAMA_EXECUTABLE" in os.environ:
         updates["ollama_executable"] = os.environ["OWR_OLLAMA_EXECUTABLE"]
     if "OWR_LOG_FILE" in os.environ:

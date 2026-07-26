@@ -43,6 +43,7 @@ def clear_settings_environment(monkeypatch):
         "OWR_HOTKEY",
         "OWR_TIMEOUT_SECONDS",
         "OWR_MAX_CHARACTERS",
+        "OWR_CHUNK_CHARACTERS",
         "OWR_OLLAMA_EXECUTABLE",
         "OWR_LOG_FILE",
     ):
@@ -55,8 +56,18 @@ def test_default_settings_are_sensible(tmp_path):
 
     assert loaded.model == "gemma3:4b"
     assert loaded.timeout_seconds == 45.0
-    assert loaded.max_characters == 4000
+    assert loaded.max_characters == 20_000
+    assert loaded.chunk_characters == 2000
     assert loaded.hotkey == "Ctrl+Alt+W"
+
+
+def test_internal_chunk_size_can_be_configured_by_environment(monkeypatch, tmp_path):
+    monkeypatch.setenv("OWR_CHUNK_CHARACTERS", "1200")
+    defaults = OfflineWritingConfig(log_file=tmp_path / "app.log")
+
+    loaded = SettingsStore(tmp_path / "settings.json", defaults=defaults).load()
+
+    assert loaded.chunk_characters == 1200
 
 
 def test_settings_save_and_load_round_trip(tmp_path):

@@ -17,6 +17,7 @@ from offline_writing_reviser.providers.base import (
 )
 
 OLLAMA_API_URL = "http://127.0.0.1:11434"
+PROOFREADING_KEEP_ALIVE = "10m"
 PROOFREADING_GENERATION_OPTIONS = {
     "temperature": 0,
     "seed": 0,
@@ -74,6 +75,7 @@ class OllamaCliOfflineWritingProvider(OfflineWritingProvider):
             "model": self._model,
             "stream": False,
             "think": False,
+            "keep_alive": PROOFREADING_KEEP_ALIVE,
             "messages": [
                 {"role": "system", "content": instruction},
                 {"role": "user", "content": text},

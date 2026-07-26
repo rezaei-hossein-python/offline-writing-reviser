@@ -97,7 +97,7 @@ Defaults:
 
 - Model: `gemma3:4b`
 - Revision timeout: 45 seconds
-- Maximum input length: 4,000 characters
+- Maximum input length: 20,000 characters
 - Global hotkey: `Ctrl+Alt+W`
 
 The Settings window uses Qt Widgets with the Windows UI Automation
@@ -114,6 +114,7 @@ Environment variables remain available for managed or diagnostic use:
 - `OWR_MODEL`
 - `OWR_TIMEOUT_SECONDS`
 - `OWR_MAX_CHARACTERS`
+- `OWR_CHUNK_CHARACTERS` (internal chunk target; defaults to 2,000)
 - `OWR_HOTKEY`
 - `OWR_LOG_FILE`
 
@@ -195,6 +196,12 @@ or revised text.
 - Clipboard capture cannot support every custom or elevated editor.
 - Replacement is plain Unicode text; rich formatting is not preserved.
 - Local model output quality depends on the selected model.
+- Large selections are split into sequential, boundary-aware chunks to improve
+  reliability and the safe processing ceiling, not to provide a major speed
+  improvement. CPU-only Gemma inference remains the dominant bottleneck, so
+  very large selections may take several minutes.
+- Proofreading is model-based and can still miss corrections, especially in
+  long or highly repetitive text.
 - Final NVDA acceptance should be repeated on the target Windows/NVDA version
   because automated UI Automation inspection cannot substitute for listening
   to an interactive screen-reader session.

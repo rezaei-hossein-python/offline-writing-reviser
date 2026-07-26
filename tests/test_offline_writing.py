@@ -21,6 +21,7 @@ from offline_writing_reviser.core import (
     OfflineWritingMalformedOutput,
     OfflineWritingService,
     sanitize_revision_output,
+    split_proofreading_chunks,
 )
 from offline_writing_reviser.windows.hotkeys import WM_HOTKEY, HotkeyBinding, WindowsHotkeyManager, parse_hotkey
 from offline_writing_reviser.windows.controller import OfflineWritingController
@@ -69,6 +70,32 @@ class FakeOfflineWritingProvider(OfflineWritingProvider):
         return self.response
 
 
+class ChunkResponseProvider(OfflineWritingProvider):
+    provider_name = "fake_offline"
+    model_identifier = "fake-chunked"
+
+    def __init__(self, response_factory):
+        self.response_factory = response_factory
+        self.calls = []
+
+    def is_available(self) -> bool:
+        return True
+
+    def revise(self, text: str, instruction: str, timeout_seconds: float) -> str:
+        index = len(self.calls) + 1
+        self.calls.append(
+            {
+                "text": text,
+                "instruction": instruction,
+                "timeout_seconds": timeout_seconds,
+            }
+        )
+        response = self.response_factory(text, index)
+        if isinstance(response, Exception):
+            raise response
+        return response
+
+
 def test_revision_prompt_contract_is_tightly_scoped():
     assert "Correct only objective spelling and grammatical errors" in REVISION_INSTRUCTION
     assert "Make the minimum changes necessary" in REVISION_INSTRUCTION
@@ -96,6 +123,158 @@ def test_multiline_text_is_sent_to_provider():
 
     assert result.revised_text == "First line.\n\nSecond line."
     assert provider.calls[0]["text"] == "First line\n\nSecond line"
+
+
+def test_short_text_bypasses_chunking_with_one_request():
+    provider = ChunkResponseProvider(lambda text, _index: text)
+    service = OfflineWritingService(
+        provider,
+        config=OfflineWritingConfig(chunk_characters=200),
+    )
+
+    result = service.revise("This short sentence is already correct.")
+
+    assert result.revised_text == "This short sentence is already correct."
+    assert len(provider.calls) == 1
+
+
+def test_chunker_prefers_paragraph_boundaries():
+    text = "Alpha one.\n\nBeta two.\n\nGamma three."
+
+    chunks = split_proofreading_chunks(text, target_characters=18)
+
+    assert chunks == ["Alpha one.\n\n", "Beta two.\n\n", "Gamma three."]
+    assert "".join(chunks) == text
+
+
+def test_chunker_uses_sentence_boundaries_inside_long_paragraph():
+    text = "First sentence is here. Second sentence is here. Third sentence."
+
+    chunks = split_proofreading_chunks(text, target_characters=30)
+
+    assert chunks == [
+        "First sentence is here. ",
+        "Second sentence is here. ",
+        "Third sentence.",
+    ]
+
+
+def test_chunker_hard_split_never_splits_inside_a_word():
+    text = "alphabet bravocharlie deltaecho foxtrot"
+
+    chunks = split_proofreading_chunks(text, target_characters=12)
+
+    assert "".join(chunks) == text
+    assert chunks == ["alphabet ", "bravocharlie ", "deltaecho ", "foxtrot"]
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "First paragraph.\n\nSecond paragraph.\n\nThird paragraph.",
+        "First paragraph.\r\n\r\nSecond paragraph.\r\n\r\nThird paragraph.",
+        "- First item.\n- Second item.\n- Third item.",
+    ],
+)
+def test_chunked_unchanged_text_preserves_formatting_exactly(text):
+    provider = ChunkResponseProvider(lambda chunk, _index: chunk)
+    service = OfflineWritingService(
+        provider,
+        config=OfflineWritingConfig(chunk_characters=20),
+    )
+
+    result = service.revise(text)
+
+    assert len(provider.calls) > 1
+    assert result.revised_text == text
+
+
+def test_long_input_round_trip_reconstructs_exactly():
+    paragraphs = [
+        f"Paragraph {index} is already correct and must remain exactly unchanged."
+        for index in range(1, 41)
+    ]
+    text = "\r\n\r\n".join(paragraphs)
+    provider = ChunkResponseProvider(lambda chunk, _index: chunk)
+    service = OfflineWritingService(
+        provider,
+        config=OfflineWritingConfig(
+            max_characters=20_000,
+            chunk_characters=300,
+        ),
+    )
+
+    result = service.revise(text)
+
+    assert len(provider.calls) > 1
+    assert all(call["text"] == call["text"].strip() for call in provider.calls)
+    assert result.revised_text == text
+
+
+def test_mixed_changed_and_unchanged_chunks_reassemble_in_order():
+    text = (
+        "The first paragraph is already correct.\n\n"
+        "I recieved the second paragraph yesterday.\n\n"
+        "The final paragraph is also correct."
+    )
+    provider = ChunkResponseProvider(
+        lambda chunk, _index: chunk.replace("recieved", "received")
+    )
+    service = OfflineWritingService(
+        provider,
+        config=OfflineWritingConfig(chunk_characters=50),
+    )
+
+    result = service.revise(text)
+
+    assert result.revised_text == text.replace("recieved", "received")
+    assert len(provider.calls) == 3
+
+
+def test_one_failed_chunk_aborts_remaining_chunks_and_logs_index(caplog):
+    text = "\n\n".join(
+        f"Paragraph {index} is long enough to require its own bounded request."
+        for index in range(1, 5)
+    )
+    provider = ChunkResponseProvider(
+        lambda chunk, index: (
+            OfflineWritingMalformedOutput("invalid chunk") if index == 2 else chunk
+        )
+    )
+    service = OfflineWritingService(
+        provider,
+        config=OfflineWritingConfig(chunk_characters=80),
+    )
+
+    with caplog.at_level("WARNING", logger="offline-writing-reviser"):
+        with pytest.raises(OfflineWritingMalformedOutput):
+            service.revise(text)
+
+    assert len(provider.calls) == 2
+    log_text = "\n".join(record.getMessage() for record in caplog.records)
+    assert "chunk_index=2" in log_text
+    assert text not in log_text
+
+
+def test_one_timeout_aborts_remaining_chunks():
+    text = "\n\n".join(
+        f"Paragraph {index} is long enough to require its own bounded request."
+        for index in range(1, 5)
+    )
+    provider = ChunkResponseProvider(
+        lambda chunk, index: (
+            OfflineWritingProviderTimeout("timeout") if index == 2 else chunk
+        )
+    )
+    service = OfflineWritingService(
+        provider,
+        config=OfflineWritingConfig(chunk_characters=80),
+    )
+
+    with pytest.raises(OfflineWritingProviderTimeout):
+        service.revise(text)
+
+    assert len(provider.calls) == 2
 
 
 @pytest.mark.parametrize(
@@ -340,6 +519,32 @@ def test_concurrency_guard_prevents_overlapping_revisions():
     thread.join(timeout=1)
 
 
+def test_concurrency_guard_remains_active_for_chunked_revision():
+    text = "\n\n".join(
+        f"Paragraph {index} is already correct and deliberately long."
+        for index in range(20)
+    )
+    provider = ChunkResponseProvider(
+        lambda chunk, _index: (time.sleep(0.05), chunk)[1]
+    )
+    service = OfflineWritingService(
+        provider,
+        config=OfflineWritingConfig(
+            max_characters=20_000,
+            chunk_characters=200,
+        ),
+    )
+    first = threading.Thread(target=lambda: service.revise(text))
+
+    first.start()
+    time.sleep(0.02)
+    with pytest.raises(OfflineWritingBusy):
+        service.revise("Second request must remain blocked.")
+    first.join(timeout=3)
+
+    assert not first.is_alive()
+
+
 def test_no_cloud_fallback_when_model_router_is_broken():
     sources = "\n".join(
         path.read_text(encoding="utf-8")
@@ -375,7 +580,8 @@ def test_configuration_defaults():
     assert config.provider == "ollama_cli"
     assert config.model == "gemma3:4b"
     assert config.hotkey == "Ctrl+Alt+W"
-    assert config.max_characters == 4000
+    assert config.max_characters == 20_000
+    assert config.chunk_characters == 2000
 
 
 class FakeCapture:
@@ -565,6 +771,31 @@ def test_invalid_model_output_does_not_replace_selection():
 
     controller._run_revision()
 
+    assert adapter.replaced_with is None
+
+
+def test_failed_chunk_performs_no_partial_replacement():
+    text = "\n\n".join(
+        f"Paragraph {index} is long enough to require its own request."
+        for index in range(1, 5)
+    )
+    adapter = FakeTextAdapter()
+    adapter.capture_value.text = text
+    provider = ChunkResponseProvider(
+        lambda chunk, index: (
+            OfflineWritingMalformedOutput("invalid chunk") if index == 2 else chunk
+        )
+    )
+    service = OfflineWritingService(
+        provider,
+        config=OfflineWritingConfig(chunk_characters=70),
+    )
+    controller = OfflineWritingController(service=service, text_adapter=adapter)
+
+    controller._run_revision()
+
+    assert len(provider.calls) == 2
+    assert adapter.capture_value.text == text
     assert adapter.replaced_with is None
 
 
@@ -1095,6 +1326,7 @@ def test_ollama_cli_request(monkeypatch):
     assert requests[0][0].full_url == "http://127.0.0.1:11434/api/chat"
     assert payload["model"] == "gemma3:4b"
     assert payload["think"] is False
+    assert payload["keep_alive"] == "10m"
     assert payload["options"] == {
         "temperature": 0,
         "seed": 0,

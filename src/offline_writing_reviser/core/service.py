@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import logging
+import re
 import threading
 import time
 
 from offline_writing_reviser.config import OfflineWritingConfig
+from offline_writing_reviser.core.chunking import split_proofreading_chunks
 from offline_writing_reviser.core.errors import (
     OfflineWritingBusy,
     OfflineWritingInputError,
@@ -53,23 +55,26 @@ class OfflineWritingService:
         try:
             if not self.provider.is_available():
                 raise OfflineWritingProviderUnavailable("Local writing provider unavailable")
-            self.logger.info(
-                "Offline writing Ollama invocation started provider=%s model=%s",
-                self.provider.provider_name,
-                self.provider.model_identifier,
-            )
-            raw_output = self.provider.revise(
-                selected_text,
-                REVISION_INSTRUCTION,
-                timeout_seconds=self.config.timeout_seconds,
+            chunks = split_proofreading_chunks(
+                selected_text, self.config.chunk_characters
             )
             self.logger.info(
-                "Offline writing Ollama invocation completed raw_chars=%s provider=%s model=%s",
-                len(raw_output),
-                self.provider.provider_name,
-                self.provider.model_identifier,
+                "Offline writing chunk plan chunk_count=%s chunk_target_chars=%s",
+                len(chunks),
+                self.config.chunk_characters,
             )
-            revised_text = sanitize_revision_output(raw_output, original_text=selected_text)
+            revised_chunks = []
+            for index, chunk in enumerate(chunks, start=1):
+                prefix, content, suffix = _separate_outer_whitespace(chunk)
+                revised_content = (
+                    self._revise_chunk(content, index, len(chunks))
+                    if content
+                    else content
+                )
+                revised_chunks.append(prefix + revised_content + suffix)
+            revised_text = sanitize_revision_output(
+                "".join(revised_chunks), original_text=selected_text
+            )
             duration_ms = (time.perf_counter() - started) * 1000
             if revised_text == selected_text:
                 self.logger.info(
@@ -118,3 +123,67 @@ class OfflineWritingService:
             raise
         finally:
             self._lock.release()
+
+    def _revise_chunk(self, chunk: str, index: int, chunk_count: int) -> str:
+        self.logger.info(
+            "Offline writing Ollama invocation started chunk_index=%s "
+            "chunk_count=%s chars=%s provider=%s model=%s",
+            index,
+            chunk_count,
+            len(chunk),
+            self.provider.provider_name,
+            self.provider.model_identifier,
+        )
+        try:
+            raw_output = self.provider.revise(
+                chunk,
+                REVISION_INSTRUCTION,
+                timeout_seconds=self.config.timeout_seconds,
+            )
+            revised = sanitize_revision_output(raw_output, original_text=chunk)
+        except (
+            OfflineWritingMalformedOutput,
+            OfflineWritingProviderError,
+            OfflineWritingProviderTimeout,
+            OfflineWritingProviderUnavailable,
+        ) as exc:
+            self.logger.warning(
+                "Offline writing chunk failed chunk_index=%s chunk_count=%s "
+                "category=%s",
+                index,
+                chunk_count,
+                exc.__class__.__name__,
+            )
+            raise
+        except Exception as exc:
+            self.logger.warning(
+                "Offline writing chunk failed chunk_index=%s chunk_count=%s "
+                "category=%s",
+                index,
+                chunk_count,
+                exc.__class__.__name__,
+            )
+            raise
+        self.logger.info(
+            "Offline writing Ollama invocation completed chunk_index=%s "
+            "chunk_count=%s raw_chars=%s revised_chars=%s provider=%s model=%s",
+            index,
+            chunk_count,
+            len(raw_output),
+            len(revised),
+            self.provider.provider_name,
+            self.provider.model_identifier,
+        )
+        return revised
+
+
+def _separate_outer_whitespace(value: str) -> tuple[str, str, str]:
+    leading = re.match(r"^\s*", value).group(0)
+    without_leading = value[len(leading) :]
+    trailing = re.search(r"\s*$", without_leading).group(0)
+    content = (
+        without_leading[: -len(trailing)]
+        if trailing
+        else without_leading
+    )
+    return leading, content, trailing

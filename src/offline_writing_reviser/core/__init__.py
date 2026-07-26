@@ -1,4 +1,5 @@
 from offline_writing_reviser.config import OfflineWritingConfig
+from offline_writing_reviser.core.chunking import split_proofreading_chunks
 from offline_writing_reviser.core.errors import (
     OfflineWritingBusy,
     OfflineWritingError,
@@ -20,4 +21,5 @@ __all__ = [
     "REVISION_INSTRUCTION",
     "WritingRevisionResult",
     "sanitize_revision_output",
+    "split_proofreading_chunks",
 ]
