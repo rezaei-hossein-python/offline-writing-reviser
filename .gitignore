@@ -11,3 +11,4 @@ dist/
 OfflineWritingReviser.spec
 *.egg-info/
 *.log
+vendor/
