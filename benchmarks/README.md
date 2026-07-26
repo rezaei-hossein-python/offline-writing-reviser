@@ -265,3 +265,99 @@ hybrid production-ready.
 Phase 18D remains benchmark-only. It does not modify production prompts,
 providers, model defaults, settings, UI, hotkeys, clipboard handling,
 sanitization, chunking, packaging, or executable behavior under `src/`.
+
+## Phase 18E hybrid performance profiling
+
+Phase 18E profiles the routed Gemma stage before making performance changes.
+The focused harness replays the routed Phase 18D cases and records cold and
+warm wall time, model load time, prompt evaluation time and token count,
+generation time and token count, payload size, response size, validation
+outcome, and exact output:
+
+```powershell
+python benchmarks/run_hybrid_performance.py --limit-routed 21 `
+  --configs baseline_18d baseline_small_limits compact_prompt `
+  split_system_ctx1024 raw_exact_ctx2048
+```
+
+Each configuration is explicitly unloaded for one cold request and then run
+warm. The first warm request repeats the cold probe exactly, so the JSON report
+contains both all-warm metrics and a `steady_*` series that excludes this
+unusually favorable whole-prompt cache hit. Generated experiment evidence is
+written to the gitignored
+`results/hybrid/performance_experiments.json`.
+
+For a complete quality run with a reproducible cold request:
+
+```powershell
+python benchmarks/run_hybrid_benchmark.py --cold-start `
+  --gemma-keep-alive 10m
+```
+
+The full hybrid report now retains native Ollama telemetry for every routed
+case and separately reports the cold request and warm routed
+mean/median/P95. Omitting `--cold-start` measures the state Ollama already has.
+
+### Diagnosis
+
+On the profiling machine Gemma runs CPU-only (`size_vram=0`). Generated answers
+average only eight tokens and generation averages about 0.65 seconds. In the
+complete Phase 18E run, warm requests instead averaged about 5.74 seconds of
+prompt evaluation and 2.67 seconds of Ollama load/context preparation. The
+explicit cold request added 16.35 seconds of model load time. Python,
+LanguageTool, serialization, response size, and validation are not material
+contributors to routed latency.
+
+The resident model used an 8,192-token context and was observed at about
+2.8 GB working set and 4.4 GB private memory. Explicit 10-minute keep-alive
+therefore trades memory residency for avoiding reloads during an active
+proofreading session. It does not make an already-warm CPU inference faster.
+
+### Experiments and decision
+
+The following approaches were measured:
+
+- Reducing `num_ctx` to 2,048 and `num_predict` to 128 retained the 21 routed
+  quality outcomes, but steady median latency was 10.77 seconds versus 10.16
+  seconds for the same-run baseline; it was rejected.
+- A compact prompt reached roughly 5.5 seconds on focused warm probes, but
+  regressed `grammar-015`, `mixed-005`, and `mixed-007`; it was rejected.
+- Moving evidence into a separate system or user message retained less prefix
+  text in each dynamic message, but either slowed inference or changed hard
+  case outputs; it was rejected.
+- Removing LanguageTool messages from the evidence changed context-dependent
+  results; it was rejected.
+- Forced six- and twelve-thread configurations did not beat Ollama's automatic
+  choice and caused model reconfiguration overhead; they were rejected.
+- Raw generation using Gemma's exact rendered chat token layout retained all
+  21 outcomes. Cold latency improved from 19.78 to 17.50 seconds in the focused
+  comparison, but steady median/P95 were 10.49/14.95 seconds versus
+  10.16/12.24 seconds; the added template coupling was rejected.
+- Batching was not selected because it improves an offline benchmark rather
+  than single-request hotkey latency. Result caching was not selected because
+  benchmark inputs are distinct and repeated-text hits are not representative.
+
+The selected change is intentionally conservative: preserve the exact Phase
+18D prompt, message layout, inference options, routing, and validator; make
+model residency explicit at 10 minutes; and add reproducible cold/warm
+telemetry. The 105-case Phase 18E run produced exactly the same final output
+for every case as Phase 18D:
+
+- exact correction: 59.375% (38/64);
+- exact preservation: 100% (35/35);
+- over-edit rate: 0% (0/41);
+- formatting preservation: 100% (10/10);
+- Gemma calls/accepted/rejected: 21/18/3;
+- accepted non-exact outputs and regressions: 0/0.
+
+The explicit cold routed request was 21.84 seconds. The remaining 20 resident
+requests measured 9.11 seconds mean, 9.29 seconds median, and 10.41 seconds
+P95. Avoiding a reload reduced this run's cold-to-warm-median experience by
+57.5%, but the official Phase 18D routed median was 9.16 seconds; Phase 18E
+does not demonstrate a steady-state inference improvement over that baseline.
+The preferred sub-five-second target was not achieved on this CPU without
+quality regressions.
+
+This remains benchmark-only. The production provider, prompt, model default
+(`gemma3:4b`), hotkey path, clipboard, UI, settings, packaging, and all runtime
+behavior under `src/` are unchanged.

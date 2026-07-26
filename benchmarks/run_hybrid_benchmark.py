@@ -37,11 +37,12 @@ from run_languagetool_benchmark import (
     safe_rate,
     validate_bundled_runtime,
 )
-from run_proofreading_benchmark import OllamaClient
+from run_proofreading_benchmark import DEFAULT_OPTIONS, OllamaClient
 
 
 MODEL = "gemma3:4b"
 PROMPT_VERSION = "phase18d-v1"
+DEFAULT_GEMMA_KEEP_ALIVE = "10m"
 HYBRID_PROMPT = """You are the second stage of a conservative proofreading system.
 
 Correct only genuine objective grammar or spelling errors in the supplied text.
@@ -68,6 +69,51 @@ COMMENTARY_PREFIX = re.compile(
     re.IGNORECASE,
 )
 NEWLINE_PATTERN = re.compile(r"\r\n|\r|\n")
+
+
+class ResidentOllamaClient(OllamaClient):
+    """Phase 18E benchmark client with explicit residency and telemetry."""
+
+    def __init__(self, base_url: str, timeout: float, keep_alive: str):
+        super().__init__(base_url, timeout)
+        self.keep_alive = keep_alive
+        self.cold_start_pending = False
+
+    def unload(self, model: str) -> None:
+        self.request(
+            "/api/generate",
+            {"model": model, "prompt": "", "stream": False, "keep_alive": 0},
+        )
+        self.cold_start_pending = True
+
+    def generate(
+        self, model: str, text: str, instruction: str = HYBRID_PROMPT
+    ) -> tuple[str, dict[str, Any]]:
+        payload = {
+            "model": model,
+            "stream": False,
+            "think": False,
+            "keep_alive": self.keep_alive,
+            "messages": [
+                {"role": "system", "content": instruction},
+                {"role": "user", "content": text},
+            ],
+            # Preserve the Phase 18D inference settings exactly. The Phase 18E
+            # harness found that smaller limits did not improve steady latency.
+            "options": DEFAULT_OPTIONS,
+        }
+        payload_bytes = len(
+            json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        )
+        result = self.request("/api/chat", payload)
+        response_bytes = len(
+            json.dumps(result, ensure_ascii=False).encode("utf-8")
+        )
+        result["_benchmark_request_payload_bytes"] = payload_bytes
+        result["_benchmark_response_bytes"] = response_bytes
+        result["_benchmark_cold_start"] = self.cold_start_pending
+        self.cold_start_pending = False
+        return str(result.get("message", {}).get("content", "")), result
 
 
 def parse_args() -> argparse.Namespace:
@@ -102,6 +148,16 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--model", default=MODEL, help="Installed local Gemma model.")
     parser.add_argument("--gemma-timeout", type=float, default=180.0)
+    parser.add_argument(
+        "--gemma-keep-alive",
+        default=DEFAULT_GEMMA_KEEP_ALIVE,
+        help="Ollama model residency after a routed request (default: %(default)s).",
+    )
+    parser.add_argument(
+        "--cold-start",
+        action="store_true",
+        help="Explicitly unload Gemma before the run to measure one cold request.",
+    )
     parser.add_argument(
         "--gemma-only-results",
         type=Path,
@@ -480,8 +536,9 @@ def hybrid_case(
     expected_change = case["input"] != case["expected"]
     safe_exact = safe_output == case["expected"]
     final_exact = final_output == case["expected"]
-    eval_count = (gemma_response or {}).get("eval_count")
-    eval_duration = (gemma_response or {}).get("eval_duration")
+    response_metrics = gemma_response or {}
+    eval_count = response_metrics.get("eval_count")
+    eval_duration = response_metrics.get("eval_duration")
     total_latency = time.perf_counter() - case_started
     return {
         "case_id": case["id"],
@@ -510,6 +567,19 @@ def hybrid_case(
         "raw_gemma_output": raw_output,
         "gemma_provider_error": gemma_error,
         "gemma_response_metrics": {
+            "cold_start": response_metrics.get("_benchmark_cold_start"),
+            "request_payload_bytes": response_metrics.get(
+                "_benchmark_request_payload_bytes"
+            ),
+            "response_bytes": response_metrics.get(
+                "_benchmark_response_bytes"
+            ),
+            "total_duration_ns": response_metrics.get("total_duration"),
+            "load_duration_ns": response_metrics.get("load_duration"),
+            "prompt_eval_count": response_metrics.get("prompt_eval_count"),
+            "prompt_eval_duration_ns": response_metrics.get(
+                "prompt_eval_duration"
+            ),
             "eval_count": eval_count,
             "eval_duration_ns": eval_duration,
             "tokens_per_second": (
@@ -571,6 +641,30 @@ def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
     gemma_latencies = [
         record["gemma_latency_seconds"] for record in routed
     ]
+    cold_routed = [
+        record
+        for record in routed
+        if record["gemma_response_metrics"].get("cold_start") is True
+    ]
+    warm_routed = [
+        record
+        for record in routed
+        if record["gemma_response_metrics"].get("cold_start") is not True
+    ]
+    warm_gemma_latencies = [
+        record["gemma_latency_seconds"] for record in warm_routed
+    ]
+    def warm_metric(name: str) -> float | None:
+        values = [
+            record["gemma_response_metrics"].get(name)
+            for record in warm_routed
+        ]
+        numeric = [float(value) for value in values if value is not None]
+        return statistics.fmean(numeric) if numeric else None
+
+    warm_load_ns = warm_metric("load_duration_ns")
+    warm_prompt_eval_ns = warm_metric("prompt_eval_duration_ns")
+    warm_eval_ns = warm_metric("eval_duration_ns")
     routing_reasons = Counter(record["routing_reason"] for record in records)
     rejection_reasons: Counter[str] = Counter()
     for record in rejected:
@@ -619,6 +713,45 @@ def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
             statistics.median(gemma_latencies) if gemma_latencies else None
         ),
         "p95_gemma_latency_seconds": percentile(gemma_latencies, 0.95),
+        "cold_gemma_request_count": len(cold_routed),
+        "cold_gemma_latency_seconds": (
+            cold_routed[0]["gemma_latency_seconds"] if cold_routed else None
+        ),
+        "warm_gemma_request_count": len(warm_routed),
+        "mean_warm_gemma_latency_seconds": (
+            statistics.fmean(warm_gemma_latencies)
+            if warm_gemma_latencies
+            else None
+        ),
+        "median_warm_gemma_latency_seconds": (
+            statistics.median(warm_gemma_latencies)
+            if warm_gemma_latencies
+            else None
+        ),
+        "p95_warm_gemma_latency_seconds": (
+            percentile(warm_gemma_latencies, 0.95)
+            if warm_gemma_latencies
+            else None
+        ),
+        "mean_warm_load_duration_seconds": (
+            warm_load_ns / 1_000_000_000
+            if warm_load_ns is not None
+            else None
+        ),
+        "mean_warm_prompt_eval_duration_seconds": (
+            warm_prompt_eval_ns / 1_000_000_000
+            if warm_prompt_eval_ns is not None
+            else None
+        ),
+        "mean_warm_generation_duration_seconds": (
+            warm_eval_ns / 1_000_000_000
+            if warm_eval_ns is not None
+            else None
+        ),
+        "mean_warm_prompt_tokens": warm_metric("prompt_eval_count"),
+        "mean_warm_generated_tokens": warm_metric("eval_count"),
+        "mean_request_payload_bytes": warm_metric("request_payload_bytes"),
+        "mean_response_bytes": warm_metric("response_bytes"),
         "gemma_invocation_count": len(routed),
         "gemma_invocation_rate": safe_rate(len(routed), len(records)),
         "gemma_acceptance_count": len(accepted),
@@ -794,6 +927,21 @@ def markdown_report(result: dict[str, Any]) -> str:
             f"{num(summary['mean_gemma_latency_seconds'])} / "
             f"{num(summary['median_gemma_latency_seconds'])} / "
             f"{num(summary['p95_gemma_latency_seconds'])} seconds",
+            f"- Explicit cold Gemma request: "
+            f"{num(summary['cold_gemma_latency_seconds'])} seconds "
+            f"({summary['cold_gemma_request_count']} request)",
+            f"- Warm Gemma mean/median/P95: "
+            f"{num(summary['mean_warm_gemma_latency_seconds'])} / "
+            f"{num(summary['median_warm_gemma_latency_seconds'])} / "
+            f"{num(summary['p95_warm_gemma_latency_seconds'])} seconds "
+            f"({summary['warm_gemma_request_count']} requests)",
+            f"- Warm mean load/prompt/generation: "
+            f"{num(summary['mean_warm_load_duration_seconds'])} / "
+            f"{num(summary['mean_warm_prompt_eval_duration_seconds'])} / "
+            f"{num(summary['mean_warm_generation_duration_seconds'])} seconds",
+            f"- Warm mean prompt/generated tokens: "
+            f"{num(summary['mean_warm_prompt_tokens'])} / "
+            f"{num(summary['mean_warm_generated_tokens'])}",
             "",
             "## Policy",
             "",
@@ -907,12 +1055,16 @@ def main() -> int:
         cases = cases[: args.limit]
 
     java, jar = validate_bundled_runtime(args.java, args.server_jar)
-    gemma_client = OllamaClient(args.ollama_base_url, args.gemma_timeout)
+    gemma_client = ResidentOllamaClient(
+        args.ollama_base_url, args.gemma_timeout, args.gemma_keep_alive
+    )
     installed = gemma_client.installed_models()
     if args.model not in installed:
         raise RuntimeError(
             f"Required model {args.model!r} is not installed; installed={installed}"
         )
+    if args.cold_start:
+        gemma_client.unload(args.model)
 
     records: list[dict[str, Any]] = []
     with LanguageToolServer(
@@ -953,6 +1105,9 @@ def main() -> int:
             "lt_base_url": f"http://{args.lt_host}:{args.lt_port}",
             "ollama_base_url": args.ollama_base_url,
             "installed_models": installed,
+            "gemma_keep_alive": args.gemma_keep_alive,
+            "explicit_cold_start": args.cold_start,
+            "inference_options": DEFAULT_OPTIONS,
         },
         "prompt": {
             "version": PROMPT_VERSION,
