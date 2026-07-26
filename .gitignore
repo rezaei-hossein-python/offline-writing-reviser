@@ -13,3 +13,4 @@ OfflineWritingReviser.spec
 *.log
 vendor/
 benchmarks/results/languagetool/
+benchmarks/results/hybrid/

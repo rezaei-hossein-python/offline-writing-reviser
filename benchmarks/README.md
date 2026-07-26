@@ -176,3 +176,92 @@ This remains benchmark-only. Nothing is connected to the production hotkey,
 revision service, prompt, sanitizer, Ollama provider, configured model, Gemma
 behavior, settings, UI, clipboard, packaging, or runtime behavior under
 `src/`.
+
+## Phase 18D LanguageTool + Gemma hybrid routing
+
+The hybrid harness measures a benchmark-only second stage without changing the
+application:
+
+```powershell
+python benchmarks/run_hybrid_benchmark.py
+```
+
+It uses the same bundled Java/LanguageTool runtime and explicit `en-US`
+configuration as the LanguageTool benchmark. It connects only to the local
+Ollama API and requires the already-installed `gemma3:4b`; it never pulls or
+changes a model.
+
+### Hybrid architecture
+
+For every case the harness:
+
+1. checks the original text with LanguageTool;
+2. applies the Phase 18C deterministic SAFE filter;
+3. checks the resulting text with LanguageTool again;
+4. routes only justified unresolved evidence to Gemma;
+5. validates any Gemma output conservatively;
+6. accepts validated output or falls back to the post-SAFE text.
+
+Routing uses the post-SAFE LanguageTool response. Gemma is eligible only for:
+
+- remaining AMBIGUOUS grammar/context evidence (excluding non-SAFE spelling
+  rules such as `CALENDER`);
+- unresolved contextual spelling evidence, such as multiple plausible
+  replacements that the SAFE policy could not select;
+- a SAFE partial correction followed by remaining grammar/context evidence.
+
+Clean cases, IGNORE-only evidence, text with all actionable evidence resolved,
+and newly deterministic SAFE evidence do not route. SAFE mode failing to change
+text is not itself an escalation reason. In particular, clean text is never
+sent to Gemma merely to ask whether it is correct.
+
+### Gemma prompt and validation gate
+
+Gemma receives the post-SAFE text plus compact advisory LanguageTool evidence:
+rule IDs, messages, source spans, and replacement candidates. Its benchmark
+prompt requires objective proofreading only, minimum edits, exact unchanged
+output when no correction is needed, formatting preservation, and text-only
+output. This prompt is separate from the production prompt.
+
+Gemma output is rejected for empty/missing text, commentary or labels, added
+markdown wrappers, newline/paragraph/list damage, likely truncation, extreme
+length changes, excessive changed characters or edit segments, edits without
+unresolved evidence, or edits outside bounded sentence-aware windows around
+LanguageTool spans. A bare selection of one unresolved multi-candidate spelling
+replacement is also rejected unless Gemma performs the nearby contextual
+grammar resolution that justifies that choice. Independent local grammatical
+edits are allowed. Rejected output always falls back to the post-SAFE text.
+
+### Metrics and audit evidence
+
+The full report compares raw LanguageTool reachability, Phase 18C SAFE actual
+output, and Phase 18D hybrid actual output. It records:
+
+- exact correction, preservation, over-edit, and formatting rates;
+- total and routed-Gemma mean/median/P95 latency;
+- Gemma invocation, acceptance, rejection, improvement, and regression counts;
+- invocation rates for all cases, expected-correction cases,
+  expected-unchanged cases, and the 35 already-correct cases;
+- LanguageTool-only resolutions, routing reasons, and validation rejection
+  reasons.
+
+Every JSON case record retains original and expected text, both LanguageTool
+responses, SAFE decisions/output, routing evidence and reason, non-private
+prompt metadata, raw Gemma output, provider/timing metrics, validation details,
+fallback/final output, and exact-match outcome.
+
+Generated evidence is written to the gitignored `results/hybrid/` directory:
+
+- `latest.json` — complete per-case audit evidence and summary
+- `latest.csv` — flat per-case routing/result metrics
+- `latest.md` — comparison, routing, validation, and latency findings
+
+The locality gate is intentionally conservative and may reject valid broader
+corrections. LanguageTool can also miss errors entirely; because absence of a
+SAFE edit is not an escalation reason, those cases will not reach Gemma. The
+105-case dataset is useful evidence but is not sufficient to declare the
+hybrid production-ready.
+
+Phase 18D remains benchmark-only. It does not modify production prompts,
+providers, model defaults, settings, UI, hotkeys, clipboard handling,
+sanitization, chunking, packaging, or executable behavior under `src/`.
