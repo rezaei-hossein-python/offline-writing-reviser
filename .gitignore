@@ -12,3 +12,4 @@ OfflineWritingReviser.spec
 *.egg-info/
 *.log
 vendor/
+benchmarks/results/languagetool/

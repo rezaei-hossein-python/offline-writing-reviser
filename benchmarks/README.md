@@ -88,3 +88,91 @@ Outputs are overwritten on each run:
 - `results/latest.json` — full machine-readable configuration and results
 - `results/latest.csv` — flat per-quality-case records
 - `results/latest.md` — human-readable ranking and findings
+
+## LanguageTool 6.6 raw and SAFE-filter benchmark
+
+Phase 18B established the raw LanguageTool suggestion baseline. Phase 18C uses
+the same 105 cases to classify every observed rule as SAFE, AMBIGUOUS, or
+IGNORE and compare the raw reachability ceiling with actual output from a
+conservative deterministic filter:
+
+```powershell
+python benchmarks/run_languagetool_benchmark.py
+```
+
+The harness resolves Java only from `vendor/java/bin/java.exe` and the server
+only from `vendor/languagetool/languagetool-server.jar` by default. It does not
+require system Java, `PATH`, or `language-tool-python`. It starts its own
+loopback-only server, waits for readiness, sends every `/v2/check` request with
+the explicit language `en-US`, and stops only the process it started. Use
+`--help` to override paths, port, timeouts, or the generated-results directory.
+`--limit` is available only for smoke testing.
+
+### Rule classification
+
+Classification is based on the observed rule/case evidence, not LanguageTool's
+category label:
+
+- SAFE requires enough evidence for a deterministic constrained policy and no
+  observed expected-unchanged trigger.
+- AMBIGUOUS covers sparse evidence, multiple context-dependent choices, valid
+  alternatives, or changes that may alter tone.
+- IGNORE covers observed wrong, conflicting, optional, or offset/whitespace-
+  unsafe behavior.
+
+The initial policy intentionally leaves grammar rules with only one or two
+positive cases AMBIGUOUS even when those cases were exactly reachable.
+`MORFOLOGIK_RULE_EN_US` is the only SAFE rule, and SAFE status does not mean
+that every match from that rule is accepted.
+
+### Deterministic SAFE policy
+
+The filter:
+
+1. considers only explicitly SAFE rules;
+2. requires a token-local alphabetic replacement that preserves the source
+   token's case pattern;
+3. accepts exactly one candidate, or one explicit evidence-backed lexical
+   choice for `adress`, `imediately`, and `recieved`;
+4. rejects missing, unclassified, AMBIGUOUS, IGNORE, unresolved
+   multi-candidate, overlapping, or conflicting matches;
+5. applies independent accepted edits from the end of the text backward so
+   original LanguageTool offsets remain valid.
+
+The filter never generally takes the first replacement and never applies all
+LanguageTool suggestions. If confidence is insufficient, the source range is
+left untouched. Text with no accepted correction is returned byte-for-byte
+unchanged, including whitespace, punctuation, line endings, and formatting.
+
+### Metrics and evidence
+
+The report includes both:
+
+- raw exact-correction reachability, where the expected output may be
+  constructed from any non-overlapping subset of returned candidates; and
+- filtered SAFE-mode exact accuracy against the filter's actual output.
+
+Both modes report exact preservation, exact correction, over-edit rate,
+formatting preservation, and latency. SAFE mode additionally reports cases
+changed, corrections applied, rejected matches, rejection reasons, and
+per-match accept/reject decisions.
+
+The generated, gitignored `results/languagetool/` directory contains:
+
+- `latest.json` — complete raw responses, normalized matches, candidate
+  replacements, rule/category evidence, classification rationales,
+  `MORFOLOGIK_RULE_EN_US` failure analysis, SAFE outputs and audit decisions
+- `latest.csv` — flat raw and SAFE per-case metrics
+- `latest.md` — raw-versus-filter comparison, all rule classifications,
+  category counts, and important failures
+
+Limitations: the 105 cases provide no expected-unchanged triggers for any of
+the 23 observed rule IDs, most grammar rules have only one or two positive
+examples, and exact benchmark expectations do not cover every valid English
+alternative. The policy therefore favors preservation and defers uncertain
+grammar/context decisions instead of maximizing correction coverage.
+
+This remains benchmark-only. Nothing is connected to the production hotkey,
+revision service, prompt, sanitizer, Ollama provider, configured model, Gemma
+behavior, settings, UI, clipboard, packaging, or runtime behavior under
+`src/`.
