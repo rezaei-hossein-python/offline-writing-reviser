@@ -1,154 +1,121 @@
 # Architecture
 
-Offline Writing Reviser 0.2.0 keeps the proven revision pipeline isolated from
-a completely hidden Windows background lifecycle.
+Offline Writing Reviser 0.3.0 combines a conservative hybrid proofreading
+pipeline with a hidden Windows lifecycle.
 
-## Boundaries
+## Process lifecycle
 
-### Entry point and lifecycle
+`offline_writing_reviser.__main__` handles background startup, Settings,
+Exit/Restart, diagnostics, provisioning, version, and startup validation.
+`application` acquires the per-session mutex, configures per-user logging,
+creates the runtime, starts the hidden Win32 command endpoint and global hotkey,
+and owns orderly shutdown.
 
-`offline_writing_reviser.__main__` owns argument parsing for:
+There is no tray icon or visible background window. Short-lived command
+processes communicate with a zero-size, never-shown Win32 control window.
+Duplicate-instance protection remains mutex-authoritative.
 
-- hidden background startup
-- `--settings`
-- `--exit`
-- `--restart`
-- `--version`
-- `--validate-startup`
+The runtime owns one `LanguageToolRuntime`, one `HybridProofreadingService`, and
+the hotkey controller. Shutdown rejects new work, unregisters the hotkey, waits
+briefly for active revision threads, then terminates the owned Java child.
 
-`offline_writing_reviser.application` composes the background process:
+## Hybrid proofreading
 
-1. Load and validate per-user settings.
-2. Acquire the Windows single-instance mutex.
-3. Configure per-user file logging.
-4. Create the Ollama service, revision controller, and hotkey thread.
-5. Start a withdrawn Tk settings host and hidden Win32 control endpoint.
-6. Wait without exposing a console, taskbar window, notification-area icon, or
-   persistent notification.
-7. Stop the control endpoint, close Settings, unregister the hotkey, release the
-   mutex, and optionally launch a replacement process.
+The authoritative SAFE/routing/validation policy lives in
+`offline_writing_reviser.proofreading.policy`. Both production and benchmark
+runners import that policy so their executable behavior cannot silently
+diverge.
 
-Normal startup has no visible desktop shell. The configured global hotkey is the
-primary interaction.
+For each boundary-aware input chunk:
 
-### Instance control
+1. analyze the original text with LanguageTool using explicit `en-US`;
+2. apply non-overlapping, single-candidate SAFE edits in reverse-offset order;
+3. analyze the SAFE result again;
+4. route only unresolved AMBIGUOUS evidence, unresolved contextual spelling, or
+   a mixed partial correction;
+5. send post-SAFE text plus local rule evidence to `gemma3:4b`;
+6. accept only a local, minimal, structurally safe result;
+7. otherwise retain the SAFE output.
 
-`offline_writing_reviser.windows.control` owns a zero-size, never-shown Win32
-tool window with a fixed class and title. It exists only as a same-user IPC
-target and does not appear in the taskbar or notification area.
+Clean, IGNORE-only, and completely resolved chunks bypass Gemma. Provider
+failure and model timeout also fall back to the SAFE result. LanguageTool
+failure aborts replacement because the deterministic safety stage is required.
+The final joined selection is structurally validated before clipboard
+replacement.
 
-Short-lived command processes locate that control window and post one of three
-private `WM_APP` messages:
+The Windows controller retains foreground-window/process identity and restores
+clipboard formats where practical. It abandons replacement if focus changes or
+shutdown begins.
 
-- show Settings
-- request clean Exit
-- request clean Restart
+## LanguageTool lifecycle
 
-If `--settings` is used while no instance exists, the command launches a
-detached background process, waits for its control endpoint, and posts the
-Settings message. `--restart` starts the app when it is not already running.
-`--exit` is idempotent.
+`proofreading.languagetool.LanguageToolRuntime` resolves application-private
+paths relative to either `vendor` (source) or the PyInstaller runtime directory.
+It invokes the bundled `java.exe` explicitly and never consults system Java or
+PATH.
 
-The single-instance mutex remains authoritative for preventing duplicate
-background runtimes.
+The runtime reserves a dynamic localhost port, starts LanguageTool without a
+visible console, waits for HTTP health, and uses explicit `en-US` requests. It
+starts lazily, serializes access, retries once after a failed request, and
+terminates only its owned child during shutdown. The server is not started with
+LanguageTool's public-bind option.
 
-### Core revision engine
+## Ollama lifecycle and hardware
 
-`offline_writing_reviser.core` owns the provider-neutral revision contract:
+The Ollama provider reuses an existing compatible user installation. If its
+loopback API is stopped, the app may launch `ollama serve` hidden; it does not
+own or terminate an already-running shared server. Model requests use a
+ten-minute keep-alive and retain the validated deterministic options and
+prompt.
 
-- tightly scoped revision prompt
-- input validation and maximum-length enforcement
-- concurrent revision guard
-- sequential paragraph/sentence/word-aware chunking for long selections
-- output sanitization
-- conservative typography, line-break, paragraph, list, commentary, and
-  minimal-edit validation before replacement
-- provider-neutral results and errors
+No CPU/GPU vendor environment variable or forced device option is set. Ollama
+therefore performs its normal hardware selection and CPU fallback. `/api/ps`
+telemetry supplies loaded state, model allocation, and `size_vram`; inference
+responses supply load, prompt-evaluation, generation, token, and total timing.
+The provider reports CPU/GPU/partial/unknown conservatively and never equates
+the presence of a Windows GPU with actual acceleration.
 
-Each chunk is a contiguous slice of the original selection and is validated
-independently. The service joins only fully validated chunks, validates the
-complete result again, and returns nothing if any chunk fails. The Windows
-controller therefore cannot partially replace a selection.
+## Diagnostics and provisioning
 
-Chunk processing is intentionally sequential to keep memory use bounded and
-failure behavior predictable. Chunking improves reliability and the safe
-processing ceiling; it does not materially solve large-text latency. CPU-only
-Gemma inference remains the dominant bottleneck, very large selections may
-take minutes, and model-based proofreading can still miss corrections.
+`diagnostics` checks private files, Java version, LanguageTool health and a
+deterministic correction, Ollama version/API/model/load state, memory, and
+optional Gemma inference telemetry. Reports exclude selected text.
 
-This layer has no Tkinter, Windows control, Ollama, network, or persistence
-dependency.
+`provisioning` provides an accessible Qt progress dialog. It starts/reuses
+Ollama, requests explicit consent before a missing model download, streams
+Ollama pull progress, and runs an end-to-end health check. The installer
+downloads Ollama only when no compatible installation is found and does not
+overwrite or uninstall shared Ollama/model data.
 
-### Local Ollama provider
+Normal startup performs inexpensive dependency checks in the background and
+records actionable state without showing a routine surface.
 
-`offline_writing_reviser.providers.ollama` is the only model integration. It:
+## Accessibility and errors
 
-- resolves the configured local `ollama` executable
-- discovers local models through `ollama list`
-- verifies the configured model before revision
-- invokes the loopback-only Ollama chat API with deterministic proofreading
-  settings after confirming the configured model through `ollama list`
-- requests a ten-minute keep-alive so nearby jobs can reuse one loaded model
-- maps missing executable, missing model, timeout, and process failures
-- never downloads a model and has no cloud fallback
+Settings remains the Phase 17 Qt/UIA boundary: standard widgets, accessible
+names, label buddies, focus order, keyboard behavior, and screen-reader-exposed
+validation dialogs. Successful proofreading is silent. Operational errors are
+logged and important intervention errors use rate-limited dialogs.
 
-### Settings and paths
-
-`offline_writing_reviser.settings` validates the four user-editable values and
-performs atomic JSON writes using a sibling temporary file and `os.replace`.
-Invalid JSON or values are preserved as `settings.json.corrupt` before defaults
-are restored. Environment variables can override loaded values.
-
-`offline_writing_reviser.paths` centralizes `%LOCALAPPDATA%` and PyInstaller
-resource resolution. Configuration and logs never live beside the executable.
-
-`offline_writing_reviser.settings_ui` is the only Qt boundary. It uses standard
-Qt Widgets and their Windows UI Automation bridge, explicit accessible names,
-`QLabel.setBuddy` programmatic label associations, standard roles/value
-patterns, and an explicit focus order. A dispatch bridge accepts cross-thread
-requests while the Qt dispatcher owns the process main thread and model
-discovery remains off the UI thread. Closing Settings destroys only the dialog;
-the hidden background reviser remains alive.
-
-Tk/ttk was removed from this boundary because live UI Automation inspection
-exposed its children as anonymous, non-focusable `TkChild` panes. Validation
-errors focus the affected control before an accessible modal error dialog is
-shown, and focus returns to that control after dismissal.
-
-### Status and errors
-
-`offline_writing_reviser.desktop_status` defines Ready, Revising, Ollama
-unavailable, Model unavailable, Hotkey unavailable, and Error. States are
-logged and shown contextually inside Settings rather than through a persistent
-desktop surface.
-
-Successful revisions produce no UI. Errors requiring direct intervention use
-short dialogs dispatched by the settings UI host. Repeated dialogs with the
-same title are rate-limited; detailed exceptions remain in the file log.
-
-### Windows text integration
-
-`offline_writing_reviser.windows` retains the baseline hotkey and selected-text
-safety contract:
-
-- wait for hotkey modifiers to be physically released
-- snapshot and restore clipboard formats where practical
-- capture only selected foreground text
-- retain foreground window/process identity
-- abort replacement if focus assumptions change
-- serialize overlapping controller triggers
-
-Hotkey changes use a two-manager handoff: register the candidate shortcut first,
-then unregister the old shortcut only after success. A failed candidate leaves
-the old manager running.
+Per-operation logs include character count, LanguageTool duration, routing,
+Gemma and native Ollama timing, token counts, validation result, and conservative
+compute classification. They do not contain the user's text.
 
 ## Packaging
 
-`scripts/build.ps1` runs tests and PyInstaller in one-file console-subsystem
-mode. A normal Explorer launch hides only its private console; diagnostic and
-control commands can still report through an invoking terminal. The executable
-embeds its Python runtime, the minimal Qt Widgets runtime, and the original icon
-while leaving Ollama external.
+PyInstaller creates an onedir application:
 
-`pystray` and Pillow are not runtime dependencies. Pillow is build-only and is
-used to generate the original executable icon.
+```text
+OfflineWritingReviser\
+  OfflineWritingReviser.exe
+  app\...
+  runtime\java\...
+  runtime\languagetool\...
+  licenses\THIRD_PARTY_NOTICES.md
+```
+
+Inno Setup creates a per-user online/bootstrap installer. Application/private
+runtimes are embedded; Ollama and `gemma3:4b` are detected, reused, or
+provisioned because embedding the model would create a multi-gigabyte,
+hard-to-update installer. Uninstall stops the app and removes owned files while
+preserving shared Ollama and its model store.

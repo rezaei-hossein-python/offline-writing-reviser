@@ -361,3 +361,31 @@ quality regressions.
 This remains benchmark-only. The production provider, prompt, model default
 (`gemma3:4b`), hotkey path, clipboard, UI, settings, packaging, and all runtime
 behavior under `src/` are unchanged.
+
+## Phase 19 production-policy parity
+
+Phase 19 moved the validated SAFE/routing/validation policy into the production
+package. LanguageTool and hybrid benchmark runners now bind to the same
+authoritative policy functions used by the installed hotkey path. The
+production-service parity benchmark exercises the real service while retaining
+the existing ignored per-case evidence:
+
+```powershell
+python benchmarks/run_production_hybrid_benchmark.py
+```
+
+Generated evidence is written under the gitignored
+`results/production-hybrid/` directory. On the Phase 19 CPU validation machine,
+the 105-case run matched Phase 18D output for every case:
+
+- exact correction: 59.375% (38/64);
+- exact preservation: 100% (35/35);
+- over-edit rate: 0% (0/41);
+- formatting preservation: 100% (10/10);
+- Gemma calls/accepted/fallback: 21/18/3;
+- calls on already-correct cases: 0;
+- accepted non-exact outputs and regressions: 0/0.
+
+This section supersedes the earlier “benchmark-only” production-isolation
+statement: the policy is now integrated in production, while generated
+benchmark evidence remains non-production and ignored.

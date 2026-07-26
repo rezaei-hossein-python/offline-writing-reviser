@@ -16,14 +16,49 @@ from offline_writing_reviser.windows.control import ControlCommand
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog=APP_NAME, description=APP_NAME)
     parser.add_argument("--validate-startup", action="store_true")
+    parser.add_argument("--diagnostics", action="store_true")
+    parser.add_argument(
+        "--diagnostics-json",
+        action="store_true",
+        help="Emit diagnostics as JSON instead of a human-readable report.",
+    )
+    parser.add_argument(
+        "--gemma-test",
+        action="store_true",
+        help="Include a small local Gemma proofreading health test.",
+    )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     controls = parser.add_mutually_exclusive_group()
     controls.add_argument("--settings", action="store_true")
     controls.add_argument("--exit", action="store_true", dest="exit_application")
     controls.add_argument("--restart", action="store_true")
+    controls.add_argument("--provision-model", action="store_true")
     args = parser.parse_args(argv)
+    if args.gemma_test and not (args.diagnostics or args.diagnostics_json):
+        parser.error("--gemma-test requires --diagnostics or --diagnostics-json")
     if args.validate_startup:
         return validate_startup()
+    if args.diagnostics or args.diagnostics_json:
+        from offline_writing_reviser.diagnostics import (
+            collect_diagnostics,
+            diagnostics_json,
+            format_diagnostics,
+        )
+
+        report, healthy = collect_diagnostics(
+            include_gemma_test=args.gemma_test
+        )
+        print(
+            diagnostics_json(report)
+            if args.diagnostics_json
+            else format_diagnostics(report)
+        )
+        return 0 if healthy else 1
+    if args.provision_model:
+        _hide_private_console()
+        from offline_writing_reviser.provisioning import run_model_provisioning
+
+        return run_model_provisioning()
     if args.settings or args.exit_application or args.restart:
         _hide_private_console()
         if args.settings:

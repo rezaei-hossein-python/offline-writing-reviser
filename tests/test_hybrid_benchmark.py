@@ -15,6 +15,14 @@ hybrid = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = hybrid
 SPEC.loader.exec_module(hybrid)
 
+from offline_writing_reviser.proofreading import policy as production_policy
+
+
+def test_benchmark_uses_authoritative_production_hybrid_policy():
+    assert hybrid.route_post_safe is production_policy.route_post_safe
+    assert hybrid.build_gemma_instruction is production_policy.build_gemma_instruction
+    assert hybrid.validate_gemma_output is production_policy.validate_gemma_output
+
 
 def raw_match(
     offset: int,

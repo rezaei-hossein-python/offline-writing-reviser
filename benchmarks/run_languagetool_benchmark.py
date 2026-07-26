@@ -16,6 +16,7 @@ import math
 import os
 import statistics
 import subprocess
+import sys
 import time
 import urllib.error
 import urllib.parse
@@ -31,6 +32,10 @@ from typing import Any
 LANGUAGE = "en-US"
 SERVER_MAIN_CLASS = "org.languagetool.server.HTTPServer"
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPOSITORY_ROOT / "src"))
+
+from offline_writing_reviser.proofreading import policy as shared_policy
+
 DEFAULT_JAVA = REPOSITORY_ROOT / "vendor" / "java" / "bin" / (
     "java.exe" if os.name == "nt" else "java"
 )
@@ -668,6 +673,23 @@ def safe_filter(
     ]
     output = apply_edits(source, edits)
     return output, decisions, time.perf_counter() - started
+
+
+# Production owns the executable policy. The local definitions above remain
+# temporarily readable as Phase 18 evidence documentation, while all benchmark
+# execution and imports resolve to the shared production implementation.
+SAFE = shared_policy.SAFE
+AMBIGUOUS = shared_policy.AMBIGUOUS
+IGNORE = shared_policy.IGNORE
+RULE_POLICY = shared_policy.RULE_POLICY
+RULE_POLICY_RATIONALES = shared_policy.RULE_POLICY_RATIONALES
+SAFE_LEXICAL_REPLACEMENTS = shared_policy.SAFE_LEXICAL_REPLACEMENTS
+normalize_matches = shared_policy.normalize_matches
+apply_edits = shared_policy.apply_edits
+select_safe_replacement = shared_policy.select_safe_replacement
+edits_overlap = shared_policy.edits_overlap
+safe_filter = shared_policy.safe_filter
+formatting_signature = shared_policy.formatting_signature
 
 
 def case_record(

@@ -14,6 +14,8 @@ from offline_writing_reviser.desktop_status import (
 )
 from offline_writing_reviser.core.errors import OfflineWritingError
 from offline_writing_reviser.core.service import OfflineWritingService
+from offline_writing_reviser.core.hybrid_service import HybridProofreadingService
+from offline_writing_reviser.proofreading.languagetool import LanguageToolRuntime
 from offline_writing_reviser.providers.base import OfflineWritingProviderError
 from offline_writing_reviser.providers.ollama import OllamaCliOfflineWritingProvider
 from offline_writing_reviser.windows.hotkeys import HotkeyBinding, WindowsHotkeyManager
@@ -35,14 +37,37 @@ class OfflineWritingController:
         self.state_callback = state_callback or (lambda _state: None)
         self.notification_callback = notification_callback or (lambda _message: None)
         self._lock = threading.Lock()
+        self._shutdown_event = threading.Event()
+        self._threads: set[threading.Thread] = set()
+        self._threads_lock = threading.Lock()
 
     def trigger(self) -> None:
+        if self._shutdown_event.is_set():
+            self.logger.info("Offline writing skipped category=shutdown")
+            return
         thread = threading.Thread(
-            target=self._run_revision,
+            target=self._run_revision_thread,
             name="offline-writing-revision",
             daemon=True,
         )
+        with self._threads_lock:
+            self._threads.add(thread)
         thread.start()
+
+    def stop(self, timeout_seconds: float = 3.0) -> None:
+        self._shutdown_event.set()
+        with self._threads_lock:
+            threads = list(self._threads)
+        deadline = time.monotonic() + timeout_seconds
+        for thread in threads:
+            thread.join(timeout=max(0.0, deadline - time.monotonic()))
+
+    def _run_revision_thread(self) -> None:
+        try:
+            self._run_revision()
+        finally:
+            with self._threads_lock:
+                self._threads.discard(threading.current_thread())
 
     def _run_revision(self) -> None:
         started = time.perf_counter()
@@ -98,6 +123,11 @@ class OfflineWritingController:
                 )
                 self._report_error(exc)
                 return
+            if self._shutdown_event.is_set():
+                self.logger.info(
+                    "Offline writing replacement skipped category=shutdown"
+                )
+                return
             if result.revised_text == capture.text:
                 self.state_callback(ApplicationState.READY)
                 return
@@ -134,12 +164,14 @@ class OfflineWritingRuntime:
         config: OfflineWritingConfig | None = None,
         logger: logging.Logger | None = None,
         hotkey_manager_factory: Callable[..., WindowsHotkeyManager] = WindowsHotkeyManager,
+        language_tool: LanguageToolRuntime | None = None,
     ):
         self.hotkey_manager = hotkey_manager
         self.controller = controller
         self.config = config or OfflineWritingConfig()
         self.logger = logger or logging.getLogger("offline-writing-reviser")
         self.hotkey_manager_factory = hotkey_manager_factory
+        self.language_tool = language_tool
 
     @property
     def has_registered_hotkeys(self) -> bool:
@@ -148,6 +180,10 @@ class OfflineWritingRuntime:
     def stop(self) -> None:
         if self.hotkey_manager:
             self.hotkey_manager.stop()
+        if self.controller:
+            self.controller.stop()
+        if self.language_tool:
+            self.language_tool.stop()
 
     def apply_config(self, config: OfflineWritingConfig) -> bool:
         """Apply settings, preserving a working old hotkey if replacement fails."""
@@ -187,8 +223,11 @@ class OfflineWritingRuntime:
             model=config.model,
             executable=config.ollama_executable,
         )
-        self.controller.service = OfflineWritingService(
+        if self.language_tool is None:
+            self.language_tool = LanguageToolRuntime(logger=self.logger)
+        self.controller.service = HybridProofreadingService(
             provider=provider,
+            language_tool=self.language_tool,
             config=config,
             logger=self.logger,
         )
@@ -214,7 +253,13 @@ def start_offline_writing_runtime(
         model=config.model,
         executable=config.ollama_executable,
     )
-    service = OfflineWritingService(provider=provider, config=config, logger=logger)
+    language_tool = LanguageToolRuntime(logger=logger)
+    service = HybridProofreadingService(
+        provider=provider,
+        language_tool=language_tool,
+        config=config,
+        logger=logger,
+    )
     controller = OfflineWritingController(
         service=service,
         text_adapter=WindowsSelectedTextAdapter(logger=logger),
@@ -238,4 +283,5 @@ def start_offline_writing_runtime(
         controller=controller,
         config=config,
         logger=logger,
+        language_tool=language_tool,
     )

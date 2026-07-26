@@ -11,12 +11,18 @@ import json
 import math
 import re
 import statistics
+import sys
 import time
 import urllib.error
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPOSITORY_ROOT / "src"))
+
+from offline_writing_reviser.proofreading import policy as shared_policy
 
 from run_languagetool_benchmark import (
     AMBIGUOUS,
@@ -43,17 +49,7 @@ from run_proofreading_benchmark import DEFAULT_OPTIONS, OllamaClient
 MODEL = "gemma3:4b"
 PROMPT_VERSION = "phase18d-v1"
 DEFAULT_GEMMA_KEEP_ALIVE = "10m"
-HYBRID_PROMPT = """You are the second stage of a conservative proofreading system.
-
-Correct only genuine objective grammar or spelling errors in the supplied text.
-Make the smallest possible changes.
-
-Do not improve style, paraphrase, change tone, substitute optional vocabulary, or rewrite a sentence unless a short grammatical correction requires it.
-Preserve meaning, facts, capitalization, punctuation, spacing, typography, paragraphs, line breaks, blank lines, list markers, and formatting.
-The LanguageTool evidence below is advisory. Correct only errors that are genuinely supported by the text and context.
-If no correction is needed, return the supplied text exactly unchanged.
-
-Return only the resulting text. Do not add explanations, headings, commentary, markdown wrappers, quotation marks, labels, or reasoning."""
+HYBRID_PROMPT = shared_policy.HYBRID_PROMPT
 
 CONTEXTUAL_SAFE_REJECTION_REASONS = {
     "multiple_replacements_without_approved_choice",
@@ -446,6 +442,18 @@ def validate_gemma_output(
         "evidence_windows": windows,
         "latency_seconds": time.perf_counter() - started,
     }
+
+
+# The production policy is authoritative; the benchmark only supplies runtime
+# orchestration and measurement around these shared functions.
+compact_evidence = shared_policy.compact_evidence
+route_post_safe = shared_policy.route_post_safe
+build_gemma_instruction = shared_policy.build_gemma_instruction
+newline_tokens = shared_policy.newline_tokens
+changed_opcodes = shared_policy.changed_opcodes
+evidence_windows = shared_policy.evidence_windows
+opcode_is_local = shared_policy.opcode_is_local
+validate_gemma_output = shared_policy.validate_gemma_output
 
 
 def invoke_gemma(

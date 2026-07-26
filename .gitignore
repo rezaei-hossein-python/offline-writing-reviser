@@ -14,3 +14,4 @@ OfflineWritingReviser.spec
 vendor/
 benchmarks/results/languagetool/
 benchmarks/results/hybrid/
+benchmarks/results/production-hybrid/

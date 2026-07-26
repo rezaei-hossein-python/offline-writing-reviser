@@ -14,6 +14,8 @@ benchmark = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = benchmark
 SPEC.loader.exec_module(benchmark)
 
+from offline_writing_reviser.proofreading import policy as production_policy
+
 
 def match(
     offset: int,
@@ -39,6 +41,12 @@ def match(
 
 def normalized(source: str, *matches: dict) -> list[dict]:
     return benchmark.normalize_matches({"matches": list(matches)}, source)
+
+
+def test_benchmark_uses_authoritative_production_policy():
+    assert benchmark.safe_filter is production_policy.safe_filter
+    assert benchmark.normalize_matches is production_policy.normalize_matches
+    assert benchmark.RULE_POLICY is production_policy.RULE_POLICY
 
 
 def test_bundled_runtime_defaults_are_repository_local():

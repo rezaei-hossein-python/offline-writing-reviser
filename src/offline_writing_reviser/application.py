@@ -127,6 +127,20 @@ class BackgroundCoordinator:
     def refresh_status(self) -> None:
         if not self.runtime.has_registered_hotkeys:
             return
+        language_tool = getattr(self.runtime, "language_tool", None)
+        if language_tool:
+            healthy, latency, error = language_tool.health_check()
+            self.logger.info(
+                "LanguageTool startup health healthy=%s latency_seconds=%s",
+                healthy,
+                latency,
+            )
+            if not healthy:
+                self.set_state(ApplicationState.LANGUAGETOOL_UNAVAILABLE)
+                self.logger.error(
+                    "LanguageTool startup health failed error=%s", error
+                )
+                return
         try:
             models = self.discover_models()
         except OfflineWritingProviderError as exc:
@@ -136,10 +150,35 @@ class BackgroundCoordinator:
                 exc.__class__.__name__,
             )
             return
+        provider = OllamaCliOfflineWritingProvider(
+            model=self.config.model,
+            executable=self.config.ollama_executable,
+        )
         if self.config.model not in models:
             self.set_state(ApplicationState.MODEL_UNAVAILABLE)
             self.logger.warning(
                 "Configured model unavailable model=%s", self.config.model
+            )
+            return
+        try:
+            provider.ensure_api_running(timeout_seconds=20.0)
+            runtime = provider.runtime_diagnostics(timeout_seconds=2.0)
+            self.logger.info(
+                "Ollama runtime model=%s loaded=%s acceleration=%s "
+                "model_vram_bytes=%s context_length=%s backend=%s device=%s",
+                self.config.model,
+                runtime["model_loaded"],
+                runtime["acceleration"],
+                runtime["model_vram_bytes"],
+                runtime["context_length"],
+                runtime["backend"],
+                runtime["device"],
+            )
+        except OfflineWritingProviderError as exc:
+            self.set_state(ApplicationState.OLLAMA_UNAVAILABLE)
+            self.logger.warning(
+                "Ollama runtime unavailable category=%s; run --diagnostics",
+                exc.__class__.__name__,
             )
             return
         self.set_state(ApplicationState.READY)

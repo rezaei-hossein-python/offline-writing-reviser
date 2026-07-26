@@ -3,10 +3,12 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Any
+from dataclasses import dataclass
 
 from offline_writing_reviser.providers.base import (
     OfflineWritingModelMissing,
@@ -26,10 +28,18 @@ PROOFREADING_GENERATION_OPTIONS = {
 }
 
 
+@dataclass(frozen=True)
+class OllamaInferenceResult:
+    text: str
+    telemetry: dict[str, Any]
+
+
 class OllamaCliOfflineWritingProvider(OfflineWritingProvider):
     def __init__(self, model: str, executable: str = "ollama"):
         self._model = model
         self._executable = executable
+        self._model_cache: list[str] | None = None
+        self._model_cache_time = 0.0
 
     @property
     def provider_name(self) -> str:
@@ -42,6 +52,53 @@ class OllamaCliOfflineWritingProvider(OfflineWritingProvider):
     @property
     def executable(self) -> str:
         return self._executable
+
+    def resolved_executable(self) -> str:
+        return self._resolve_executable()
+
+    def cli_version(self, timeout_seconds: float = 5.0) -> str | None:
+        executable = self._resolve_executable()
+        result = self._run(
+            [executable, "--version"], timeout_seconds=timeout_seconds
+        )
+        if result.returncode != 0:
+            return None
+        return result.stdout.strip() or result.stderr.strip() or None
+
+    def ensure_api_running(self, timeout_seconds: float = 20.0) -> None:
+        try:
+            self.api_version(timeout_seconds=2.0)
+            return
+        except OfflineWritingProviderError:
+            pass
+        executable = self._resolve_executable()
+        try:
+            subprocess.Popen(
+                [executable, "serve"],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                startupinfo=_hidden_startupinfo(),
+                creationflags=(
+                    getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
+                    | getattr(subprocess, "DETACHED_PROCESS", 0x00000008)
+                ),
+                close_fds=True,
+            )
+        except OSError as exc:
+            raise OfflineWritingProviderUnavailable(
+                "Ollama could not be started"
+            ) from exc
+        deadline = time.monotonic() + timeout_seconds
+        while time.monotonic() < deadline:
+            try:
+                self.api_version(timeout_seconds=2.0)
+                return
+            except OfflineWritingProviderError:
+                time.sleep(0.25)
+        raise OfflineWritingProviderUnavailable(
+            "Ollama did not become ready before the startup timeout"
+        )
 
     def is_available(self) -> bool:
         try:
@@ -56,7 +113,15 @@ class OllamaCliOfflineWritingProvider(OfflineWritingProvider):
         return True
 
     def ensure_model_available(self, timeout_seconds: float = 5.0) -> None:
-        installed = self.list_installed_models(timeout_seconds)
+        if (
+            self._model_cache is not None
+            and time.monotonic() - self._model_cache_time < 30.0
+        ):
+            installed = self._model_cache
+        else:
+            installed = self.list_installed_models(timeout_seconds)
+            self._model_cache = installed
+            self._model_cache_time = time.monotonic()
         if self._model not in installed:
             raise OfflineWritingModelMissing(
                 f"Configured Ollama model is missing model={self._model}"
@@ -71,6 +136,23 @@ class OllamaCliOfflineWritingProvider(OfflineWritingProvider):
 
     def revise(self, text: str, instruction: str, timeout_seconds: float) -> str:
         self.ensure_model_available(timeout_seconds=5.0)
+        return self._perform_revision(
+            text, instruction, timeout_seconds
+        ).text
+
+    def revise_with_telemetry(
+        self, text: str, instruction: str, timeout_seconds: float
+    ) -> OllamaInferenceResult:
+        installed = self.api_models(timeout_seconds=5.0)
+        if self._model not in installed:
+            raise OfflineWritingModelMissing(
+                f"Configured Ollama model is missing model={self._model}"
+            )
+        return self._perform_revision(text, instruction, timeout_seconds)
+
+    def _perform_revision(
+        self, text: str, instruction: str, timeout_seconds: float
+    ) -> OllamaInferenceResult:
         payload = {
             "model": self._model,
             "stream": False,
@@ -82,12 +164,97 @@ class OllamaCliOfflineWritingProvider(OfflineWritingProvider):
             ],
             "options": PROOFREADING_GENERATION_OPTIONS,
         }
+        payload_bytes = len(
+            json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        )
+        started = time.perf_counter()
         response = self._request_chat(payload, timeout_seconds)
+        wall_seconds = time.perf_counter() - started
         message = response.get("message")
         content = message.get("content") if isinstance(message, dict) else None
         if not isinstance(content, str):
             raise OfflineWritingProviderError("Local revision response was invalid")
-        return content
+        telemetry = {
+            "wall_seconds": wall_seconds,
+            "total_duration_seconds": _nanoseconds(response, "total_duration"),
+            "load_duration_seconds": _nanoseconds(response, "load_duration"),
+            "prompt_eval_duration_seconds": _nanoseconds(
+                response, "prompt_eval_duration"
+            ),
+            "generation_duration_seconds": _nanoseconds(
+                response, "eval_duration"
+            ),
+            "prompt_token_count": _integer(response, "prompt_eval_count"),
+            "generation_token_count": _integer(response, "eval_count"),
+            "request_payload_bytes": payload_bytes,
+            "response_bytes": len(
+                json.dumps(response, ensure_ascii=False).encode("utf-8")
+            ),
+        }
+        return OllamaInferenceResult(content, telemetry)
+
+    def api_version(self, timeout_seconds: float = 5.0) -> str | None:
+        response = self._request_json("/api/version", None, timeout_seconds)
+        value = response.get("version")
+        return value if isinstance(value, str) else None
+
+    def api_models(self, timeout_seconds: float = 5.0) -> list[str]:
+        response = self._request_json("/api/tags", None, timeout_seconds)
+        return sorted(
+            {
+                str(item.get("name"))
+                for item in response.get("models", [])
+                if isinstance(item, dict) and item.get("name")
+            },
+            key=str.casefold,
+        )
+
+    def runtime_diagnostics(
+        self, timeout_seconds: float = 5.0
+    ) -> dict[str, Any]:
+        response = self._request_json("/api/ps", None, timeout_seconds)
+        running_models = (
+            response.get("models")
+            if isinstance(response.get("models"), list)
+            else []
+        )
+        selected = next(
+            (
+                item
+                for item in running_models
+                if isinstance(item, dict)
+                and item.get("name") in {self._model, f"{self._model}:latest"}
+            ),
+            None,
+        )
+        size = _integer(selected or {}, "size")
+        size_vram = _integer(selected or {}, "size_vram")
+        acceleration = "unknown"
+        if selected is not None and size_vram is not None:
+            if size_vram == 0:
+                acceleration = "cpu"
+            elif size and size_vram >= size * 0.95:
+                acceleration = "gpu"
+            else:
+                acceleration = "partial_gpu"
+        return {
+            "model_loaded": selected is not None,
+            "acceleration": acceleration,
+            "model_size_bytes": size,
+            "model_vram_bytes": size_vram,
+            "context_length": _integer(selected or {}, "context_length"),
+            "expires_at": (
+                selected.get("expires_at")
+                if isinstance(selected, dict)
+                else None
+            ),
+            "device": None,
+            "backend": None,
+            "backend_limitation": (
+                "The local Ollama API reports model VRAM offload but does not "
+                "identify the GPU vendor or compute backend."
+            ),
+        }
 
     def _request_chat(
         self, payload: dict[str, Any], timeout_seconds: float
@@ -121,6 +288,45 @@ class OllamaCliOfflineWritingProvider(OfflineWritingProvider):
             raise OfflineWritingProviderError("Local revision response was invalid")
         return parsed
 
+    def _request_json(
+        self,
+        path: str,
+        payload: dict[str, Any] | None,
+        timeout_seconds: float,
+    ) -> dict[str, Any]:
+        request = urllib.request.Request(
+            f"{OLLAMA_API_URL}{path}",
+            data=(
+                None
+                if payload is None
+                else json.dumps(payload).encode("utf-8")
+            ),
+            headers={"Content-Type": "application/json"},
+            method="GET" if payload is None else "POST",
+        )
+        try:
+            with urllib.request.urlopen(
+                request, timeout=timeout_seconds
+            ) as response:
+                parsed = json.loads(response.read().decode("utf-8"))
+        except (TimeoutError, subprocess.TimeoutExpired) as exc:
+            raise OfflineWritingProviderTimeout(
+                "Ollama local API timed out"
+            ) from exc
+        except (OSError, urllib.error.URLError) as exc:
+            raise OfflineWritingProviderUnavailable(
+                "Ollama local API is unavailable"
+            ) from exc
+        except (UnicodeError, json.JSONDecodeError) as exc:
+            raise OfflineWritingProviderError(
+                "Ollama local API returned invalid JSON"
+            ) from exc
+        if not isinstance(parsed, dict):
+            raise OfflineWritingProviderError(
+                "Ollama local API returned an invalid response"
+            )
+        return parsed
+
     def _resolve_executable(self) -> str:
         configured = Path(self._executable)
         if configured.parent != Path(".") and configured.exists():
@@ -129,8 +335,11 @@ class OllamaCliOfflineWritingProvider(OfflineWritingProvider):
         if resolved:
             return resolved
         for candidate in _default_windows_ollama_paths():
-            if candidate.exists():
-                return str(candidate)
+            try:
+                if candidate.exists():
+                    return str(candidate)
+            except OSError:
+                continue
         raise OfflineWritingProviderUnavailable("Ollama executable is unavailable")
 
     def _run(
@@ -180,3 +389,13 @@ def _hidden_startupinfo() -> subprocess.STARTUPINFO | None:
     startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
     startupinfo.wShowWindow = 0
     return startupinfo
+
+
+def _integer(payload: dict[str, Any], name: str) -> int | None:
+    value = payload.get(name)
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
+def _nanoseconds(payload: dict[str, Any], name: str) -> float | None:
+    value = _integer(payload, name)
+    return value / 1_000_000_000 if value is not None else None

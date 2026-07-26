@@ -4,7 +4,10 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable
 
-from offline_writing_reviser.core.errors import OfflineWritingInputError
+from offline_writing_reviser.core.errors import (
+    OfflineWritingInputError,
+    OfflineWritingLanguageToolUnavailable,
+)
 from offline_writing_reviser.providers.base import (
     OfflineWritingModelMissing,
     OfflineWritingProviderError,
@@ -18,6 +21,7 @@ class ApplicationState(str, Enum):
     REVISING = "Revising"
     OLLAMA_UNAVAILABLE = "Ollama unavailable"
     MODEL_UNAVAILABLE = "Model unavailable"
+    LANGUAGETOOL_UNAVAILABLE = "LanguageTool unavailable"
     HOTKEY_UNAVAILABLE = "Hotkey unavailable"
     ERROR = "Error"
 
@@ -56,6 +60,13 @@ def user_message_for_error(error: BaseException | str) -> UserMessage:
             "Revision timed out",
             "The local model did not finish before the configured timeout.",
             ApplicationState.ERROR,
+        )
+    if isinstance(error, OfflineWritingLanguageToolUnavailable):
+        return UserMessage(
+            "Proofreading engine unavailable",
+            "The private LanguageTool runtime could not start. Run Diagnostics "
+            "and repair or reinstall the application.",
+            ApplicationState.LANGUAGETOOL_UNAVAILABLE,
         )
     if isinstance(error, OfflineWritingModelMissing):
         return UserMessage(

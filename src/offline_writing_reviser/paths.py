@@ -25,6 +25,16 @@ def resource_path(relative_path: str | Path) -> Path:
     return Path(__file__).resolve().parent / relative
 
 
+def private_runtime_path(relative_path: str | Path) -> Path:
+    """Resolve app-private runtime files in packaged and source layouts."""
+    relative = Path(relative_path)
+    bundle_root = getattr(sys, "_MEIPASS", None)
+    if bundle_root:
+        return Path(bundle_root) / "runtime" / relative
+    repository_root = Path(__file__).resolve().parents[2]
+    return repository_root / "vendor" / relative
+
+
 def executable_path() -> Path:
     if getattr(sys, "frozen", False):
         return Path(sys.executable).resolve()

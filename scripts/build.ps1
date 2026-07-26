@@ -16,7 +16,11 @@ $TempDir = [System.IO.Path]::GetFullPath((Join-Path $ProjectRoot ".build-temp"))
 $SpecFile = [System.IO.Path]::GetFullPath((Join-Path $ProjectRoot "OfflineWritingReviser.spec"))
 $IconFile = Join-Path $ProjectRoot "src\offline_writing_reviser\assets\offline-writing-reviser.ico"
 $EntryPoint = Join-Path $ProjectRoot "src\offline_writing_reviser\__main__.py"
-$ExpectedExecutable = Join-Path $OutputDir "OfflineWritingReviser.exe"
+$ExpectedApplicationDir = Join-Path $OutputDir "OfflineWritingReviser"
+$ExpectedExecutable = Join-Path $ExpectedApplicationDir "OfflineWritingReviser.exe"
+$JavaRuntime = Join-Path $ProjectRoot "vendor\java"
+$LanguageToolRuntime = Join-Path $ProjectRoot "vendor\languagetool"
+$ThirdPartyNotices = Join-Path $ProjectRoot "THIRD_PARTY_NOTICES.md"
 
 foreach ($Target in @($OutputDir, $BuildDir, $TempDir)) {
     if (
@@ -49,6 +53,15 @@ if (-not (Test-Path -LiteralPath $IconFile -PathType Leaf)) {
         throw "Application icon generation failed."
     }
 }
+foreach ($RequiredPath in @(
+    (Join-Path $JavaRuntime "bin\java.exe"),
+    (Join-Path $LanguageToolRuntime "languagetool-server.jar"),
+    $ThirdPartyNotices
+)) {
+    if (-not (Test-Path -LiteralPath $RequiredPath -PathType Leaf)) {
+        throw "Required private runtime or notice file is missing: $RequiredPath"
+    }
+}
 
 if (-not $SkipTests) {
     & $Python -m pytest -p no:cacheprovider --basetemp (Join-Path $TempDir "pytest")
@@ -60,11 +73,15 @@ if (-not $SkipTests) {
 & $Python -m PyInstaller `
     --noconfirm `
     --clean `
-    --onefile `
+    --onedir `
+    --contents-directory app `
     --console `
     --name OfflineWritingReviser `
     --icon $IconFile `
     --add-data "$IconFile;assets" `
+    --add-data "$JavaRuntime;runtime\java" `
+    --add-data "$LanguageToolRuntime;runtime\languagetool" `
+    --add-data "$ThirdPartyNotices;licenses" `
     --exclude-module gi `
     --exclude-module matplotlib `
     --exclude-module numpy `
