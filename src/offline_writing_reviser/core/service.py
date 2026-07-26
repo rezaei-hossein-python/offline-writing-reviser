@@ -71,15 +71,25 @@ class OfflineWritingService:
             )
             revised_text = sanitize_revision_output(raw_output, original_text=selected_text)
             duration_ms = (time.perf_counter() - started) * 1000
-            self.logger.info(
-                "Offline writing local revision succeeded original_chars=%s "
-                "revised_chars=%s duration_ms=%.2f provider=%s model=%s",
-                len(selected_text),
-                len(revised_text),
-                duration_ms,
-                self.provider.provider_name,
-                self.provider.model_identifier,
-            )
+            if revised_text == selected_text:
+                self.logger.info(
+                    "Offline writing local revision completed "
+                    "outcome=no_correction_required duration_ms=%.2f "
+                    "provider=%s model=%s",
+                    duration_ms,
+                    self.provider.provider_name,
+                    self.provider.model_identifier,
+                )
+            else:
+                self.logger.info(
+                    "Offline writing local revision succeeded original_chars=%s "
+                    "revised_chars=%s duration_ms=%.2f provider=%s model=%s",
+                    len(selected_text),
+                    len(revised_text),
+                    duration_ms,
+                    self.provider.provider_name,
+                    self.provider.model_identifier,
+                )
             return WritingRevisionResult(
                 original_character_count=len(selected_text),
                 revised_text=revised_text,

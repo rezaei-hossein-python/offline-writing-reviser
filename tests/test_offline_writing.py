@@ -1,4 +1,5 @@
 import ctypes
+import json
 import subprocess
 import threading
 import time
@@ -69,21 +70,15 @@ class FakeOfflineWritingProvider(OfflineWritingProvider):
 
 
 def test_revision_prompt_contract_is_tightly_scoped():
-    assert "Return only the revised text" in REVISION_INSTRUCTION
-    assert "Do not include explanations" in REVISION_INSTRUCTION
-    assert "minimum necessary edits" in REVISION_INSTRUCTION
-    assert "Preserve tense" in REVISION_INSTRUCTION
-    assert "Respect explicit time markers" in REVISION_INSTRUCTION
-    assert "Preserve pronouns" in REVISION_INSTRUCTION
-    assert "Preserve names" in REVISION_INSTRUCTION
-    assert "numbers" in REVISION_INSTRUCTION
-    assert "dates" in REVISION_INSTRUCTION
-    assert "email addresses" in REVISION_INSTRUCTION
-    assert "URLs" in REVISION_INSTRUCTION
-    assert "Do not make wording more formal" in REVISION_INSTRUCTION
-    assert "Do not add information" in REVISION_INSTRUCTION
-    assert "Do not remove information" in REVISION_INSTRUCTION
-    assert "I spoke with the client yesterday" in REVISION_INSTRUCTION
+    assert "Correct only objective spelling and grammatical errors" in REVISION_INSTRUCTION
+    assert "Make the minimum changes necessary" in REVISION_INSTRUCTION
+    assert "Do not paraphrase" in REVISION_INSTRUCTION
+    assert "return it exactly unchanged" in REVISION_INSTRUCTION
+    assert "straight versus curly quotes" in REVISION_INSTRUCTION
+    assert "apostrophe style" in REVISION_INSTRUCTION
+    assert "Preserve every line break, blank line, paragraph boundary" in REVISION_INSTRUCTION
+    assert "Never add explanations, headings, commentary" in REVISION_INSTRUCTION
+    assert "Return only the corrected text" in REVISION_INSTRUCTION
 
 
 def test_empty_selection_is_rejected():
@@ -101,6 +96,39 @@ def test_multiline_text_is_sent_to_provider():
 
     assert result.revised_text == "First line.\n\nSecond line."
     assert provider.calls[0]["text"] == "First line\n\nSecond line"
+
+
+@pytest.mark.parametrize(
+    ("original", "response", "expected"),
+    [
+        (
+            "I will send the report tomorrow morning.",
+            "I will send the report tomorrow morning.",
+            "I will send the report tomorrow morning.",
+        ),
+        (
+            "She don't have the documents.",
+            "She doesn't have the documents.",
+            "She doesn't have the documents.",
+        ),
+        (
+            "I recieved the mesage yesterday.",
+            "I received the message yesterday.",
+            "I received the message yesterday.",
+        ),
+        (
+            "First paragraph.\n\nSecond paragraph!",
+            "First paragraph.\n\nSecond paragraph!",
+            "First paragraph.\n\nSecond paragraph!",
+        ),
+    ],
+)
+def test_mocked_proofreading_results_preserve_or_correct_as_required(
+    original, response, expected
+):
+    service = OfflineWritingService(FakeOfflineWritingProvider(response=response))
+
+    assert service.revise(original).revised_text == expected
 
 
 def test_unicode_text_is_preserved_through_service():
@@ -173,15 +201,122 @@ def test_sanitize_revision_output_strips_other_control_characters():
     assert sanitize_revision_output(output) == "Clean text.\nNext\tline."
 
 
-def test_sanitize_revision_output_removes_wrapping_markdown_fence():
+def test_sanitize_revision_output_rejects_wrapping_markdown_fence():
     output = "```text\nClean text.\n```"
 
-    assert sanitize_revision_output(output) == "Clean text."
+    with pytest.raises(OfflineWritingMalformedOutput):
+        sanitize_revision_output(output)
 
 
 def test_sanitize_revision_output_rejects_suspiciously_long_output():
     with pytest.raises(OfflineWritingMalformedOutput):
         sanitize_revision_output("x" * 1000, original_text="short")
+
+
+def test_straight_apostrophe_style_is_preserved_for_grammar_correction():
+    result = sanitize_revision_output(
+        "She doesn\u2019t have the documents.",
+        original_text="She don't have the documents.",
+    )
+
+    assert result == "She doesn't have the documents."
+
+
+def test_straight_quotation_marks_are_preserved():
+    original = 'He wrote, "send it tomorrow."'
+    model_output = "He wrote, \u201csend it tomorrow.\u201d"
+
+    assert sanitize_revision_output(model_output, original_text=original) == original
+
+
+def test_curly_quotes_are_preserved_when_present_in_original():
+    original = "He wrote, \u201csend it tomorrow.\u201d"
+
+    assert sanitize_revision_output(original, original_text=original) == original
+
+
+def test_existing_repeated_spacing_cannot_be_cosmetically_normalized():
+    original = "Keep  this spacing."
+
+    with pytest.raises(OfflineWritingMalformedOutput):
+        sanitize_revision_output("Keep this spacing.", original_text=original)
+
+
+def test_blank_lines_and_multi_paragraph_structure_are_preserved():
+    original = "Hello John,\r\n\r\nI recieved your email yesterday.\r\n\r\nI will reply tomorrow."
+    output = "Hello John,\n\nI received your email yesterday.\n\nI will reply tomorrow."
+
+    assert sanitize_revision_output(output, original_text=original) == (
+        "Hello John,\r\n\r\nI received your email yesterday.\r\n\r\n"
+        "I will reply tomorrow."
+    )
+
+
+def test_bullet_list_line_structure_is_preserved():
+    original = "- Send the report.\n- Review the documant.\n- Call Sarah."
+    output = "- Send the report.\n- Review the document.\n- Call Sarah."
+
+    assert sanitize_revision_output(output, original_text=original) == output
+
+
+@pytest.mark.parametrize(
+    "output",
+    [
+        "Here is the corrected text: The sentence is correct.",
+        "The sentence is already correct.",
+        "Analysis: The subject and verb must agree.",
+        "Okay, I corrected the sentence for you.",
+    ],
+)
+def test_obvious_commentary_output_is_rejected(output):
+    with pytest.raises(OfflineWritingMalformedOutput):
+        sanitize_revision_output(
+            output,
+            original_text="The sentence are correct.",
+        )
+
+
+def test_truncated_output_is_rejected():
+    original = (
+        "The first sentence contains useful context. "
+        "The second sentence also contains important details."
+    )
+
+    with pytest.raises(OfflineWritingMalformedOutput):
+        sanitize_revision_output("Important details.", original_text=original)
+
+
+def test_excessive_expansion_is_rejected():
+    original = "This sentence are incorrect and needs one small correction."
+    output = (
+        "Here is an extensive explanation of the correction and all of the reasons "
+        "why it should be made, followed by several stylistic suggestions that were "
+        "not requested and do not belong in the user's original document."
+    )
+
+    with pytest.raises(OfflineWritingMalformedOutput):
+        sanitize_revision_output(output, original_text=original)
+
+
+def test_changed_line_break_or_paragraph_structure_is_rejected():
+    original = "First paragraph.\n\nSecond paragraph."
+
+    with pytest.raises(OfflineWritingMalformedOutput):
+        sanitize_revision_output("First paragraph. Second paragraph.", original_text=original)
+
+
+def test_changed_bullet_structure_is_rejected():
+    original = "- First item.\n- Second item."
+
+    with pytest.raises(OfflineWritingMalformedOutput):
+        sanitize_revision_output("- First item. Second item.", original_text=original)
+
+
+def test_valid_small_grammar_correction_is_accepted():
+    assert sanitize_revision_output(
+        "She doesn't have the documents.",
+        original_text="She don't have the documents.",
+    ) == "She doesn't have the documents."
 
 
 def test_concurrency_guard_prevents_overlapping_revisions():
@@ -219,8 +354,9 @@ def test_no_cloud_fallback_when_model_router_is_broken():
 
 
 def test_sensitive_text_is_absent_from_logs(caplog):
-    secret_text = "My password is swordfish@example.com and code 12345."
-    provider = FakeOfflineWritingProvider(response="Revised private sentence.")
+    secret_text = "My password are swordfish@example.com and code 12345."
+    revised_secret_text = "My password is swordfish@example.com and code 12345."
+    provider = FakeOfflineWritingProvider(response=revised_secret_text)
     service = OfflineWritingService(provider)
 
     with caplog.at_level("INFO", logger="offline-writing-reviser"):
@@ -228,7 +364,7 @@ def test_sensitive_text_is_absent_from_logs(caplog):
 
     log_text = "\n".join(record.getMessage() for record in caplog.records)
     assert secret_text not in log_text
-    assert "Revised private sentence" not in log_text
+    assert revised_secret_text not in log_text
     assert "chars=" in log_text
 
 
@@ -237,7 +373,7 @@ def test_configuration_defaults():
 
     assert config.enabled is True
     assert config.provider == "ollama_cli"
-    assert config.model == "llama3.2:3b"
+    assert config.model == "gemma3:4b"
     assert config.hotkey == "Ctrl+Alt+W"
     assert config.max_characters == 4000
 
@@ -271,6 +407,33 @@ def test_replacement_success():
     controller._run_revision()
 
     assert adapter.replaced_with == "I wrote this."
+
+
+def test_unchanged_result_performs_no_replacement_and_stays_silent(caplog):
+    notifications = []
+    states = []
+    adapter = FakeTextAdapter()
+    adapter.capture_value.text = "I will send the report tomorrow morning."
+    service = OfflineWritingService(
+        FakeOfflineWritingProvider(response=adapter.capture_value.text)
+    )
+    controller = OfflineWritingController(
+        service=service,
+        text_adapter=adapter,
+        state_callback=states.append,
+        notification_callback=notifications.append,
+    )
+
+    with caplog.at_level("INFO", logger="offline-writing-reviser"):
+        controller._run_revision()
+
+    assert adapter.replaced_with is None
+    assert notifications == []
+    assert states[-1].value == "Ready"
+    log_text = "\n".join(record.getMessage() for record in caplog.records)
+    assert "no_correction_required" in log_text
+    assert "local revision succeeded" not in log_text
+    assert adapter.capture_value.text not in log_text
 
 
 def test_replacement_failure_leaves_original_unchanged():
@@ -403,6 +566,32 @@ def test_invalid_model_output_does_not_replace_selection():
     controller._run_revision()
 
     assert adapter.replaced_with is None
+
+
+def test_rejected_commentary_leaves_original_untouched_without_success_notification():
+    notifications = []
+    states = []
+    adapter = FakeTextAdapter()
+    original = adapter.capture_value.text
+    service = OfflineWritingService(
+        FakeOfflineWritingProvider(
+            response="Here is the corrected text: I wrote this."
+        )
+    )
+    controller = OfflineWritingController(
+        service=service,
+        text_adapter=adapter,
+        state_callback=states.append,
+        notification_callback=notifications.append,
+    )
+
+    controller._run_revision()
+
+    assert adapter.capture_value.text == original
+    assert adapter.replaced_with is None
+    assert len(notifications) == 1
+    assert notifications[0].title != "Revision complete"
+    assert all(state.value != "Ready" for state in states[1:])
 
 
 def test_duplicate_hotkey_press_is_ignored_by_controller_lock():
@@ -861,6 +1050,7 @@ def test_ollama_cli_request(monkeypatch):
     import offline_writing_reviser.providers.ollama as ollama_cli
 
     calls = []
+    requests = []
 
     def fake_which(executable):
         assert executable == "ollama"
@@ -868,20 +1058,53 @@ def test_ollama_cli_request(monkeypatch):
 
     def fake_run(args, **kwargs):
         calls.append((args, kwargs))
-        if args[1] == "list":
-            return subprocess.CompletedProcess(args, 0, stdout="NAME ID SIZE MODIFIED\nllama3.2:3b abc 2 GB now\n", stderr="")
-        assert args[:3] == ["C:\\Ollama\\ollama.exe", "run", "llama3.2:3b"]
-        assert "Text to revise:\nBad." in args[3]
-        return subprocess.CompletedProcess(args, 0, stdout="Fixed.", stderr="")
+        assert args[1] == "list"
+        return subprocess.CompletedProcess(
+            args,
+            0,
+            stdout="NAME ID SIZE MODIFIED\ngemma3:4b abc 3 GB now\n",
+            stderr="",
+        )
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return None
+
+        def read(self):
+            return json.dumps(
+                {"message": {"role": "assistant", "content": "Fixed."}}
+            ).encode("utf-8")
+
+    def fake_urlopen(request, timeout):
+        requests.append((request, timeout))
+        return FakeResponse()
 
     monkeypatch.setattr(ollama_cli.shutil, "which", fake_which)
     monkeypatch.setattr(ollama_cli.subprocess, "run", fake_run)
-    provider = ollama_cli.OllamaCliOfflineWritingProvider(model="llama3.2:3b")
+    monkeypatch.setattr(ollama_cli.urllib.request, "urlopen", fake_urlopen)
+    provider = ollama_cli.OllamaCliOfflineWritingProvider(model="gemma3:4b")
 
     assert provider.is_available() is True
     assert provider.revise("Bad.", "Fix.", timeout_seconds=1) == "Fixed."
     assert calls[0][0][1] == "list"
-    assert calls[-1][0][1] == "run"
+    assert all(call[0][1] == "list" for call in calls)
+    payload = json.loads(requests[0][0].data.decode("utf-8"))
+    assert requests[0][0].full_url == "http://127.0.0.1:11434/api/chat"
+    assert payload["model"] == "gemma3:4b"
+    assert payload["think"] is False
+    assert payload["options"] == {
+        "temperature": 0,
+        "seed": 0,
+        "num_ctx": 8192,
+        "num_predict": 4096,
+    }
+    assert payload["messages"] == [
+        {"role": "system", "content": "Fix."},
+        {"role": "user", "content": "Bad."},
+    ]
 
 
 def test_ollama_unavailable_when_executable_missing(monkeypatch):
@@ -910,11 +1133,18 @@ def test_ollama_model_missing_fails_locally(monkeypatch):
             stderr="",
         ),
     )
+    api_calls = []
+    monkeypatch.setattr(
+        ollama_cli.urllib.request,
+        "urlopen",
+        lambda *_args, **_kwargs: api_calls.append(True),
+    )
     provider = ollama_cli.OllamaCliOfflineWritingProvider(model="llama3.2:3b")
 
     assert provider.is_available() is False
     with pytest.raises(OfflineWritingModelMissing):
         provider.revise("Bad.", "Fix.", timeout_seconds=1)
+    assert api_calls == []
 
 
 def test_ollama_timeout_fails_locally(monkeypatch):

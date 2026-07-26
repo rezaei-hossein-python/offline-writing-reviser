@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
+import urllib.error
+import urllib.request
 from pathlib import Path
+from typing import Any
 
 from offline_writing_reviser.providers.base import (
     OfflineWritingModelMissing,
@@ -11,6 +15,14 @@ from offline_writing_reviser.providers.base import (
     OfflineWritingProviderTimeout,
     OfflineWritingProviderUnavailable,
 )
+
+OLLAMA_API_URL = "http://127.0.0.1:11434"
+PROOFREADING_GENERATION_OPTIONS = {
+    "temperature": 0,
+    "seed": 0,
+    "num_ctx": 8192,
+    "num_predict": 4096,
+}
 
 
 class OllamaCliOfflineWritingProvider(OfflineWritingProvider):
@@ -58,20 +70,54 @@ class OllamaCliOfflineWritingProvider(OfflineWritingProvider):
 
     def revise(self, text: str, instruction: str, timeout_seconds: float) -> str:
         self.ensure_model_available(timeout_seconds=5.0)
-        executable = self._resolve_executable()
-        prompt = f"{instruction}\n\nText to revise:\n{text}"
-        result = self._run(
-            [executable, "run", self._model, prompt],
-            timeout_seconds=timeout_seconds,
+        payload = {
+            "model": self._model,
+            "stream": False,
+            "think": False,
+            "messages": [
+                {"role": "system", "content": instruction},
+                {"role": "user", "content": text},
+            ],
+            "options": PROOFREADING_GENERATION_OPTIONS,
+        }
+        response = self._request_chat(payload, timeout_seconds)
+        message = response.get("message")
+        content = message.get("content") if isinstance(message, dict) else None
+        if not isinstance(content, str):
+            raise OfflineWritingProviderError("Local revision response was invalid")
+        return content
+
+    def _request_chat(
+        self, payload: dict[str, Any], timeout_seconds: float
+    ) -> dict[str, Any]:
+        request = urllib.request.Request(
+            f"{OLLAMA_API_URL}/api/chat",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
         )
-        if result.returncode != 0:
-            stderr = result.stderr.strip()
-            if "not found" in stderr.lower() or "pull" in stderr.lower():
+        try:
+            with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
+                parsed = json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            if exc.code == 404:
                 raise OfflineWritingModelMissing(
                     f"Configured Ollama model is missing model={self._model}"
-                )
-            raise OfflineWritingProviderError("Local revision request failed")
-        return result.stdout
+                ) from exc
+            raise OfflineWritingProviderError("Local revision request failed") from exc
+        except (TimeoutError, subprocess.TimeoutExpired) as exc:
+            raise OfflineWritingProviderTimeout("Local revision timed out") from exc
+        except (OSError, urllib.error.URLError) as exc:
+            raise OfflineWritingProviderUnavailable(
+                "Ollama local API is unavailable"
+            ) from exc
+        except (UnicodeError, json.JSONDecodeError) as exc:
+            raise OfflineWritingProviderError(
+                "Local revision response was invalid"
+            ) from exc
+        if not isinstance(parsed, dict):
+            raise OfflineWritingProviderError("Local revision response was invalid")
+        return parsed
 
     def _resolve_executable(self) -> str:
         configured = Path(self._executable)

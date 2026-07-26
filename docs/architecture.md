@@ -60,6 +60,8 @@ background runtimes.
 - input validation and maximum-length enforcement
 - concurrent revision guard
 - output sanitization
+- conservative typography, line-break, paragraph, list, commentary, and
+  minimal-edit validation before replacement
 - provider-neutral results and errors
 
 This layer has no Tkinter, Windows control, Ollama, network, or persistence
@@ -72,7 +74,8 @@ dependency.
 - resolves the configured local `ollama` executable
 - discovers local models through `ollama list`
 - verifies the configured model before revision
-- invokes `ollama run <model> <prompt>`
+- invokes the loopback-only Ollama chat API with deterministic proofreading
+  settings after confirming the configured model through `ollama list`
 - maps missing executable, missing model, timeout, and process failures
 - never downloads a model and has no cloud fallback
 

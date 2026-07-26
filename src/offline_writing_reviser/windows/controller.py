@@ -98,6 +98,9 @@ class OfflineWritingController:
                 )
                 self._report_error(exc)
                 return
+            if result.revised_text == capture.text:
+                self.state_callback(ApplicationState.READY)
+                return
             if not self.text_adapter.replace(capture, result.revised_text):
                 self.logger.warning(
                     "Offline writing replacement skipped category=focus_changed"

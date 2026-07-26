@@ -53,7 +53,7 @@ def test_default_settings_are_sensible(tmp_path):
     defaults = OfflineWritingConfig(log_file=tmp_path / "app.log")
     loaded = SettingsStore(tmp_path / "settings.json", defaults=defaults).load()
 
-    assert loaded.model == "llama3.2:3b"
+    assert loaded.model == "gemma3:4b"
     assert loaded.timeout_seconds == 45.0
     assert loaded.max_characters == 4000
     assert loaded.hotkey == "Ctrl+Alt+W"
@@ -82,6 +82,28 @@ def test_settings_save_and_load_round_trip(tmp_path):
         "timeout_seconds": 90.0,
     }
     assert not path.with_suffix(".json.tmp").exists()
+
+
+def test_explicit_saved_model_is_not_overwritten_by_new_default(tmp_path):
+    path = tmp_path / "settings.json"
+    path.write_text(
+        json.dumps(
+            {
+                "model": "llama3.2:3b",
+                "timeout_seconds": 45,
+                "max_characters": 4000,
+                "hotkey": "Ctrl+Alt+W",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    loaded = SettingsStore(
+        path,
+        defaults=OfflineWritingConfig(log_file=tmp_path / "app.log"),
+    ).load()
+
+    assert loaded.model == "llama3.2:3b"
 
 
 def test_corrupt_settings_are_preserved_and_defaults_recovered(tmp_path):

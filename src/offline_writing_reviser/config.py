@@ -15,7 +15,7 @@ DEFAULT_SETTINGS_FILE = APP_DATA_DIR / "settings.json"
 class OfflineWritingConfig:
     enabled: bool = True
     provider: str = "ollama_cli"
-    model: str = "llama3.2:3b"
+    model: str = "gemma3:4b"
     hotkey: str = "Ctrl+Alt+W"
     timeout_seconds: float = 45.0
     max_characters: int = 4000

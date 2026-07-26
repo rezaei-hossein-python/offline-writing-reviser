@@ -1,9 +1,15 @@
 # Offline Writing Reviser
 
-Offline Writing Reviser is a local-only Windows background utility that revises
+Offline Writing Reviser is a local-only Windows background utility that proofreads
 the currently selected text in the foreground application. Select text and
 press `Ctrl+Alt+W`. The app copies the selection, asks an already-installed
-local Ollama model to revise it, and safely pastes back only the revised text.
+local Ollama model to correct objective spelling and grammar errors, and safely
+pastes back only when the text changed.
+
+Before replacement, the app conservatively verifies that typography, line
+breaks, blank lines, paragraphs, and list structure were preserved. Commentary,
+truncated or expanded rewrites, and structurally damaged output are rejected,
+leaving the selected text untouched.
 
 Normal operation is completely hidden: there is no taskbar window, console,
 system-tray icon, notification-area menu, or persistent notification-center
@@ -15,7 +21,7 @@ Selected and revised document text is not written to the log.
 
 - Windows 10 or Windows 11.
 - [Ollama](https://ollama.com/) installed and running locally.
-- At least one Ollama model installed manually. The default is `llama3.2:3b`.
+- At least one Ollama model installed manually. The default is `gemma3:4b`.
 - Python 3.11 or newer only when running from source or building.
 
 Ollama remains an external dependency of the packaged executable. The app never
@@ -23,7 +29,7 @@ runs `ollama pull`; model installation is always an explicit user action:
 
 ```powershell
 ollama list
-ollama pull llama3.2:3b
+ollama pull gemma3:4b
 ```
 
 ## Running the utility
@@ -89,7 +95,7 @@ hotkey cannot be registered, the previous working hotkey is preserved.
 
 Defaults:
 
-- Model: `llama3.2:3b`
+- Model: `gemma3:4b`
 - Revision timeout: 45 seconds
 - Maximum input length: 4,000 characters
 - Global hotkey: `Ctrl+Alt+W`
