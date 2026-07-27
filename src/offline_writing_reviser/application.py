@@ -36,7 +36,7 @@ from offline_writing_reviser.windows.single_instance import WindowsSingleInstanc
 from offline_writing_reviser.windows.owned_processes import (
     cleanup_owned_languagetool_processes,
 )
-from offline_writing_reviser.proofreading.languagetool import default_java_path
+from offline_writing_reviser.proofreading.languagetool import default_java_paths
 
 
 APP_NAME = "Offline Writing Reviser"
@@ -254,7 +254,7 @@ class OfflineWritingReviserApplication:
         configure_logging(self.config.log_file)
         logger = logging.getLogger("offline-writing-reviser")
         cleanup_owned_languagetool_processes(
-            default_java_path(), logger=logger
+            default_java_paths(), logger=logger
         )
         if self.settings_store.recovered_corrupt_file:
             logger.warning("Corrupt settings recovered with defaults")
@@ -351,10 +351,10 @@ def execute_control_command(command: ControlCommand) -> int:
     if send_control_command(command):
         if command is ControlCommand.EXIT:
             wait_for_control_server_stop()
-            cleanup_owned_languagetool_processes(default_java_path())
+            cleanup_owned_languagetool_processes(default_java_paths())
         return 0
     if command is ControlCommand.EXIT:
-        cleanup_owned_languagetool_processes(default_java_path())
+        cleanup_owned_languagetool_processes(default_java_paths())
         _console_print(f"{APP_NAME} is not running.")
         return 0
 

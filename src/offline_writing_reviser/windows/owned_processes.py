@@ -14,6 +14,8 @@ PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
 PROCESS_TERMINATE = 0x0001
 SYNCHRONIZE = 0x00100000
 INVALID_HANDLE_VALUE = ctypes.c_void_p(-1).value
+JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x00002000
+JOB_OBJECT_EXTENDED_LIMIT_INFORMATION = 9
 
 
 class PROCESSENTRY32W(ctypes.Structure):
@@ -31,8 +33,91 @@ class PROCESSENTRY32W(ctypes.Structure):
     ]
 
 
+class JOBOBJECT_BASIC_LIMIT_INFORMATION(ctypes.Structure):
+    _fields_ = [
+        ("PerProcessUserTimeLimit", ctypes.c_longlong),
+        ("PerJobUserTimeLimit", ctypes.c_longlong),
+        ("LimitFlags", wintypes.DWORD),
+        ("MinimumWorkingSetSize", ctypes.c_size_t),
+        ("MaximumWorkingSetSize", ctypes.c_size_t),
+        ("ActiveProcessLimit", wintypes.DWORD),
+        ("Affinity", ctypes.c_size_t),
+        ("PriorityClass", wintypes.DWORD),
+        ("SchedulingClass", wintypes.DWORD),
+    ]
+
+
+class IO_COUNTERS(ctypes.Structure):
+    _fields_ = [
+        ("ReadOperationCount", ctypes.c_ulonglong),
+        ("WriteOperationCount", ctypes.c_ulonglong),
+        ("OtherOperationCount", ctypes.c_ulonglong),
+        ("ReadTransferCount", ctypes.c_ulonglong),
+        ("WriteTransferCount", ctypes.c_ulonglong),
+        ("OtherTransferCount", ctypes.c_ulonglong),
+    ]
+
+
+class JOBOBJECT_EXTENDED_LIMIT_INFORMATION(ctypes.Structure):
+    _fields_ = [
+        ("BasicLimitInformation", JOBOBJECT_BASIC_LIMIT_INFORMATION),
+        ("IoInfo", IO_COUNTERS),
+        ("ProcessMemoryLimit", ctypes.c_size_t),
+        ("JobMemoryLimit", ctypes.c_size_t),
+        ("PeakProcessMemoryUsed", ctypes.c_size_t),
+        ("PeakJobMemoryUsed", ctypes.c_size_t),
+    ]
+
+
+class OwnedProcessJob:
+    """Kill attached private children if the application exits unexpectedly."""
+
+    def __init__(self) -> None:
+        if sys.platform != "win32":
+            self._handle = None
+            return
+        kernel32 = ctypes.windll.kernel32
+        _configure_job_api(kernel32)
+        handle = kernel32.CreateJobObjectW(None, None)
+        if not handle:
+            raise OSError(ctypes.get_last_error(), "CreateJobObjectW failed")
+        information = JOBOBJECT_EXTENDED_LIMIT_INFORMATION()
+        information.BasicLimitInformation.LimitFlags = (
+            JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+        )
+        if not kernel32.SetInformationJobObject(
+            handle,
+            JOB_OBJECT_EXTENDED_LIMIT_INFORMATION,
+            ctypes.byref(information),
+            ctypes.sizeof(information),
+        ):
+            error = ctypes.get_last_error()
+            kernel32.CloseHandle(handle)
+            raise OSError(error, "SetInformationJobObject failed")
+        self._handle = handle
+
+    def assign(self, process_handle: int) -> None:
+        if self._handle is None:
+            return
+        if not ctypes.windll.kernel32.AssignProcessToJobObject(
+            self._handle, process_handle
+        ):
+            raise OSError(
+                ctypes.get_last_error(), "AssignProcessToJobObject failed"
+            )
+
+    def close(self) -> None:
+        handle = self._handle
+        self._handle = None
+        if handle:
+            ctypes.windll.kernel32.CloseHandle(handle)
+
+    def __del__(self) -> None:
+        self.close()
+
+
 def cleanup_owned_languagetool_processes(
-    java_path: Path,
+    java_path: Path | Iterable[Path],
     *,
     process_paths: Iterable[tuple[int, Path]] | None = None,
     terminate: Callable[[int], bool] | None = None,
@@ -42,14 +127,19 @@ def cleanup_owned_languagetool_processes(
     if sys.platform != "win32" and process_paths is None:
         return []
 
-    target = _normalized_path(java_path)
+    paths = (
+        (java_path,)
+        if isinstance(java_path, (str, os.PathLike))
+        else tuple(java_path)
+    )
+    targets = {_normalized_path(Path(path)) for path in paths}
     candidates = process_paths if process_paths is not None else _process_paths()
     terminate_process = terminate or _terminate_process
     stopped: list[int] = []
     for process_id, executable in candidates:
         if process_id == os.getpid():
             continue
-        if _normalized_path(executable) != target:
+        if _normalized_path(executable) not in targets:
             continue
         if terminate_process(process_id):
             stopped.append(process_id)
@@ -158,3 +248,20 @@ def _configure_kernel32(kernel32) -> None:
     kernel32.WaitForSingleObject.restype = wintypes.DWORD
     kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
     kernel32.CloseHandle.restype = wintypes.BOOL
+
+
+def _configure_job_api(kernel32) -> None:
+    kernel32.CreateJobObjectW.argtypes = [ctypes.c_void_p, wintypes.LPCWSTR]
+    kernel32.CreateJobObjectW.restype = wintypes.HANDLE
+    kernel32.SetInformationJobObject.argtypes = [
+        wintypes.HANDLE,
+        ctypes.c_int,
+        ctypes.c_void_p,
+        wintypes.DWORD,
+    ]
+    kernel32.SetInformationJobObject.restype = wintypes.BOOL
+    kernel32.AssignProcessToJobObject.argtypes = [
+        wintypes.HANDLE,
+        wintypes.HANDLE,
+    ]
+    kernel32.AssignProcessToJobObject.restype = wintypes.BOOL

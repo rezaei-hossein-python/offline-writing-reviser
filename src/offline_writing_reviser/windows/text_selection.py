@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import ctypes
 import logging
+import uuid
 from pathlib import Path
 import time
 from dataclasses import dataclass
 from ctypes import wintypes
+from enum import Enum
 
 
 CF_UNICODETEXT = 13
@@ -18,13 +20,92 @@ VK_MENU = 0x12
 VK_C = 0x43
 VK_V = 0x56
 VK_W = 0x57
+VK_P = 0x50
+VK_SHIFT = 0x10
+VK_LWIN = 0x5B
+VK_RWIN = 0x5C
 MAPVK_VK_TO_VSC = 0
 PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+WM_COPY = 0x0301
+WM_PASTE = 0x0302
+EM_GETSEL = 0x00B0
+SMTO_ABORTIFHUNG = 0x0002
 
 HCURSOR = wintypes.HANDLE
 HGLOBAL = wintypes.HANDLE
 LRESULT = ctypes.c_ssize_t
 ULONG_PTR = wintypes.WPARAM
+
+
+class CaptureState(str, Enum):
+    IDLE = "IDLE"
+    HOTKEY_RECEIVED = "HOTKEY_RECEIVED"
+    TARGET_CAPTURED = "TARGET_CAPTURED"
+    WAITING_FOR_MODIFIER_RELEASE = "WAITING_FOR_MODIFIER_RELEASE"
+    CLIPBOARD_SNAPSHOTTED = "CLIPBOARD_SNAPSHOTTED"
+    COPY_SENT = "COPY_SENT"
+    WAITING_FOR_CLIPBOARD_CHANGE = "WAITING_FOR_CLIPBOARD_CHANGE"
+    TEXT_CAPTURED = "TEXT_CAPTURED"
+    PROCESSING = "PROCESSING"
+    TARGET_REFOCUSED = "TARGET_REFOCUSED"
+    PASTE_SENT = "PASTE_SENT"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+
+
+class CaptureFailure(str, Enum):
+    NO_SELECTION = "no_selection"
+    MODIFIER_RELEASE_TIMEOUT = "modifier_release_timeout"
+    CLIPBOARD_BUSY = "clipboard_busy"
+    COPY_SEND_FAILED = "copy_send_failed"
+    COPY_TIMEOUT = "copy_timeout"
+    FOREGROUND_CHANGED = "foreground_changed"
+    TARGET_UNAVAILABLE = "target_unavailable"
+    UNSUPPORTED_TARGET = "unsupported_target"
+    PASTE_FAILED = "paste_failed"
+
+
+class SelectionCaptureError(RuntimeError):
+    def __init__(self, failure: CaptureFailure, state: CaptureState):
+        self.failure = failure
+        self.state = state
+        super().__init__(failure.value)
+
+
+class ClipboardBusyError(RuntimeError):
+    pass
+
+
+@dataclass(frozen=True)
+class SelectionTarget:
+    foreground_window: int
+    focused_window: int
+    foreground_pid: int
+    foreground_process: str
+    mode: str
+    action_key: int
+    operation_id: str
+
+
+@dataclass
+class OperationTelemetry:
+    operation_id: str
+    mode: str
+    process: str
+    foreground_window: int
+    focused_window: int
+    foreground_before_copy: int | None = None
+    foreground_before_paste: int | None = None
+    state: CaptureState = CaptureState.IDLE
+    clipboard_sequence_before: int | None = None
+    clipboard_sequence_after: int | None = None
+    modifier_release_ms: float | None = None
+    copy_send_success: bool = False
+    clipboard_wait_ms: float | None = None
+    captured_character_count: int = 0
+    processing_ms: float | None = None
+    paste_success: bool = False
+    failure_code: str = ""
 
 
 class MOUSEINPUT(ctypes.Structure):
@@ -86,6 +167,8 @@ class SelectedTextCapture:
     foreground_pid: int
     foreground_process: str
     clipboard_snapshot: ClipboardSnapshot
+    focused_window: int = 0
+    operation: OperationTelemetry | None = None
 
 
 class WindowsClipboard:
@@ -98,7 +181,7 @@ class WindowsClipboard:
         user32 = ctypes.windll.user32
         kernel32 = ctypes.windll.kernel32
         if not self._open_clipboard():
-            return ClipboardSnapshot(tuple())
+            raise ClipboardBusyError("clipboard_snapshot")
         try:
             format_id = 0
             while True:
@@ -131,7 +214,7 @@ class WindowsClipboard:
         user32 = ctypes.windll.user32
         kernel32 = ctypes.windll.kernel32
         if not self._open_clipboard():
-            return
+            raise ClipboardBusyError("clipboard_restore")
         try:
             user32.EmptyClipboard()
             for item in snapshot.formats:
@@ -152,7 +235,7 @@ class WindowsClipboard:
     def clear(self) -> None:
         user32 = ctypes.windll.user32
         if not self._open_clipboard():
-            return
+            raise ClipboardBusyError("clipboard_clear")
         try:
             user32.EmptyClipboard()
         finally:
@@ -167,7 +250,7 @@ class WindowsClipboard:
     def get_unicode_text(self) -> str:
         user32 = ctypes.windll.user32
         if not self._open_clipboard():
-            return ""
+            raise ClipboardBusyError("clipboard_read")
         try:
             handle = user32.GetClipboardData(CF_UNICODETEXT)
             if not handle:
@@ -187,7 +270,7 @@ class WindowsClipboard:
         user32 = ctypes.windll.user32
         kernel32 = ctypes.windll.kernel32
         if not self._open_clipboard():
-            return
+            raise ClipboardBusyError("clipboard_write")
         try:
             user32.EmptyClipboard()
             handle = kernel32.GlobalAlloc(GMEM_MOVEABLE, len(encoded))
@@ -218,9 +301,9 @@ class WindowsSelectedTextAdapter:
     def __init__(
         self,
         clipboard: WindowsClipboard | None = None,
-        copy_wait_seconds: float = 0.35,
-        paste_restore_delay_seconds: float = 0.2,
-        modifier_release_wait_seconds: float = 1.0,
+        copy_wait_seconds: float = 0.75,
+        paste_restore_delay_seconds: float = 0.35,
+        modifier_release_wait_seconds: float = 2.0,
         logger: logging.Logger | None = None,
     ):
         self.clipboard = clipboard or WindowsClipboard()
@@ -229,79 +312,288 @@ class WindowsSelectedTextAdapter:
         self.modifier_release_wait_seconds = modifier_release_wait_seconds
         self.logger = logger or logging.getLogger("offline-writing-reviser")
 
-    def capture(self) -> SelectedTextCapture | None:
-        self.logger.info("Offline writing capture started")
-        snapshot: ClipboardSnapshot | None = None
-        try:
-            foreground = get_foreground_window()
-            pid, process_name = get_window_process_identity(foreground)
-            self.logger.info(
-                "Offline writing foreground hwnd=%s pid=%s process=%s",
-                foreground,
-                pid,
-                process_name,
+    def capture_target(self, mode: str = "proofread") -> SelectionTarget:
+        foreground = get_foreground_window()
+        if not foreground:
+            raise SelectionCaptureError(
+                CaptureFailure.TARGET_UNAVAILABLE, CaptureState.HOTKEY_RECEIVED
             )
-            if not _wait_for_modifier_release(
-                timeout_seconds=self.modifier_release_wait_seconds,
-                logger=self.logger,
-            ):
-                self.logger.warning("Offline writing capture failed stage=modifier_release")
-                return None
-            self.logger.info("Offline writing capture stage=clipboard_snapshot")
-            snapshot = self.clipboard.snapshot()
-            sequence_before = self.clipboard.get_sequence_number()
-            self.logger.info("Offline writing clipboard sequence before=%s", sequence_before)
-            self.logger.info("Offline writing capture stage=send_copy")
-            if not _send_ctrl_key(VK_C, logger=self.logger):
-                self.clipboard.restore(snapshot)
-                self.logger.warning("Offline writing capture failed stage=send_copy")
-                return None
-            self.logger.info("Offline writing capture stage=wait_for_clipboard_sequence")
-            text = self._wait_for_clipboard_sequence_change(sequence_before)
-            self.logger.info("Offline writing capture stage=clipboard_restore")
-            self.clipboard.restore(snapshot)
-        except Exception:
-            self.logger.exception("Offline writing capture failed stage=win32_ctypes")
-            if snapshot is not None:
-                self.clipboard.restore(snapshot)
-            raise
-        if not text or not text.strip():
-            self.logger.warning("Offline writing capture failed stage=empty_clipboard")
-            return None
-        self.logger.info("Offline writing capture succeeded chars=%s", len(text))
-        return SelectedTextCapture(
-            text=text,
+        pid, process_name = get_window_process_identity(foreground)
+        focused = get_focused_window(foreground) or foreground
+        target = SelectionTarget(
             foreground_window=foreground,
+            focused_window=focused,
             foreground_pid=pid,
             foreground_process=process_name,
+            mode=mode,
+            action_key=VK_P if mode == "paraphrase" else VK_W,
+            operation_id=uuid.uuid4().hex[:12],
+        )
+        self.logger.info(
+            "Selection state=%s operation=%s mode=%s hwnd=%s",
+            CaptureState.HOTKEY_RECEIVED.value,
+            target.operation_id,
+            mode,
+            foreground,
+        )
+        self.logger.info(
+            "Selection state=%s operation=%s mode=%s process=%s hwnd=%s "
+            "focused_hwnd=%s",
+            CaptureState.TARGET_CAPTURED.value,
+            target.operation_id,
+            mode,
+            process_name,
+            foreground,
+            focused,
+        )
+        return target
+
+    def capture(
+        self,
+        target: SelectionTarget | None = None,
+        mode: str = "proofread",
+    ) -> SelectedTextCapture | None:
+        legacy_call = target is None
+        target = target or self.capture_target(mode)
+        telemetry = OperationTelemetry(
+            operation_id=target.operation_id,
+            mode=target.mode,
+            process=target.foreground_process,
+            foreground_window=target.foreground_window,
+            focused_window=target.focused_window,
+            state=CaptureState.HOTKEY_RECEIVED,
+        )
+        self._transition(telemetry, CaptureState.WAITING_FOR_MODIFIER_RELEASE)
+        snapshot: ClipboardSnapshot | None = None
+        modifier_started = time.perf_counter()
+        try:
+            if not _wait_for_modifier_release(
+                timeout_seconds=self.modifier_release_wait_seconds,
+                action_key=target.action_key,
+                logger=self.logger,
+            ):
+                telemetry.modifier_release_ms = (
+                    time.perf_counter() - modifier_started
+                ) * 1000
+                self._fail(
+                    telemetry, CaptureFailure.MODIFIER_RELEASE_TIMEOUT
+                )
+            telemetry.modifier_release_ms = (
+                time.perf_counter() - modifier_started
+            ) * 1000
+            telemetry.foreground_before_copy = get_foreground_window()
+            if telemetry.foreground_before_copy != target.foreground_window:
+                self._fail(telemetry, CaptureFailure.FOREGROUND_CHANGED)
+
+            snapshot = self.clipboard.snapshot()
+            self._transition(telemetry, CaptureState.CLIPBOARD_SNAPSHOTTED)
+            self.clipboard.clear()
+            sequence_before = self.clipboard.get_sequence_number()
+            telemetry.clipboard_sequence_before = sequence_before
+
+            standard_control = is_standard_edit_control(target.focused_window)
+            if standard_control and not control_has_selection(target.focused_window):
+                self._fail(telemetry, CaptureFailure.NO_SELECTION)
+            wait_started = time.perf_counter()
+            text = ""
+            for attempt in range(1, 3):
+                copy_sent = (
+                    send_control_message(target.focused_window, WM_COPY)
+                    if standard_control
+                    else _send_ctrl_key(VK_C, logger=self.logger)
+                )
+                telemetry.copy_send_success = copy_sent
+                self._transition(telemetry, CaptureState.COPY_SENT)
+                if not copy_sent:
+                    if attempt == 2:
+                        self._fail(
+                            telemetry, CaptureFailure.COPY_SEND_FAILED
+                        )
+                    continue
+                self._transition(
+                    telemetry, CaptureState.WAITING_FOR_CLIPBOARD_CHANGE
+                )
+                text = self._wait_for_clipboard_sequence_change(
+                    sequence_before
+                )
+                if text:
+                    break
+                if get_foreground_window() != target.foreground_window:
+                    self._fail(
+                        telemetry, CaptureFailure.FOREGROUND_CHANGED
+                    )
+                self.logger.info(
+                    "Selection copy retry operation=%s attempt=%s",
+                    telemetry.operation_id,
+                    attempt + 1,
+                )
+            telemetry.clipboard_wait_ms = (
+                time.perf_counter() - wait_started
+            ) * 1000
+            telemetry.clipboard_sequence_after = (
+                self.clipboard.get_sequence_number()
+            )
+            if not text:
+                failure = (
+                    CaptureFailure.COPY_TIMEOUT
+                    if standard_control
+                    else CaptureFailure.COPY_TIMEOUT
+                )
+                self._fail(telemetry, failure)
+            telemetry.captured_character_count = len(text)
+            self._transition(telemetry, CaptureState.TEXT_CAPTURED)
+            self.clipboard.restore(snapshot)
+        except ClipboardBusyError:
+            if snapshot is not None:
+                try:
+                    self.clipboard.restore(snapshot)
+                except ClipboardBusyError:
+                    pass
+            self._fail(telemetry, CaptureFailure.CLIPBOARD_BUSY)
+        except SelectionCaptureError:
+            if snapshot is not None:
+                try:
+                    self.clipboard.restore(snapshot)
+                except ClipboardBusyError:
+                    pass
+            if legacy_call:
+                return None
+            raise
+        except Exception:
+            self.logger.exception(
+                "Selection operation=%s failed exception_type=win32",
+                telemetry.operation_id,
+            )
+            if snapshot is not None:
+                try:
+                    self.clipboard.restore(snapshot)
+                except ClipboardBusyError:
+                    pass
+            self._fail(telemetry, CaptureFailure.COPY_SEND_FAILED)
+        if not text or not text.strip():
+            self._fail(telemetry, CaptureFailure.NO_SELECTION)
+        return SelectedTextCapture(
+            text=text,
+            foreground_window=target.foreground_window,
+            foreground_pid=target.foreground_pid,
+            foreground_process=target.foreground_process,
             clipboard_snapshot=snapshot,
+            focused_window=target.focused_window,
+            operation=telemetry,
         )
 
     def replace(self, capture: SelectedTextCapture, replacement: str) -> bool:
-        self.logger.info("Offline writing replacement started chars=%s", len(replacement))
+        telemetry = capture.operation
         current_foreground = get_foreground_window()
         if current_foreground != capture.foreground_window:
-            self.logger.warning(
-                "Offline writing replacement failed stage=focus_changed "
-                "original_hwnd=%s current_hwnd=%s",
-                capture.foreground_window,
-                current_foreground,
-            )
+            restore_foreground_window(capture.foreground_window)
+            current_foreground = get_foreground_window()
+        if telemetry:
+            telemetry.foreground_before_paste = current_foreground
+        if current_foreground != capture.foreground_window:
+            if telemetry:
+                self._fail(
+                    telemetry,
+                    CaptureFailure.FOREGROUND_CHANGED,
+                    raise_error=False,
+                )
             return False
+        if telemetry:
+            self._transition(telemetry, CaptureState.TARGET_REFOCUSED)
         self.clipboard.set_unicode_text(replacement)
         try:
-            if not _send_ctrl_key(VK_V, logger=self.logger):
-                self.logger.warning("Offline writing replacement failed stage=send_paste")
+            paste_sent = (
+                send_control_message(capture.focused_window, WM_PASTE)
+                if is_standard_edit_control(capture.focused_window)
+                else _send_ctrl_key(VK_V, logger=self.logger)
+            )
+            if telemetry:
+                telemetry.paste_success = paste_sent
+                self._transition(telemetry, CaptureState.PASTE_SENT)
+            if not paste_sent:
+                if telemetry:
+                    self._fail(
+                        telemetry,
+                        CaptureFailure.PASTE_FAILED,
+                        raise_error=False,
+                    )
                 return False
             _wait_for_foreground_stability(
                 capture.foreground_window,
                 timeout_seconds=self.paste_restore_delay_seconds,
             )
-            self.logger.info("Offline writing replacement succeeded chars=%s", len(replacement))
+            if telemetry:
+                telemetry.paste_success = True
+                self._transition(telemetry, CaptureState.COMPLETED)
+                self._log_summary(telemetry)
             return True
         finally:
             self.clipboard.restore(capture.clipboard_snapshot)
-            self.logger.info("Offline writing clipboard restoration completed")
+
+    def mark_processing(
+        self, capture: SelectedTextCapture, duration_ms: float | None = None
+    ) -> None:
+        if capture.operation:
+            if duration_ms is None:
+                self._transition(capture.operation, CaptureState.PROCESSING)
+            else:
+                capture.operation.processing_ms = duration_ms
+
+    def complete_without_replacement(self, capture: SelectedTextCapture) -> None:
+        if capture.operation:
+            self._transition(capture.operation, CaptureState.COMPLETED)
+            self._log_summary(capture.operation)
+
+    def _transition(
+        self, telemetry: OperationTelemetry, state: CaptureState
+    ) -> None:
+        telemetry.state = state
+        self.logger.info(
+            "Selection state=%s operation=%s mode=%s hwnd=%s",
+            state.value,
+            telemetry.operation_id,
+            telemetry.mode,
+            telemetry.foreground_window,
+        )
+
+    def _fail(
+        self,
+        telemetry: OperationTelemetry,
+        failure: CaptureFailure,
+        *,
+        raise_error: bool = True,
+    ) -> None:
+        telemetry.state = CaptureState.FAILED
+        telemetry.failure_code = failure.value
+        self._log_summary(telemetry)
+        if raise_error:
+            raise SelectionCaptureError(failure, CaptureState.FAILED)
+
+    def _log_summary(self, telemetry: OperationTelemetry) -> None:
+        self.logger.info(
+            "Selection operation=%s mode=%s process=%s hwnd=%s "
+            "focused_hwnd=%s state=%s sequence_before=%s sequence_after=%s "
+            "foreground_before_copy=%s foreground_before_paste=%s "
+            "modifier_release_ms=%s copy_send_success=%s clipboard_wait_ms=%s "
+            "captured_chars=%s processing_ms=%s paste_success=%s failure_code=%s",
+            telemetry.operation_id,
+            telemetry.mode,
+            telemetry.process,
+            telemetry.foreground_window,
+            telemetry.focused_window,
+            telemetry.state.value,
+            telemetry.clipboard_sequence_before,
+            telemetry.clipboard_sequence_after,
+            telemetry.foreground_before_copy,
+            telemetry.foreground_before_paste,
+            _rounded(telemetry.modifier_release_ms),
+            telemetry.copy_send_success,
+            _rounded(telemetry.clipboard_wait_ms),
+            telemetry.captured_character_count,
+            _rounded(telemetry.processing_ms),
+            telemetry.paste_success,
+            telemetry.failure_code or "none",
+        )
 
     def _wait_for_clipboard_text(self) -> str:
         deadline = time.perf_counter() + self.copy_wait_seconds
@@ -395,6 +687,26 @@ def _configure_clipboard_ctypes() -> None:
     user32.GetForegroundWindow.restype = wintypes.HWND
     user32.GetWindowThreadProcessId.argtypes = [wintypes.HWND, wintypes.LPDWORD]
     user32.GetWindowThreadProcessId.restype = wintypes.DWORD
+    if hasattr(user32, "GetGUIThreadInfo"):
+        user32.GetGUIThreadInfo.argtypes = [wintypes.DWORD, ctypes.c_void_p]
+        user32.GetGUIThreadInfo.restype = wintypes.BOOL
+    if hasattr(user32, "GetClassNameW"):
+        user32.GetClassNameW.argtypes = [
+            wintypes.HWND,
+            wintypes.LPWSTR,
+            ctypes.c_int,
+        ]
+        user32.GetClassNameW.restype = ctypes.c_int
+    if hasattr(user32, "SendMessageW"):
+        user32.SendMessageW.argtypes = [
+            wintypes.HWND,
+            wintypes.UINT,
+            wintypes.WPARAM,
+            wintypes.LPARAM,
+        ]
+        user32.SendMessageW.restype = LRESULT
+    if hasattr(user32, "SendMessageTimeoutW"):
+        user32.SendMessageTimeoutW.restype = LRESULT
     user32.GetAsyncKeyState.argtypes = [ctypes.c_int]
     user32.GetAsyncKeyState.restype = wintypes.SHORT
     user32.MapVirtualKeyW.argtypes = [wintypes.UINT, wintypes.UINT]
@@ -486,26 +798,145 @@ def get_window_process_identity(hwnd: int) -> tuple[int, str]:
     return int(pid.value), "unknown"
 
 
+class GUITHREADINFO(ctypes.Structure):
+    _fields_ = [
+        ("cbSize", wintypes.DWORD),
+        ("flags", wintypes.DWORD),
+        ("hwndActive", wintypes.HWND),
+        ("hwndFocus", wintypes.HWND),
+        ("hwndCapture", wintypes.HWND),
+        ("hwndMenuOwner", wintypes.HWND),
+        ("hwndMoveSize", wintypes.HWND),
+        ("hwndCaret", wintypes.HWND),
+        ("rcCaret", wintypes.RECT),
+    ]
+
+
+def get_focused_window(foreground_hwnd: int) -> int:
+    if not foreground_hwnd:
+        return 0
+    pid = wintypes.DWORD()
+    thread_id = ctypes.windll.user32.GetWindowThreadProcessId(
+        wintypes.HWND(foreground_hwnd), ctypes.byref(pid)
+    )
+    info = GUITHREADINFO()
+    info.cbSize = ctypes.sizeof(info)
+    if thread_id and ctypes.windll.user32.GetGUIThreadInfo(
+        thread_id, ctypes.byref(info)
+    ):
+        return int(info.hwndFocus or 0)
+    return 0
+
+
+def get_window_class(hwnd: int) -> str:
+    if not hwnd:
+        return ""
+    buffer = ctypes.create_unicode_buffer(256)
+    if ctypes.windll.user32.GetClassNameW(hwnd, buffer, len(buffer)):
+        return buffer.value
+    return ""
+
+
+def is_standard_edit_control(hwnd: int) -> bool:
+    class_name = get_window_class(hwnd).casefold()
+    return (
+        class_name == "edit"
+        or class_name.startswith("richedit")
+        or ".edit." in class_name
+    )
+
+
+def control_has_selection(hwnd: int) -> bool:
+    selection = int(
+        ctypes.windll.user32.SendMessageW(hwnd, EM_GETSEL, 0, 0)
+    )
+    start = selection & 0xFFFF
+    end = (selection >> 16) & 0xFFFF
+    return start != end
+
+
+def send_control_message(hwnd: int, message: int) -> bool:
+    if not hwnd:
+        return False
+    result = ctypes.c_size_t()
+    delivered = ctypes.windll.user32.SendMessageTimeoutW(
+        hwnd,
+        message,
+        0,
+        0,
+        SMTO_ABORTIFHUNG,
+        1000,
+        ctypes.byref(result),
+    )
+    return bool(delivered)
+
+
+def restore_foreground_window(hwnd: int, timeout_seconds: float = 0.5) -> bool:
+    if not hwnd:
+        return False
+    ctypes.windll.user32.SetForegroundWindow(hwnd)
+    deadline = time.perf_counter() + timeout_seconds
+    while time.perf_counter() < deadline:
+        if get_foreground_window() == hwnd:
+            return True
+        time.sleep(0.01)
+    return get_foreground_window() == hwnd
+
+
 def _wait_for_modifier_release(
     timeout_seconds: float,
+    action_key: int = VK_W,
     logger: logging.Logger | None = None,
 ) -> bool:
     deadline = time.perf_counter() + timeout_seconds
-    user32 = ctypes.windll.user32
     if logger:
-        logger.info("Offline writing modifier release wait started")
+        down = _physical_key_state(action_key)
+        logger.info(
+            "Offline writing modifier release wait started "
+            "ctrl=%s alt=%s shift=%s win=%s action=%s",
+            down["ctrl"],
+            down["alt"],
+            down["shift"],
+            down["win"],
+            down["action"],
+        )
+    else:
+        down = {}
     while time.perf_counter() < deadline:
-        ctrl_down = bool(user32.GetAsyncKeyState(VK_CONTROL) & 0x8000)
-        alt_down = bool(user32.GetAsyncKeyState(VK_MENU) & 0x8000)
-        w_down = bool(user32.GetAsyncKeyState(VK_W) & 0x8000)
-        if not ctrl_down and not alt_down and not w_down:
+        down = _physical_key_state(action_key)
+        if not any(down.values()):
             if logger:
-                logger.info("Offline writing modifiers released")
+                logger.info(
+                    "Offline writing modifiers released ctrl=false alt=false "
+                    "shift=false win=false action=false"
+                )
             return True
         time.sleep(0.01)
     if logger:
-        logger.warning("Offline writing modifier release wait timed out")
+        logger.warning(
+            "Offline writing modifier release wait timed out "
+            "ctrl=%s alt=%s shift=%s win=%s action=%s",
+            down["ctrl"],
+            down["alt"],
+            down["shift"],
+            down["win"],
+            down["action"],
+        )
     return False
+
+
+def _physical_key_state(action_key: int) -> dict[str, bool]:
+    user32 = ctypes.windll.user32
+    return {
+        "ctrl": bool(user32.GetAsyncKeyState(VK_CONTROL) & 0x8000),
+        "alt": bool(user32.GetAsyncKeyState(VK_MENU) & 0x8000),
+        "shift": bool(user32.GetAsyncKeyState(VK_SHIFT) & 0x8000),
+        "win": bool(
+            user32.GetAsyncKeyState(VK_LWIN) & 0x8000
+            or user32.GetAsyncKeyState(VK_RWIN) & 0x8000
+        ),
+        "action": bool(user32.GetAsyncKeyState(action_key) & 0x8000),
+    }
 
 
 def _wait_for_foreground_stability(hwnd: int, timeout_seconds: float) -> bool:
@@ -515,3 +946,7 @@ def _wait_for_foreground_stability(hwnd: int, timeout_seconds: float) -> bool:
             return False
         time.sleep(0.02)
     return get_foreground_window() == hwnd
+
+
+def _rounded(value: float | None) -> str:
+    return "none" if value is None else f"{value:.2f}"

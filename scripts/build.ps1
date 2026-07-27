@@ -54,7 +54,7 @@ if (-not (Test-Path -LiteralPath $IconFile -PathType Leaf)) {
     }
 }
 foreach ($RequiredPath in @(
-    (Join-Path $JavaRuntime "bin\java.exe"),
+    (Join-Path $JavaRuntime "bin\javaw.exe"),
     (Join-Path $LanguageToolRuntime "languagetool-server.jar"),
     $ThirdPartyNotices
 )) {

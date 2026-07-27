@@ -17,6 +17,7 @@ from offline_writing_reviser.core.errors import (
     OfflineWritingLanguageToolUnavailable,
 )
 from offline_writing_reviser.paths import private_runtime_path
+from offline_writing_reviser.windows.owned_processes import OwnedProcessJob
 
 
 LANGUAGE = "en-US"
@@ -25,7 +26,12 @@ SERVER_MAIN_CLASS = "org.languagetool.server.HTTPServer"
 
 
 def default_java_path() -> Path:
-    return private_runtime_path(Path("java") / "bin" / "java.exe")
+    return private_runtime_path(Path("java") / "bin" / "javaw.exe")
+
+
+def default_java_paths() -> tuple[Path, Path]:
+    java_bin = private_runtime_path(Path("java") / "bin")
+    return java_bin / "javaw.exe", java_bin / "java.exe"
 
 
 def default_server_jar_path() -> Path:
@@ -107,6 +113,7 @@ class LanguageToolRuntime:
         self._lock = threading.RLock()
         self._port: int | None = None
         self._shutdown = threading.Event()
+        self._process_job: OwnedProcessJob | None = None
 
     @property
     def process(self) -> subprocess.Popen[bytes] | None:
@@ -223,7 +230,16 @@ class LanguageToolRuntime:
                     subprocess, "CREATE_NO_WINDOW", 0x08000000
                 ),
             )
+            self._process_job = OwnedProcessJob()
+            self._process_job.assign(self._process._handle)
         except OSError as exc:
+            if self._process is not None and self._process.poll() is None:
+                self._process.terminate()
+                self._process.wait(timeout=5)
+            if self._process_job is not None:
+                self._process_job.close()
+            self._process = None
+            self._process_job = None
             raise OfflineWritingLanguageToolUnavailable(
                 "Bundled LanguageTool could not be started"
             ) from exc
@@ -263,10 +279,14 @@ class LanguageToolRuntime:
 
     def _stop_locked(self) -> None:
         process = self._process
+        process_job = self._process_job
         self._process = None
+        self._process_job = None
         self._client = None
         self._port = None
         if process is None or process.poll() is not None:
+            if process_job is not None:
+                process_job.close()
             return
         process.terminate()
         try:
@@ -274,6 +294,8 @@ class LanguageToolRuntime:
         except subprocess.TimeoutExpired:
             process.kill()
             process.wait(timeout=5)
+        if process_job is not None:
+            process_job.close()
         self.logger.info("LanguageTool owned runtime stopped")
 
 

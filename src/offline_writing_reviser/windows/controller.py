@@ -20,7 +20,12 @@ from offline_writing_reviser.proofreading.languagetool import LanguageToolRuntim
 from offline_writing_reviser.providers.base import OfflineWritingProviderError
 from offline_writing_reviser.providers.ollama import OllamaCliOfflineWritingProvider
 from offline_writing_reviser.windows.hotkeys import HotkeyBinding, WindowsHotkeyManager
-from offline_writing_reviser.windows.text_selection import WindowsSelectedTextAdapter
+from offline_writing_reviser.windows.text_selection import (
+    CaptureFailure,
+    SelectionCaptureError,
+    SelectionTarget,
+    WindowsSelectedTextAdapter,
+)
 
 
 class OfflineWritingController:
@@ -59,9 +64,18 @@ class OfflineWritingController:
                 "Offline writing skipped mode=%s category=shutdown", mode
             )
             return
+        try:
+            target = self.text_adapter.capture_target(mode)
+        except SelectionCaptureError as exc:
+            self.logger.warning(
+                "Offline writing target capture failed failure_code=%s",
+                exc.failure.value,
+            )
+            self._report_error("capture_failed")
+            return
         thread = threading.Thread(
             target=self._run_revision_thread,
-            args=(mode,),
+            args=(mode, target),
             name=f"offline-writing-{mode}",
             daemon=True,
         )
@@ -77,14 +91,22 @@ class OfflineWritingController:
         for thread in threads:
             thread.join(timeout=max(0.0, deadline - time.monotonic()))
 
-    def _run_revision_thread(self, mode: str = "proofread") -> None:
+    def _run_revision_thread(
+        self,
+        mode: str = "proofread",
+        target: SelectionTarget | None = None,
+    ) -> None:
         try:
-            self._run_revision(mode)
+            self._run_revision(mode, target)
         finally:
             with self._threads_lock:
                 self._threads.discard(threading.current_thread())
 
-    def _run_revision(self, mode: str = "proofread") -> None:
+    def _run_revision(
+        self,
+        mode: str = "proofread",
+        target: SelectionTarget | None = None,
+    ) -> None:
         started = time.perf_counter()
         if not self._lock.acquire(blocking=False):
             self.logger.info("Offline writing skipped category=busy")
@@ -93,7 +115,22 @@ class OfflineWritingController:
             self.state_callback(ApplicationState.REVISING)
             self.logger.info("Revision begin mode=%s", mode)
             try:
-                capture = self.text_adapter.capture()
+                capture = (
+                    self.text_adapter.capture(target, mode)
+                    if target is not None
+                    else self.text_adapter.capture()
+                )
+            except SelectionCaptureError as exc:
+                self.logger.warning(
+                    "Offline writing capture failed failure_code=%s",
+                    exc.failure.value,
+                )
+                self._report_error(
+                    "no_selection"
+                    if exc.failure is CaptureFailure.NO_SELECTION
+                    else "capture_failed"
+                )
+                return
             except Exception as exc:
                 self.logger.exception(
                     "Offline writing capture failed category=%s",
@@ -102,9 +139,11 @@ class OfflineWritingController:
                 self._report_error(exc)
                 return
             if capture is None:
-                self.logger.info("Offline writing skipped category=empty_selection")
                 self._report_error("no_selection")
                 return
+            processing_started = time.perf_counter()
+            if hasattr(self.text_adapter, "mark_processing"):
+                self.text_adapter.mark_processing(capture)
             try:
                 service = (
                     self.paraphrase_service
@@ -147,12 +186,20 @@ class OfflineWritingController:
                 )
                 self._report_error(exc)
                 return
+            finally:
+                if hasattr(self.text_adapter, "mark_processing"):
+                    self.text_adapter.mark_processing(
+                        capture,
+                        (time.perf_counter() - processing_started) * 1000,
+                    )
             if self._shutdown_event.is_set():
                 self.logger.info(
                     "Offline writing replacement skipped category=shutdown"
                 )
                 return
             if result.revised_text == capture.text:
+                if hasattr(self.text_adapter, "complete_without_replacement"):
+                    self.text_adapter.complete_without_replacement(capture)
                 self.state_callback(ApplicationState.READY)
                 return
             if not self.text_adapter.replace(capture, result.revised_text):

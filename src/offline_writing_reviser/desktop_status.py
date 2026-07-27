@@ -43,6 +43,12 @@ def user_message_for_error(error: BaseException | str) -> UserMessage:
             "Select some text in the active application and try again.",
             ApplicationState.READY,
         )
+    if error == "capture_failed":
+        return UserMessage(
+            "Selection could not be captured",
+            "Keep the target application active and try the hotkey again.",
+            ApplicationState.READY,
+        )
     if error == "focus_changed":
         return UserMessage(
             "Replacement cancelled",

@@ -444,7 +444,7 @@ def test_runtime_shutdown_stops_hotkey_controller_and_languagetool():
 
 
 def test_private_dependency_paths_resolve_under_vendor_in_source_tree():
-    assert default_java_path().parts[-3:] == ("java", "bin", "java.exe")
+    assert default_java_path().parts[-3:] == ("java", "bin", "javaw.exe")
     assert default_server_jar_path().parts[-2:] == (
         "languagetool",
         "languagetool-server.jar",
