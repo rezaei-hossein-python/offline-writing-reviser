@@ -192,15 +192,27 @@ class SettingsWindow:
         form.addWidget(maximum_label, 2, 0)
         form.addWidget(maximum, 2, 1)
 
-        hotkey_label = QtWidgets.QLabel("Global &hotkey:")
+        hotkey_label = QtWidgets.QLabel("&Proofread hotkey:")
         hotkey = QtWidgets.QLineEdit()
         hotkey.setAccessibleName("Global hotkey")
         hotkey.setAccessibleDescription(
-            "Use Ctrl and/or Alt plus one letter or number."
+            "Hotkey for conservative proofreading. Use Ctrl and/or Alt plus "
+            "one letter or number."
         )
         hotkey_label.setBuddy(hotkey)
         form.addWidget(hotkey_label, 3, 0)
         form.addWidget(hotkey, 3, 1)
+
+        paraphrase_hotkey = QtWidgets.QLabel(
+            f"Paraphrase hotkey: {config.paraphrase_hotkey}"
+        )
+        paraphrase_hotkey.setAccessibleName(
+            f"Paraphrase hotkey {config.paraphrase_hotkey}"
+        )
+        paraphrase_hotkey.setAccessibleDescription(
+            "Use this fixed global hotkey for intentional paraphrasing."
+        )
+        form.addWidget(paraphrase_hotkey, 4, 0, 1, 3)
 
         log_label = QtWidgets.QLabel("&Log location:")
         log_location = QtWidgets.QLineEdit()
@@ -210,8 +222,8 @@ class SettingsWindow:
         )
         log_location.setReadOnly(True)
         log_label.setBuddy(log_location)
-        form.addWidget(log_label, 4, 0)
-        form.addWidget(log_location, 4, 1, 1, 2)
+        form.addWidget(log_label, 5, 0)
+        form.addWidget(log_location, 5, 1, 1, 2)
 
         status = QtWidgets.QLabel("Settings are ready.")
         status.setAccessibleName("Settings status")

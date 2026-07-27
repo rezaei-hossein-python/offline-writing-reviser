@@ -28,6 +28,16 @@ def main(argv: list[str] | None = None) -> int:
         help="Include a small local Gemma proofreading health test.",
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
+    parser.add_argument(
+        "--production-acceptance-request",
+        type=str,
+        help=argparse.SUPPRESS,
+    )
+    parser.add_argument(
+        "--production-acceptance-response",
+        type=str,
+        help=argparse.SUPPRESS,
+    )
     controls = parser.add_mutually_exclusive_group()
     controls.add_argument("--settings", action="store_true")
     controls.add_argument("--exit", action="store_true", dest="exit_application")
@@ -36,6 +46,24 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.gemma_test and not (args.diagnostics or args.diagnostics_json):
         parser.error("--gemma-test requires --diagnostics or --diagnostics-json")
+    if bool(args.production_acceptance_request) != bool(
+        args.production_acceptance_response
+    ):
+        parser.error(
+            "production acceptance requires request and response paths"
+        )
+    if args.production_acceptance_request:
+        _hide_private_console()
+        from pathlib import Path
+
+        from offline_writing_reviser.production_acceptance import (
+            run_production_acceptance,
+        )
+
+        return run_production_acceptance(
+            Path(args.production_acceptance_request),
+            Path(args.production_acceptance_response),
+        )
     if args.validate_startup:
         return validate_startup()
     if args.diagnostics or args.diagnostics_json:
@@ -48,11 +76,12 @@ def main(argv: list[str] | None = None) -> int:
         report, healthy = collect_diagnostics(
             include_gemma_test=args.gemma_test
         )
-        print(
-            diagnostics_json(report)
-            if args.diagnostics_json
-            else format_diagnostics(report)
-        )
+        if sys.stdout is not None:
+            print(
+                diagnostics_json(report)
+                if args.diagnostics_json
+                else format_diagnostics(report)
+            )
         return 0 if healthy else 1
     if args.provision_model:
         _hide_private_console()

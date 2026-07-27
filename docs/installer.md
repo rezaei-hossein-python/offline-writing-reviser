@@ -47,13 +47,16 @@ The default per-user location is:
 ```
 
 Setup creates Start Menu entries for the app, Settings, Diagnostics, and
-Uninstall. Provisioning validates the local services before normal startup.
+Uninstall. It also creates an application-owned HKCU `Run` value and starts the
+windowed background controller at the end of setup, so `Ctrl+Alt+W` proofreads
+and `Ctrl+Alt+P` paraphrases without a terminal. Provisioning validates the
+local services before normal startup.
 Silent setup deliberately skips interactive model provisioning; managed
 deployment must provision Ollama/model separately or run `--provision-model`
 interactively afterward.
 
-Uninstall sends `--exit`, removes application-owned files and shortcuts, and
-preserves settings/logs plus shared Ollama/model data. This prevents an
+Uninstall sends `--exit`, removes the application-owned startup value, files,
+and shortcuts, and preserves settings/logs plus shared Ollama/model data. This prevents an
 application uninstall from destroying resources another program may use.
 
 ## Smoke-test checklist

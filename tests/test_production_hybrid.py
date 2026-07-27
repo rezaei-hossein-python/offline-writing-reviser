@@ -68,7 +68,11 @@ class FakeLanguageTool:
         self.calls.append(text)
         if self.error:
             raise self.error
-        return self.payloads.pop(0), 0.01
+        return (
+            self.payloads.pop(0)
+            if self.payloads
+            else {"matches": []}
+        ), 0.01
 
 
 class FakeProvider:
@@ -144,6 +148,7 @@ def test_safe_languagetool_correction_is_applied_without_gemma():
     assert result.revised_text == "Send it to the address today."
     assert provider.calls == []
     assert result.metadata["safe_correction_count"] == 1
+    assert result.metadata["safe_rule_ids"] == ["MORFOLOGIK_RULE_EN_US"]
 
 
 def test_ambiguous_production_case_routes_and_accepts_exact_gemma_edit():
@@ -176,6 +181,38 @@ def test_validator_rejection_falls_back_to_safe_text():
     ).revise(source)
 
     assert result.revised_text == source
+    assert result.metadata["gemma_fallback"] == 1
+
+
+def test_candidate_with_remaining_language_tool_error_is_rejected():
+    source = "This criteria is mandatory."
+    original_match = match(
+        source,
+        "This criteria",
+        ["This criterion", "These criteria"],
+        "THIS_NNS",
+    )
+    bad_output = "These criteria is mandatory."
+    remaining_match = match(
+        bad_output,
+        "These criteria is",
+        ["These criteria are"],
+        "PERS_PRONOUN_AGREEMENT",
+    )
+
+    result = service(
+        FakeLanguageTool(
+            [
+                {"matches": [original_match]},
+                {"matches": [original_match]},
+                {"matches": [remaining_match]},
+            ]
+        ),
+        FakeProvider(bad_output),
+    ).revise(source)
+
+    assert result.revised_text == source
+    assert result.metadata["gemma_accepted"] == 0
     assert result.metadata["gemma_fallback"] == 1
 
 
@@ -228,6 +265,73 @@ def test_production_formatting_and_newlines_are_preserved():
     )
     result = service(lt).revise(source)
     assert result.revised_text == "Items:\r\n- The address\r\n\r\nEnd."
+
+
+@pytest.mark.parametrize(
+    ("source", "original", "replacements", "rule_id", "expected"),
+    [
+        (
+            "He go to work every day.",
+            "go",
+            ["goes", "went"],
+            "HE_VERB_AGR",
+            "He goes to work every day.",
+        ),
+        (
+            "This sentense has a speling mistake.",
+            "sentense",
+            ["sentence", "sen tense"],
+            "MORFOLOGIK_RULE_EN_US",
+            "This sentence has a spelling mistake.",
+        ),
+    ],
+)
+def test_required_production_contextual_acceptance_cases(
+    source, original, replacements, rule_id, expected
+):
+    first_match = match(source, original, replacements, rule_id, "TYPOS")
+    result = service(
+        FakeLanguageTool(
+            [
+                {"matches": [first_match]},
+                {"matches": [first_match]},
+            ]
+        ),
+        FakeProvider(expected),
+    ).revise(source)
+
+    assert result.revised_text == expected
+    assert result.metadata["gemma_routed"] == 1
+    assert result.metadata["gemma_accepted"] == 1
+
+
+def test_required_production_mixed_spelling_and_grammar_case():
+    source = "These equipement is expensive."
+    safe_text = "These equipment is expensive."
+    spelling = match(
+        source,
+        "equipement",
+        ["equipment"],
+        "MORFOLOGIK_RULE_EN_US",
+        "TYPOS",
+    )
+    agreement = match(
+        safe_text,
+        "These equipment",
+        ["This equipment", "These equipments"],
+        "THIS_NNS",
+    )
+
+    result = service(
+        FakeLanguageTool(
+            [{"matches": [spelling]}, {"matches": [agreement]}]
+        ),
+        FakeProvider("This equipment is expensive."),
+    ).revise(source)
+
+    assert result.revised_text == "This equipment is expensive."
+    assert result.metadata["safe_correction_count"] == 2
+    assert result.metadata["gemma_routed"] == 0
 
 
 def test_production_performance_logs_do_not_contain_user_text(caplog):

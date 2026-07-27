@@ -17,6 +17,7 @@ class OfflineWritingConfig:
     provider: str = "ollama_cli"
     model: str = "gemma3:4b"
     hotkey: str = "Ctrl+Alt+W"
+    paraphrase_hotkey: str = "Ctrl+Alt+P"
     timeout_seconds: float = 45.0
     max_characters: int = 20_000
     chunk_characters: int = 2000

@@ -16,6 +16,8 @@ from offline_writing_reviser.windows.hotkeys import parse_hotkey
 
 
 SETTINGS_KEYS = ("model", "timeout_seconds", "max_characters", "hotkey")
+SETTINGS_VERSION = 1
+LEGACY_DEFAULT_MODELS = {"llama3.2:3b"}
 
 
 class SettingsValidationError(ValueError):
@@ -37,6 +39,9 @@ def validate_config(config: OfflineWritingConfig) -> OfflineWritingConfig:
         )
     try:
         modifiers, _key = parse_hotkey(hotkey)
+        paraphrase_modifiers, _paraphrase_key = parse_hotkey(
+            config.paraphrase_hotkey
+        )
     except ValueError as exc:
         raise SettingsValidationError(
             "Hotkey must use Ctrl and/or Alt plus one letter or number."
@@ -44,6 +49,16 @@ def validate_config(config: OfflineWritingConfig) -> OfflineWritingConfig:
     if not modifiers:
         raise SettingsValidationError(
             "Hotkey must use Ctrl and/or Alt plus one letter or number."
+        )
+    if not paraphrase_modifiers:
+        raise SettingsValidationError(
+            "Paraphrase hotkey must use Ctrl and/or Alt plus one letter or number."
+        )
+    if canonicalize_hotkey(hotkey) == canonicalize_hotkey(
+        config.paraphrase_hotkey
+    ):
+        raise SettingsValidationError(
+            "Proofread and paraphrase hotkeys must be different."
         )
     return replace(
         config,
@@ -82,14 +97,22 @@ class SettingsStore:
         )
         self.logger = logger or logging.getLogger("offline-writing-reviser")
         self.recovered_corrupt_file = False
+        self.migrated_legacy_defaults = False
 
     def load(self) -> OfflineWritingConfig:
         self.recovered_corrupt_file = False
+        self.migrated_legacy_defaults = False
         try:
             raw = json.loads(self.path.read_text(encoding="utf-8"))
             if not isinstance(raw, dict):
                 raise SettingsValidationError("Settings root must be an object")
             values = {key: raw[key] for key in SETTINGS_KEYS if key in raw}
+            if (
+                "settings_version" not in raw
+                and values.get("model") in LEGACY_DEFAULT_MODELS
+            ):
+                values["model"] = self.defaults.model
+                self.migrated_legacy_defaults = True
             config = validate_config(replace(self.defaults, **values))
         except FileNotFoundError:
             config = self.defaults
@@ -100,11 +123,24 @@ class SettingsStore:
             )
             self._preserve_corrupt_file()
             config = self.defaults
+        if self.migrated_legacy_defaults:
+            self.logger.info(
+                "Legacy default model migrated old_model=llama3.2:3b "
+                "new_model=%s",
+                self.defaults.model,
+            )
+            self.save(config)
         return _apply_environment_overrides(config)
 
     def save(self, config: OfflineWritingConfig) -> OfflineWritingConfig:
         validated = validate_config(config)
-        data = {key: _json_value(getattr(validated, key)) for key in SETTINGS_KEYS}
+        data = {
+            "settings_version": SETTINGS_VERSION,
+            **{
+                key: _json_value(getattr(validated, key))
+                for key in SETTINGS_KEYS
+            },
+        }
         self.path.parent.mkdir(parents=True, exist_ok=True)
         temporary = self.path.with_suffix(self.path.suffix + ".tmp")
         temporary.write_text(

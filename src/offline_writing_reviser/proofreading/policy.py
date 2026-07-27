@@ -32,10 +32,10 @@ RULE_POLICY = {
     "SHE_LIVE": AMBIGUOUS,
     "SINCE_FOR": AMBIGUOUS,
     "THERE_S_MANY": AMBIGUOUS,
+    "THIS_NNS": AMBIGUOUS,
     "BEEN_PART_AGREEMENT": IGNORE,
     "EN_A_VS_AN": IGNORE,
     "RETURN_BACK": IGNORE,
-    "THIS_NNS": IGNORE,
 }
 
 RULE_POLICY_RATIONALES = {
@@ -64,13 +64,25 @@ RULE_POLICY_RATIONALES = {
     "BEEN_PART_AGREEMENT": "Observed suggestions changed meaning.",
     "EN_A_VS_AN": "Observed suggestion remained ungrammatical.",
     "RETURN_BACK": "Observed empty replacement damaged whitespace.",
-    "THIS_NNS": "Observed alternatives conflicted with an equally valid path.",
+    "THIS_NNS": (
+        "Competing determiner and noun-number corrections require context."
+    ),
 }
 
 SAFE_LEXICAL_REPLACEMENTS = {
     "adress": "address",
     "imediately": "immediately",
     "recieved": "received",
+}
+UNCOUNTABLE_NOUNS = {
+    "advice",
+    "equipment",
+    "evidence",
+    "feedback",
+    "furniture",
+    "information",
+    "research",
+    "software",
 }
 CONTEXTUAL_SAFE_REJECTION_REASONS = {
     "multiple_replacements_without_approved_choice",
@@ -191,6 +203,14 @@ def _case_pattern(value: str) -> str:
 def select_safe_replacement(
     match_item: dict[str, Any],
 ) -> tuple[str | None, str]:
+    uncountable_replacement = _uncountable_demonstrative_replacement(
+        match_item
+    )
+    if uncountable_replacement is not None:
+        return (
+            uncountable_replacement,
+            "approved_uncountable_demonstrative_agreement",
+        )
     policy_group = RULE_POLICY.get(match_item["rule_id"])
     if policy_group is None:
         return None, "unclassified_rule"
@@ -225,6 +245,32 @@ def select_safe_replacement(
     if _case_pattern(original) != _case_pattern(selected):
         return None, "replacement_changes_case_pattern"
     return selected, reason
+
+
+def _uncountable_demonstrative_replacement(
+    match_item: dict[str, Any],
+) -> str | None:
+    if match_item["rule_id"] != "THIS_NNS":
+        return None
+    original = match_item["original_text"]
+    words = original.split()
+    if len(words) != 2 or words[0].casefold() not in {"these", "those"}:
+        return None
+    noun = words[1]
+    if noun.casefold() not in UNCOUNTABLE_NOUNS:
+        return None
+    demonstrative = "This" if words[0][0].isupper() else "this"
+    if words[0].casefold() == "those":
+        demonstrative = "That" if words[0][0].isupper() else "that"
+    preferred = f"{demonstrative} {noun}"
+    return next(
+        (
+            candidate
+            for candidate in match_item["actionable_replacements"]
+            if candidate.casefold() == preferred.casefold()
+        ),
+        None,
+    )
 
 
 def edits_overlap(left: dict[str, Any], right: dict[str, Any]) -> bool:

@@ -75,7 +75,7 @@ if (-not $SkipTests) {
     --clean `
     --onedir `
     --contents-directory app `
-    --console `
+    --windowed `
     --name OfflineWritingReviser `
     --icon $IconFile `
     --add-data "$IconFile;assets" `

@@ -26,12 +26,17 @@ from offline_writing_reviser.windows.control import (
     WindowsControlServer,
     send_control_command,
     wait_for_control_server,
+    wait_for_control_server_stop,
 )
 from offline_writing_reviser.windows.controller import (
     OfflineWritingRuntime,
     start_offline_writing_runtime,
 )
 from offline_writing_reviser.windows.single_instance import WindowsSingleInstance
+from offline_writing_reviser.windows.owned_processes import (
+    cleanup_owned_languagetool_processes,
+)
+from offline_writing_reviser.proofreading.languagetool import default_java_path
 
 
 APP_NAME = "Offline Writing Reviser"
@@ -243,21 +248,30 @@ class OfflineWritingReviserApplication:
             print(f"{APP_NAME} requires Windows.", file=sys.stderr)
             return 1
         if not self.instance.acquire():
-            print(f"{APP_NAME} is already running.", file=sys.stderr)
+            _console_print(f"{APP_NAME} is already running.", error=True)
             return 0
 
         configure_logging(self.config.log_file)
         logger = logging.getLogger("offline-writing-reviser")
+        cleanup_owned_languagetool_processes(
+            default_java_path(), logger=logger
+        )
         if self.settings_store.recovered_corrupt_file:
             logger.warning("Corrupt settings recovered with defaults")
         logger.info(
-            "Application startup version=%s model=%s hotkey=%s log_file=%s "
-            "desktop_mode=hidden",
+            "Application startup version=%s model=%s proofread_hotkey=%s "
+            "paraphrase_hotkey=%s log_file=%s desktop_mode=hidden",
             __version__,
             self.config.model,
             self.config.hotkey,
+            self.config.paraphrase_hotkey,
             self.config.log_file,
         )
+        if self.settings_store.migrated_legacy_defaults:
+            logger.info(
+                "Application is using migrated default model model=%s",
+                self.config.model,
+            )
         exit_code = 0
         try:
             self.runtime = start_offline_writing_runtime(self.config, logger=logger)
@@ -265,10 +279,11 @@ class OfflineWritingReviserApplication:
                 self.runtime, "controller", None
             ):
                 logger.error("Application startup failed stage=hotkey_unavailable")
-                print(
-                    f"{APP_NAME} could not register {self.config.hotkey}. "
-                    "Another application may already be using that hotkey.",
-                    file=sys.stderr,
+                _console_print(
+                    f"{APP_NAME} could not register {self.config.hotkey} or "
+                    f"{self.config.paraphrase_hotkey}. Another application "
+                    "may already be using a hotkey.",
+                    error=True,
                 )
                 return 1
             _install_shutdown_handlers(self.stop_event)
@@ -329,24 +344,32 @@ class OfflineWritingReviserApplication:
 
 def execute_control_command(command: ControlCommand) -> int:
     if sys.platform != "win32":
-        print(f"{APP_NAME} control commands require Windows.", file=sys.stderr)
+        _console_print(
+            f"{APP_NAME} control commands require Windows.", error=True
+        )
         return 1
     if send_control_command(command):
+        if command is ControlCommand.EXIT:
+            wait_for_control_server_stop()
+            cleanup_owned_languagetool_processes(default_java_path())
         return 0
     if command is ControlCommand.EXIT:
-        print(f"{APP_NAME} is not running.")
+        cleanup_owned_languagetool_processes(default_java_path())
+        _console_print(f"{APP_NAME} is not running.")
         return 0
 
     try:
         _start_background_process()
     except OSError as exc:
-        print(f"Could not start {APP_NAME}: {exc}", file=sys.stderr)
+        _console_print(f"Could not start {APP_NAME}: {exc}", error=True)
         return 1
     if not wait_for_control_server():
-        print(f"{APP_NAME} did not start its control endpoint.", file=sys.stderr)
+        _console_print(
+            f"{APP_NAME} did not start its control endpoint.", error=True
+        )
         return 1
     if command is ControlCommand.SETTINGS and not send_control_command(command):
-        print("Could not open Settings.", file=sys.stderr)
+        _console_print("Could not open Settings.", error=True)
         return 1
     return 0
 
@@ -366,10 +389,17 @@ def validate_startup(config: OfflineWritingConfig | None = None) -> int:
             config.hotkey,
         )
     except Exception as exc:
-        print(f"Startup validation failed: {exc}", file=sys.stderr)
+        _console_print(f"Startup validation failed: {exc}", error=True)
         return 1
-    print(f"{APP_NAME} {__version__} startup validation passed.")
+    _console_print(f"{APP_NAME} {__version__} startup validation passed.")
     return 0
+
+
+def _console_print(message: str, *, error: bool = False) -> None:
+    """Write when attached; windowed production builds intentionally are not."""
+    stream = sys.stderr if error else sys.stdout
+    if stream is not None:
+        print(message, file=stream)
 
 
 def _start_background_process() -> None:
@@ -387,10 +417,14 @@ def _start_background_process() -> None:
         creation_flags = (
             getattr(subprocess, "DETACHED_PROCESS", 0x00000008)
             | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200)
+            | getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
         )
     subprocess.Popen(
         args,
         cwd=working_directory,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
         close_fds=True,
         creationflags=creation_flags,
         env=environment,

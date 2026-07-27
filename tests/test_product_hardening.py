@@ -59,6 +59,7 @@ def test_default_settings_are_sensible(tmp_path):
     assert loaded.max_characters == 20_000
     assert loaded.chunk_characters == 2000
     assert loaded.hotkey == "Ctrl+Alt+W"
+    assert loaded.paraphrase_hotkey == "Ctrl+Alt+P"
 
 
 def test_internal_chunk_size_can_be_configured_by_environment(monkeypatch, tmp_path):
@@ -90,12 +91,15 @@ def test_settings_save_and_load_round_trip(tmp_path):
         "hotkey": "Ctrl+Alt+R",
         "max_characters": 8000,
         "model": "qwen2.5:3b",
+        "settings_version": 1,
         "timeout_seconds": 90.0,
     }
     assert not path.with_suffix(".json.tmp").exists()
 
 
-def test_explicit_saved_model_is_not_overwritten_by_new_default(tmp_path):
+def test_legacy_default_model_is_migrated_to_current_production_default(
+    tmp_path,
+):
     path = tmp_path / "settings.json"
     path.write_text(
         json.dumps(
@@ -114,7 +118,8 @@ def test_explicit_saved_model_is_not_overwritten_by_new_default(tmp_path):
         defaults=OfflineWritingConfig(log_file=tmp_path / "app.log"),
     ).load()
 
-    assert loaded.model == "llama3.2:3b"
+    assert loaded.model == "gemma3:4b"
+    assert json.loads(path.read_text(encoding="utf-8"))["settings_version"] == 1
 
 
 def test_corrupt_settings_are_preserved_and_defaults_recovered(tmp_path):
@@ -391,6 +396,11 @@ def test_exit_command_is_successful_when_background_is_not_running(
 
     monkeypatch.setattr(application.sys, "platform", "win32")
     monkeypatch.setattr(application, "send_control_command", lambda command: False)
+    monkeypatch.setattr(
+        application,
+        "cleanup_owned_languagetool_processes",
+        lambda _path: [],
+    )
 
     assert execute_control_command(ControlCommand.EXIT) == 0
     assert "not running" in capsys.readouterr().out
@@ -637,5 +647,5 @@ def test_version_command_reports_release_version(capsys):
         main(["--version"])
 
     assert exit_info.value.code == 0
-    assert __version__ == "0.3.0"
-    assert "0.3.0" in capsys.readouterr().out
+    assert __version__ == "0.3.1rc1"
+    assert "0.3.1rc1" in capsys.readouterr().out

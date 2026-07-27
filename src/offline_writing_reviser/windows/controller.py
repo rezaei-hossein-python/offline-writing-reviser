@@ -13,6 +13,7 @@ from offline_writing_reviser.desktop_status import (
     user_message_for_error,
 )
 from offline_writing_reviser.core.errors import OfflineWritingError
+from offline_writing_reviser.core.paraphrase import ParaphraseService
 from offline_writing_reviser.core.service import OfflineWritingService
 from offline_writing_reviser.core.hybrid_service import HybridProofreadingService
 from offline_writing_reviser.proofreading.languagetool import LanguageToolRuntime
@@ -27,11 +28,13 @@ class OfflineWritingController:
         self,
         service: OfflineWritingService,
         text_adapter: WindowsSelectedTextAdapter,
+        paraphrase_service: ParaphraseService | None = None,
         logger: logging.Logger | None = None,
         state_callback: Callable[[ApplicationState], None] | None = None,
         notification_callback: Callable[[UserMessage], None] | None = None,
     ):
         self.service = service
+        self.paraphrase_service = paraphrase_service
         self.text_adapter = text_adapter
         self.logger = logger or logging.getLogger("offline-writing-reviser")
         self.state_callback = state_callback or (lambda _state: None)
@@ -42,12 +45,24 @@ class OfflineWritingController:
         self._threads_lock = threading.Lock()
 
     def trigger(self) -> None:
+        self.trigger_proofread()
+
+    def trigger_proofread(self) -> None:
+        self._trigger_mode("proofread")
+
+    def trigger_paraphrase(self) -> None:
+        self._trigger_mode("paraphrase")
+
+    def _trigger_mode(self, mode: str) -> None:
         if self._shutdown_event.is_set():
-            self.logger.info("Offline writing skipped category=shutdown")
+            self.logger.info(
+                "Offline writing skipped mode=%s category=shutdown", mode
+            )
             return
         thread = threading.Thread(
             target=self._run_revision_thread,
-            name="offline-writing-revision",
+            args=(mode,),
+            name=f"offline-writing-{mode}",
             daemon=True,
         )
         with self._threads_lock:
@@ -62,21 +77,21 @@ class OfflineWritingController:
         for thread in threads:
             thread.join(timeout=max(0.0, deadline - time.monotonic()))
 
-    def _run_revision_thread(self) -> None:
+    def _run_revision_thread(self, mode: str = "proofread") -> None:
         try:
-            self._run_revision()
+            self._run_revision(mode)
         finally:
             with self._threads_lock:
                 self._threads.discard(threading.current_thread())
 
-    def _run_revision(self) -> None:
+    def _run_revision(self, mode: str = "proofread") -> None:
         started = time.perf_counter()
         if not self._lock.acquire(blocking=False):
             self.logger.info("Offline writing skipped category=busy")
             return
         try:
             self.state_callback(ApplicationState.REVISING)
-            self.logger.info("Revision begin")
+            self.logger.info("Revision begin mode=%s", mode)
             try:
                 capture = self.text_adapter.capture()
             except Exception as exc:
@@ -91,7 +106,16 @@ class OfflineWritingController:
                 self._report_error("no_selection")
                 return
             try:
-                result = self.service.revise(capture.text)
+                service = (
+                    self.paraphrase_service
+                    if mode == "paraphrase"
+                    else self.service
+                )
+                if service is None:
+                    raise OfflineWritingError(
+                        "Paraphrase service is unavailable"
+                    )
+                result = service.revise(capture.text)
             except OfflineWritingProviderError as exc:
                 self.logger.warning(
                     "Offline writing local provider failure category=%s",
@@ -139,7 +163,9 @@ class OfflineWritingController:
                 return
             duration_ms = (time.perf_counter() - started) * 1000
             self.logger.info(
-                "Revision end outcome=success input_chars=%s output_chars=%s duration_ms=%.2f",
+                "Revision end mode=%s outcome=success input_chars=%s "
+                "output_chars=%s duration_ms=%.2f",
+                mode,
                 len(capture.text),
                 len(result.revised_text),
                 duration_ms,
@@ -147,7 +173,11 @@ class OfflineWritingController:
             self.state_callback(ApplicationState.READY)
         finally:
             duration_ms = (time.perf_counter() - started) * 1000
-            self.logger.info("Offline writing total duration_ms=%.2f", duration_ms)
+            self.logger.info(
+                "Offline writing total mode=%s duration_ms=%.2f",
+                mode,
+                duration_ms,
+            )
             self._lock.release()
 
     def _report_error(self, error: BaseException | str) -> None:
@@ -175,7 +205,15 @@ class OfflineWritingRuntime:
 
     @property
     def has_registered_hotkeys(self) -> bool:
-        return bool(self.hotkey_manager and self.hotkey_manager.registered_count)
+        if not self.hotkey_manager:
+            return False
+        return bool(
+            getattr(
+                self.hotkey_manager,
+                "all_registered",
+                self.hotkey_manager.registered_count,
+            )
+        )
 
     def stop(self) -> None:
         if self.hotkey_manager:
@@ -191,13 +229,24 @@ class OfflineWritingRuntime:
             self.config = config
             return False
         if config.hotkey != self.config.hotkey:
+            proofread_callback = getattr(
+                self.controller, "trigger_proofread", self.controller.trigger
+            )
+            paraphrase_callback = getattr(
+                self.controller, "trigger_paraphrase", self.controller.trigger
+            )
             candidate = self.hotkey_manager_factory(
                 bindings=[
                     HotkeyBinding(
                         identifier=15002,
                         shortcut=config.hotkey,
-                        callback=self.controller.trigger,
-                    )
+                        callback=proofread_callback,
+                    ),
+                    HotkeyBinding(
+                        identifier=15003,
+                        shortcut=config.paraphrase_hotkey,
+                        callback=paraphrase_callback,
+                    ),
                 ],
                 logger=self.logger,
             )
@@ -231,6 +280,11 @@ class OfflineWritingRuntime:
             config=config,
             logger=self.logger,
         )
+        self.controller.paraphrase_service = ParaphraseService(
+            provider=provider,
+            config=config,
+            logger=self.logger,
+        )
         self.config = config
         return True
 
@@ -249,19 +303,12 @@ def start_offline_writing_runtime(
         logger.error("Unsupported offline writing provider=%s", config.provider)
         return OfflineWritingRuntime(None, config=config, logger=logger)
 
-    provider = OllamaCliOfflineWritingProvider(
-        model=config.model,
-        executable=config.ollama_executable,
-    )
-    language_tool = LanguageToolRuntime(logger=logger)
-    service = HybridProofreadingService(
-        provider=provider,
-        language_tool=language_tool,
-        config=config,
-        logger=logger,
+    service, paraphrase_service, language_tool = build_production_services(
+        config, logger=logger
     )
     controller = OfflineWritingController(
         service=service,
+        paraphrase_service=paraphrase_service,
         text_adapter=WindowsSelectedTextAdapter(logger=logger),
         logger=logger,
         state_callback=state_callback,
@@ -272,8 +319,13 @@ def start_offline_writing_runtime(
             HotkeyBinding(
                 identifier=15001,
                 shortcut=config.hotkey,
-                callback=controller.trigger,
-            )
+                callback=controller.trigger_proofread,
+            ),
+            HotkeyBinding(
+                identifier=15002,
+                shortcut=config.paraphrase_hotkey,
+                callback=controller.trigger_paraphrase,
+            ),
         ],
         logger=logger,
     )
@@ -285,3 +337,32 @@ def start_offline_writing_runtime(
         logger=logger,
         language_tool=language_tool,
     )
+
+
+def build_production_services(
+    config: OfflineWritingConfig,
+    logger: logging.Logger | None = None,
+) -> tuple[
+    HybridProofreadingService,
+    ParaphraseService,
+    LanguageToolRuntime,
+]:
+    """Construct the exact service graph used by the installed application."""
+    logger = logger or logging.getLogger("offline-writing-reviser")
+    provider = OllamaCliOfflineWritingProvider(
+        model=config.model,
+        executable=config.ollama_executable,
+    )
+    language_tool = LanguageToolRuntime(logger=logger)
+    service = HybridProofreadingService(
+        provider=provider,
+        language_tool=language_tool,
+        config=config,
+        logger=logger,
+    )
+    paraphrase_service = ParaphraseService(
+        provider=provider,
+        config=config,
+        logger=logger,
+    )
+    return service, paraphrase_service, language_tool

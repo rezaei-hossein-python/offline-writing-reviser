@@ -252,3 +252,15 @@ def wait_for_control_server(timeout_seconds: float = 10.0) -> bool:
             return True
         time.sleep(0.1)
     return False
+
+
+def wait_for_control_server_stop(timeout_seconds: float = 10.0) -> bool:
+    _configure_user32(ctypes.windll.user32)
+    deadline = time.monotonic() + timeout_seconds
+    while time.monotonic() < deadline:
+        if not ctypes.windll.user32.FindWindowW(
+            CONTROL_WINDOW_CLASS, CONTROL_WINDOW_TITLE
+        ):
+            return True
+        time.sleep(0.1)
+    return False

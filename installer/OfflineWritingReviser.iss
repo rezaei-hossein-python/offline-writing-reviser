@@ -1,6 +1,7 @@
 #define AppName "Offline Writing Reviser"
 #define AppExeName "OfflineWritingReviser.exe"
-#define AppVersion "0.3.0"
+#define AppVersion "0.3.1-rc1"
+#define AppNumericVersion "0.3.1.0"
 #define ProjectRoot AddBackslash(SourcePath) + ".."
 #define AppBuildDir ProjectRoot + "\dist\OfflineWritingReviser"
 
@@ -21,7 +22,7 @@ Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
 UninstallDisplayIcon={app}\{#AppExeName}
-VersionInfoVersion={#AppVersion}
+VersionInfoVersion={#AppNumericVersion}
 VersionInfoProductName={#AppName}
 VersionInfoDescription=Offline Writing Reviser bootstrap installer
 LicenseFile={#ProjectRoot}\LICENSE
@@ -35,9 +36,14 @@ Name: "{group}\Settings"; Filename: "{app}\{#AppExeName}"; Parameters: "--settin
 Name: "{group}\Diagnostics"; Filename: "{cmd}"; Parameters: "/k ""{app}\{#AppExeName}"" --diagnostics"; IconFilename: "{app}\{#AppExeName}"
 Name: "{group}\Uninstall Offline Writing Reviser"; Filename: "{uninstallexe}"
 
+[Registry]
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; \
+    ValueType: string; ValueName: "OfflineWritingReviser"; \
+    ValueData: """{app}\{#AppExeName}"""; Flags: uninsdeletevalue
+
 [Run]
 Filename: "{app}\{#AppExeName}"; Parameters: "--provision-model"; Description: "Provision the local proofreading model"; Flags: waituntilterminated skipifsilent
-Filename: "{app}\{#AppExeName}"; Description: "Start Offline Writing Reviser"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#AppExeName}"; Description: "Start Offline Writing Reviser"; Flags: nowait runhidden
 
 [UninstallRun]
 Filename: "{app}\{#AppExeName}"; Parameters: "--exit"; RunOnceId: "StopBackgroundApplication"; Flags: runhidden waituntilterminated skipifdoesntexist

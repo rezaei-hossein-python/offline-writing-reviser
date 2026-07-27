@@ -356,6 +356,9 @@ class OllamaCliOfflineWritingProvider(OfflineWritingProvider):
                 errors="replace",
                 timeout=timeout_seconds,
                 startupinfo=_hidden_startupinfo(),
+                creationflags=getattr(
+                    subprocess, "CREATE_NO_WINDOW", 0x08000000
+                ),
                 check=False,
             )
         except subprocess.TimeoutExpired as exc:

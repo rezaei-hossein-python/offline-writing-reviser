@@ -1,7 +1,7 @@
 # Architecture
 
-Offline Writing Reviser 0.3.0 combines a conservative hybrid proofreading
-pipeline with a hidden Windows lifecycle.
+Offline Writing Reviser 0.3.1-rc1 combines conservative hybrid proofreading
+and explicit paraphrasing with a hidden Windows lifecycle.
 
 ## Process lifecycle
 
@@ -15,8 +15,9 @@ There is no tray icon or visible background window. Short-lived command
 processes communicate with a zero-size, never-shown Win32 control window.
 Duplicate-instance protection remains mutex-authoritative.
 
-The runtime owns one `LanguageToolRuntime`, one `HybridProofreadingService`, and
-the hotkey controller. Shutdown rejects new work, unregisters the hotkey, waits
+The runtime owns one `LanguageToolRuntime`, one `HybridProofreadingService`,
+one `ParaphraseService`, and the hotkey controller. Shutdown rejects new work,
+unregisters both hotkeys, waits
 briefly for active revision threads, then terminates the owned Java child.
 
 ## Hybrid proofreading
@@ -42,6 +43,15 @@ failure and model timeout also fall back to the SAFE result. LanguageTool
 failure aborts replacement because the deterministic safety stage is required.
 The final joined selection is structurally validated before clipboard
 replacement.
+
+## Explicit paraphrasing
+
+`Ctrl+Alt+P` captures the selection through the same guarded clipboard adapter
+but routes directly to `gemma3:4b` with a paraphrase-specific prompt. Its
+validator permits intentional sentence restructuring while rejecting empty or
+truncated output, commentary and unexpected markdown wrappers, new URLs,
+material number/name loss, massive deletion/expansion, and paragraph collapse.
+It does not apply proofreading edit-locality rules.
 
 The Windows controller retains foreground-window/process identity and restores
 clipboard formats where practical. It abandons replacement if focus changes or
@@ -103,7 +113,8 @@ compute classification. They do not contain the user's text.
 
 ## Packaging
 
-PyInstaller creates an onedir application:
+PyInstaller creates a Windows-subsystem onedir application. Normal startup has
+no console, taskbar surface, or tray icon:
 
 ```text
 OfflineWritingReviser\
@@ -117,5 +128,7 @@ OfflineWritingReviser\
 Inno Setup creates a per-user online/bootstrap installer. Application/private
 runtimes are embedded; Ollama and `gemma3:4b` are detected, reused, or
 provisioned because embedding the model would create a multi-gigabyte,
-hard-to-update installer. Uninstall stops the app and removes owned files while
-preserving shared Ollama and its model store.
+hard-to-update installer. Setup starts the hidden controller and registers its
+quoted executable path in the current user's `Run` key. Uninstall stops the
+app, removes that one startup value and owned files, and preserves shared
+Ollama and its model store.

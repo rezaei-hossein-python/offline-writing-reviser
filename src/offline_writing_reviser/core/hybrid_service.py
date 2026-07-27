@@ -121,17 +121,40 @@ class HybridProofreadingService:
         safe_count = sum(
             bool(decision["accepted"]) for decision in safe_decisions
         )
+        safe_rule_ids = {
+            decision["rule_id"]
+            for decision in safe_decisions
+            if decision["accepted"]
+        }
         post_payload, post_latency = self.language_tool.check(safe_output)
         post_matches = normalize_matches(post_payload, safe_output)
-        _, post_decisions, post_filter_latency = safe_filter(
+        post_safe_output, post_decisions, post_filter_latency = safe_filter(
             safe_output, post_matches
         )
+        if post_safe_output != safe_output:
+            safe_output = post_safe_output
+            safe_count += sum(
+                bool(decision["accepted"]) for decision in post_decisions
+            )
+            safe_rule_ids.update(
+                decision["rule_id"]
+                for decision in post_decisions
+                if decision["accepted"]
+            )
+            final_payload, final_latency = self.language_tool.check(safe_output)
+            post_latency += final_latency
+            post_matches = normalize_matches(final_payload, safe_output)
+            _, post_decisions, final_filter_latency = safe_filter(
+                safe_output, post_matches
+            )
+            post_filter_latency += final_filter_latency
         routing = route_post_safe(post_matches, post_decisions, safe_count)
         record: dict[str, Any] = {
             "chunk_index": index,
             "chunk_count": chunk_count,
             "character_count": len(source),
             "safe_correction_count": safe_count,
+            "safe_rule_ids": sorted(safe_rule_ids),
             "routing_decision": routing["route_to_gemma"],
             "routing_reason": routing["reason"],
             "routing_rule_ids": sorted(
@@ -163,8 +186,37 @@ class HybridProofreadingService:
                 safe_output, inference.text, routing["evidence"]
             )
             if validation["accepted"]:
-                output = inference.text
-                record["gemma_accepted"] = True
+                candidate_payload, candidate_latency = (
+                    self.language_tool.check(inference.text)
+                )
+                record["language_tool_seconds"] += candidate_latency
+                candidate_matches = normalize_matches(
+                    candidate_payload, inference.text
+                )
+                _, candidate_decisions, candidate_filter_latency = safe_filter(
+                    inference.text, candidate_matches
+                )
+                record["safe_filter_seconds"] += candidate_filter_latency
+                candidate_routing = route_post_safe(
+                    candidate_matches, candidate_decisions, 0
+                )
+                introduced_safe_error = any(
+                    decision["policy_group"] == "SAFE"
+                    and decision["accepted"]
+                    for decision in candidate_decisions
+                )
+                if (
+                    candidate_routing["route_to_gemma"]
+                    or introduced_safe_error
+                ):
+                    output = safe_output
+                    record["gemma_fallback"] = True
+                    record["gemma_rejection_reasons"] = [
+                        "remaining_languagetool_evidence"
+                    ]
+                else:
+                    output = inference.text
+                    record["gemma_accepted"] = True
             else:
                 output = safe_output
                 record["gemma_fallback"] = True
@@ -193,7 +245,8 @@ class HybridProofreadingService:
         telemetry = record["ollama_telemetry"]
         self.logger.info(
             "Hybrid chunk completed chunk_index=%s chunk_count=%s chars=%s "
-            "safe_corrections=%s routed=%s routing_reason=%s rules=%s "
+            "safe_corrections=%s safe_rules=%s routed=%s "
+            "routing_reason=%s rules=%s "
             "lt_seconds=%.3f gemma_seconds=%.3f accepted=%s fallback=%s "
             "rejection_reasons=%s acceleration=%s load_seconds=%s "
             "prompt_eval_seconds=%s generation_seconds=%s "
@@ -202,6 +255,7 @@ class HybridProofreadingService:
             record["chunk_count"],
             record["character_count"],
             record["safe_correction_count"],
+            ",".join(record["safe_rule_ids"]) or "none",
             record["routing_decision"],
             record["routing_reason"],
             ",".join(record["routing_rule_ids"]) or "none",
@@ -224,6 +278,13 @@ def _summary_metadata(records: list[dict[str, Any]]) -> dict[str, Any]:
         "chunk_count": len(records),
         "safe_correction_count": sum(
             record["safe_correction_count"] for record in records
+        ),
+        "safe_rule_ids": sorted(
+            {
+                rule_id
+                for record in records
+                for rule_id in record["safe_rule_ids"]
+            }
         ),
         "gemma_routed": sum(
             bool(record["routing_decision"]) for record in records

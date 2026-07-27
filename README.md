@@ -1,10 +1,11 @@
 # Offline Writing Reviser
 
-Offline Writing Reviser is a local Windows background proofreader. Select text
-in the foreground application and press `Ctrl+Alt+W`. Normal operation has no
-taskbar window, console, tray icon, or routine notification.
+Offline Writing Reviser is a local Windows background proofreader and explicit
+paraphraser. Select text and press `Ctrl+Alt+W` for conservative proofreading
+or `Ctrl+Alt+P` for intentional meaning-preserving rewriting. Normal operation
+has no taskbar window, console, tray icon, or routine notification.
 
-Version 0.3.0 uses a conservative local hybrid pipeline:
+Version 0.3.1-rc1 uses a conservative local hybrid proofreading pipeline:
 
 1. bundled LanguageTool applies only deterministic SAFE spelling corrections;
 2. the corrected text is checked again for unresolved evidence;
@@ -27,6 +28,7 @@ Run `OfflineWritingReviser-Setup.exe`. The compact online installer:
 - checks for `gemma3:4b` and, with explicit consent, shows progress while
   Ollama downloads it;
 - validates Java, LanguageTool, Ollama, and a small proofreading request;
+- registers per-user Windows-login startup;
 - starts the hidden background application.
 
 The application does not require Python, system Java, PATH configuration, or a

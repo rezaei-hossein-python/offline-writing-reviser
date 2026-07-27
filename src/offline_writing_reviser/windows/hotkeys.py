@@ -77,6 +77,10 @@ class WindowsHotkeyManager:
     def registered_count(self) -> int:
         return len(self._registered_ids)
 
+    @property
+    def all_registered(self) -> bool:
+        return len(self._registered_ids) == len(self.bindings)
+
     def _message_loop(self) -> None:
         user32 = ctypes.windll.user32
         kernel32 = ctypes.windll.kernel32

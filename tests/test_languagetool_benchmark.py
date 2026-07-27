@@ -140,8 +140,8 @@ def test_rule_policy_classifies_every_observed_rule_exactly_once():
     }
     assert counts == {
         benchmark.SAFE: 1,
-        benchmark.AMBIGUOUS: 18,
-        benchmark.IGNORE: 4,
+        benchmark.AMBIGUOUS: 19,
+        benchmark.IGNORE: 3,
     }
 
 
@@ -223,6 +223,29 @@ def test_approved_lexical_choice_does_not_blindly_take_first_replacement():
     assert output == "We received it."
     assert decisions[0]["selected_replacement"] == "received"
     assert decisions[0]["reason"] == "approved_lexical_choice"
+
+
+def test_uncountable_noun_agreement_uses_minimal_approved_choice():
+    source = "These equipment is expensive."
+    matches = normalized(
+        source,
+        match(
+            0,
+            len("These equipment"),
+            ["This equipment", "These equipments"],
+            "THIS_NNS",
+            "GRAMMAR",
+        ),
+    )
+
+    output, decisions, _ = benchmark.safe_filter(source, matches)
+
+    assert output == "This equipment is expensive."
+    assert decisions[0]["accepted"] is True
+    assert (
+        decisions[0]["reason"]
+        == "approved_uncountable_demonstrative_agreement"
+    )
 
 
 def test_multiple_independent_edits_use_original_offsets_safely():
