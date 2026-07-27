@@ -196,7 +196,7 @@ def test_unrelated_sentence_rewrite_is_rejected():
         source, output, evidence(source, 4, 4)
     )
     assert result["accepted"] is False
-    assert "edit_outside_evidence_window" in result["rejection_reasons"]
+    assert "meaning_anchor_loss" in result["rejection_reasons"]
 
 
 def test_formatting_damage_is_rejected():
@@ -263,7 +263,7 @@ def test_multiple_local_edits_are_accepted():
     assert len(result["changed_opcodes"]) == 2
 
 
-def test_ambiguous_spelling_candidate_without_context_resolution_is_rejected():
+def test_ambiguous_spelling_candidate_without_context_is_rejected():
     source = "The employes is waiting."
     item = evidence(
         source,

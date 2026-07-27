@@ -1,0 +1,245 @@
+[
+  {
+    "id": "A-001",
+    "group": "A",
+    "input": "The report is ready for review.",
+    "acceptable": ["The report is ready for review."],
+    "expected_change": false,
+    "target": "correct natural text"
+  },
+  {
+    "id": "A-002",
+    "group": "A",
+    "input": "Please send the revised schedule when you have a moment.",
+    "acceptable": ["Please send the revised schedule when you have a moment."],
+    "expected_change": false,
+    "target": "correct natural text"
+  },
+  {
+    "id": "B-001",
+    "group": "B",
+    "input": "I would be grateful if you could review this.",
+    "acceptable": ["I would be grateful if you could review this."],
+    "expected_change": false,
+    "target": "valid stylistic preference"
+  },
+  {
+    "id": "B-002",
+    "group": "B",
+    "input": "We have completed the work as requested.",
+    "acceptable": ["We have completed the work as requested."],
+    "expected_change": false,
+    "target": "valid stylistic preference"
+  },
+  {
+    "id": "C-001",
+    "group": "C",
+    "input": "He explained me the process.",
+    "acceptable": ["He explained the process to me."],
+    "expected_change": true,
+    "target": "grammar"
+  },
+  {
+    "id": "C-002",
+    "group": "C",
+    "input": "She go to the office every day.",
+    "acceptable": ["She goes to the office every day."],
+    "expected_change": true,
+    "target": "grammar"
+  },
+  {
+    "id": "C-003",
+    "group": "C",
+    "input": "There is many reasons to wait.",
+    "acceptable": ["There are many reasons to wait."],
+    "expected_change": true,
+    "target": "grammar"
+  },
+  {
+    "id": "D-001",
+    "group": "D",
+    "input": "I am writing this email for informing you about the issue.",
+    "acceptable": ["I am writing this email to inform you about the issue."],
+    "expected_change": true,
+    "target": "awkward English"
+  },
+  {
+    "id": "D-002",
+    "group": "D",
+    "input": "The meeting was very good and we discussed about many important things.",
+    "acceptable": [
+      "The meeting went very well, and we discussed many important issues.",
+      "The meeting was very good, and we discussed many important things."
+    ],
+    "expected_change": true,
+    "target": "awkward English"
+  },
+  {
+    "id": "E-001",
+    "group": "E",
+    "input": "I have a strong doubt that this will work.",
+    "acceptable": [
+      "I seriously doubt that this will work.",
+      "I strongly doubt that this will work."
+    ],
+    "expected_change": true,
+    "target": "poor vocabulary"
+  },
+  {
+    "id": "E-002",
+    "group": "E",
+    "input": "The solution made a big improvement to performance.",
+    "acceptable": [
+      "The solution significantly improved performance.",
+      "The solution greatly improved performance."
+    ],
+    "expected_change": true,
+    "target": "poor vocabulary"
+  },
+  {
+    "id": "F-001",
+    "group": "F",
+    "input": "According to me, the second option is better.",
+    "acceptable": ["In my opinion, the second option is better."],
+    "expected_change": true,
+    "target": "non-native phrasing"
+  },
+  {
+    "id": "F-002",
+    "group": "F",
+    "input": "I am agree with your proposal.",
+    "acceptable": ["I agree with your proposal."],
+    "expected_change": true,
+    "target": "non-native phrasing"
+  },
+  {
+    "id": "F-003",
+    "group": "F",
+    "input": "We will discuss about the budget tomorrow.",
+    "acceptable": ["We will discuss the budget tomorrow."],
+    "expected_change": true,
+    "target": "non-native phrasing"
+  },
+  {
+    "id": "G-001",
+    "group": "G",
+    "input": "Please return back the signed form.",
+    "acceptable": ["Please return the signed form."],
+    "expected_change": true,
+    "target": "redundancy"
+  },
+  {
+    "id": "G-002",
+    "group": "G",
+    "input": "We need to repeat the test again.",
+    "acceptable": ["We need to repeat the test.", "We need to run the test again."],
+    "expected_change": true,
+    "target": "redundancy"
+  },
+  {
+    "id": "G-003",
+    "group": "G",
+    "input": "I made a decision to not attend the meeting because I was not feeling good.",
+    "acceptable": [
+      "I decided not to attend the meeting because I wasn't feeling well.",
+      "I decided not to attend the meeting because I was not feeling well."
+    ],
+    "expected_change": true,
+    "target": "wordiness and idiom"
+  },
+  {
+    "id": "H-001",
+    "group": "H",
+    "input": "Jordan Lee may approve CAD 1,250 on July 8, 2026.",
+    "acceptable": ["Jordan Lee may approve CAD 1,250 on July 8, 2026."],
+    "expected_change": false,
+    "target": "protected facts and modality"
+  },
+  {
+    "id": "H-002",
+    "group": "H",
+    "input": "Do not email ops@example.com before 3:30 PM.",
+    "acceptable": ["Do not email ops@example.com before 3:30 PM."],
+    "expected_change": false,
+    "target": "negation email time relation"
+  },
+  {
+    "id": "H-003",
+    "group": "H",
+    "input": "Microsoft must not deploy build API-42 until Friday.",
+    "acceptable": ["Microsoft must not deploy build API-42 until Friday."],
+    "expected_change": false,
+    "target": "organization identifier modality negation"
+  },
+  {
+    "id": "H-004",
+    "group": "H",
+    "input": "The URL is https://example.com/release-7.2.",
+    "acceptable": ["The URL is https://example.com/release-7.2."],
+    "expected_change": false,
+    "target": "URL and identifier"
+  },
+  {
+    "id": "I-001",
+    "group": "I",
+    "input": "The backup may be deleted.",
+    "acceptable": ["The backup may be deleted."],
+    "expected_change": false,
+    "target": "may versus must"
+  },
+  {
+    "id": "I-002",
+    "group": "I",
+    "input": "Did Alex not approve the request?",
+    "acceptable": ["Did Alex not approve the request?"],
+    "expected_change": false,
+    "target": "negated question"
+  },
+  {
+    "id": "I-003",
+    "group": "I",
+    "input": "The service is unlikely to fail.",
+    "acceptable": ["The service is unlikely to fail."],
+    "expected_change": false,
+    "target": "certainty"
+  },
+  {
+    "id": "J-001",
+    "group": "J",
+    "input": "Please be informed that I will be absent tomorrow.",
+    "acceptable": [
+      "Please note that I will be absent tomorrow.",
+      "Please be informed that I will be absent tomorrow."
+    ],
+    "expected_change": false,
+    "target": "professional email"
+  },
+  {
+    "id": "J-002",
+    "group": "J",
+    "input": "Could you please send me the informations about the project?",
+    "acceptable": ["Could you please send me the information about the project?"],
+    "expected_change": true,
+    "target": "professional email grammar"
+  },
+  {
+    "id": "J-003",
+    "group": "J",
+    "input": "I wanted to follow up regarding the action items from yesterday's meeting.",
+    "acceptable": ["I wanted to follow up regarding the action items from yesterday's meeting."],
+    "expected_change": false,
+    "target": "professional email already correct"
+  },
+  {
+    "id": "J-004",
+    "group": "J",
+    "input": "Kindly revert back to me by Monday.",
+    "acceptable": [
+      "Please reply to me by Monday.",
+      "Please get back to me by Monday.",
+      "Kindly reply by Monday."
+    ],
+    "expected_change": true,
+    "target": "professional email idiom"
+  }
+]

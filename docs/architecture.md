@@ -1,6 +1,6 @@
 # Architecture
 
-Offline Writing Reviser 0.3.1-rc1 combines conservative hybrid proofreading
+Offline Writing Reviser 0.3.1-rc2 combines intelligent hybrid proofreading
 and explicit paraphrasing with a hidden Windows lifecycle.
 
 ## Process lifecycle
@@ -31,18 +31,27 @@ For each boundary-aware input chunk:
 
 1. analyze the original text with LanguageTool using explicit `en-US`;
 2. apply non-overlapping, single-candidate SAFE edits in reverse-offset order;
-3. analyze the SAFE result again;
-4. route only unresolved AMBIGUOUS evidence, unresolved contextual spelling, or
-   a mixed partial correction;
-5. send post-SAFE text plus local rule evidence to `gemma3:4b`;
-6. accept only a local, minimal, structurally safe result;
-7. otherwise retain the SAFE output.
+3. apply a small audited fast path for context-independent idiom,
+   countability, and redundancy corrections;
+4. analyze the deterministic result again;
+5. route unresolved grammar/context evidence or high-confidence deterministic
+   signals for awkward, redundant, non-native, or non-idiomatic English;
+6. send post-SAFE text plus advisory evidence to `gemma3:4b`;
+7. allow sentence-level grammatical and lexical improvement;
+8. reject factual/operator drift with deterministic protected-value checks,
+   content-anchor loss, formatting damage, truncation, or a candidate whose
+   measured language-quality burden does not improve;
+9. otherwise retain the SAFE output.
 
 Clean, IGNORE-only, and completely resolved chunks bypass Gemma. Provider
 failure and model timeout also fall back to the SAFE result. LanguageTool
 failure aborts replacement because the deterministic safety stage is required.
 The final joined selection is structurally validated before clipboard
 replacement.
+
+These checks are a layered practical safeguard, not a mathematical guarantee
+of semantic equivalence. Any detected uncertainty falls back to the
+LanguageTool-safe version.
 
 ## Explicit paraphrasing
 
@@ -91,11 +100,17 @@ the presence of a Windows GPU with actual acceleration.
 deterministic correction, Ollama version/API/model/load state, memory, and
 optional Gemma inference telemetry. Reports exclude selected text.
 
-`provisioning` provides an accessible Qt progress dialog. It starts/reuses
-Ollama, requests explicit consent before a missing model download, streams
-Ollama pull progress, and runs an end-to-end health check. The installer
-downloads Ollama only when no compatible installation is found and does not
-overwrite or uninstall shared Ollama/model data.
+`provisioning` provides a retryable accessible Qt progress dialog. It
+starts/reuses Ollama, requests explicit consent, downloads the official Ollama
+installer only when necessary, retains resumable partial installer data,
+streams Ollama model-layer progress, permits cancellation at safe stages, and
+explains failures. Ollama resumes completed model layers on Retry.
+
+The Inno core installer never invokes network provisioning during `ssInstall`
+and never waits for AI setup. Its optional post-install action launches the
+same provisioning UI with `nowait`; the Start-menu shortcut can retry it later.
+Offline failure therefore leaves the application and LanguageTool fully
+installed and usable.
 
 Normal startup performs inexpensive dependency checks in the background and
 records actionable state without showing a routine surface.
@@ -125,10 +140,8 @@ OfflineWritingReviser\
   licenses\THIRD_PARTY_NOTICES.md
 ```
 
-Inno Setup creates a per-user online/bootstrap installer. Application/private
-runtimes are embedded; Ollama and `gemma3:4b` are detected, reused, or
-provisioned because embedding the model would create a multi-gigabyte,
-hard-to-update installer. Setup starts the hidden controller and registers its
-quoted executable path in the current user's `Run` key. Uninstall stops the
-app, removes that one startup value and owned files, and preserves shared
-Ollama and its model store.
+Inno Setup creates a per-user installer with the application and private
+runtimes embedded. Ollama and `gemma3:4b` remain separable shared dependencies.
+Setup starts the hidden controller and registers its quoted executable path in
+the current user's `Run` key. Uninstall stops the app, removes that one startup
+value and owned files, and preserves shared Ollama and its model store.

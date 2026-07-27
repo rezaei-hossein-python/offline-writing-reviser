@@ -389,3 +389,31 @@ the 105-case run matched Phase 18D output for every case:
 This section supersedes the earlier “benchmark-only” production-isolation
 statement: the policy is now integrated in production, while generated
 benchmark evidence remains non-production and ignored.
+
+## Phase 21 semantic-quality benchmark
+
+The exact 105-case benchmark remains available for regression comparison, but
+one reference sentence is no longer treated as the only valid English result.
+The focused benchmark covers already-correct prose, stylistic preferences,
+grammar, awkward and non-native English, vocabulary, redundancy, protected
+facts/operators, meaning-sensitive one-word changes, and workplace email:
+
+```powershell
+python benchmarks/run_semantic_quality_benchmark.py
+```
+
+Each case can list multiple acceptable outputs. The report separately measures
+semantic and factual preservation, grammar and spelling cleanliness,
+unnecessary edits, harmful changes, latency, and these audit classifications:
+
+- `UNCHANGED-BUT-CORRECT`
+- `GOOD CORRECTION`
+- `GOOD MEANING-PRESERVING IMPROVEMENT`
+- `UNNECESSARY REWRITE`
+- `SEMANTIC REGRESSION`
+- `FACTUAL REGRESSION`
+
+Missed and incomplete corrections remain visible without being conflated with
+semantic harm. A changed output that differs from all listed references can
+still count as a good alternative when protected meaning is intact and the
+post-output deterministic language checks are clean.

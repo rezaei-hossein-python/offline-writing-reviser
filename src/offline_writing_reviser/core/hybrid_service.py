@@ -19,6 +19,7 @@ from offline_writing_reviser.proofreading.languagetool import (
     LanguageToolRuntime,
 )
 from offline_writing_reviser.proofreading.policy import (
+    apply_deterministic_language_fixes,
     build_gemma_instruction,
     normalize_matches,
     route_post_safe,
@@ -126,6 +127,9 @@ class HybridProofreadingService:
             for decision in safe_decisions
             if decision["accepted"]
         }
+        safe_output, language_fixes = apply_deterministic_language_fixes(
+            safe_output
+        )
         post_payload, post_latency = self.language_tool.check(safe_output)
         post_matches = normalize_matches(post_payload, safe_output)
         post_safe_output, post_decisions, post_filter_latency = safe_filter(
@@ -148,18 +152,25 @@ class HybridProofreadingService:
                 safe_output, post_matches
             )
             post_filter_latency += final_filter_latency
-        routing = route_post_safe(post_matches, post_decisions, safe_count)
+        routing = route_post_safe(
+            post_matches,
+            post_decisions,
+            safe_count + len(language_fixes),
+            safe_output,
+        )
         record: dict[str, Any] = {
             "chunk_index": index,
             "chunk_count": chunk_count,
             "character_count": len(source),
             "safe_correction_count": safe_count,
             "safe_rule_ids": sorted(safe_rule_ids),
+            "deterministic_language_fixes": language_fixes,
             "routing_decision": routing["route_to_gemma"],
             "routing_reason": routing["reason"],
             "routing_rule_ids": sorted(
                 {item["rule_id"] for item in routing["evidence"]}
             ),
+            "quality_signals": routing["quality_signals"],
             "language_tool_seconds": original_latency + post_latency,
             "safe_filter_seconds": filter_latency + post_filter_latency,
             "gemma_seconds": 0.0,
@@ -173,7 +184,9 @@ class HybridProofreadingService:
             self._log_chunk(record)
             return safe_output, record
 
-        instruction = build_gemma_instruction(routing["evidence"])
+        instruction = build_gemma_instruction(
+            routing["evidence"], routing["quality_signals"]
+        )
         gemma_started = time.perf_counter()
         try:
             inference = self.provider.revise_with_telemetry(
@@ -183,7 +196,10 @@ class HybridProofreadingService:
             )
             record["ollama_telemetry"] = inference.telemetry
             validation = validate_gemma_output(
-                safe_output, inference.text, routing["evidence"]
+                safe_output,
+                inference.text,
+                routing["evidence"],
+                routing["quality_signals"],
             )
             if validation["accepted"]:
                 candidate_payload, candidate_latency = (
@@ -198,21 +214,39 @@ class HybridProofreadingService:
                 )
                 record["safe_filter_seconds"] += candidate_filter_latency
                 candidate_routing = route_post_safe(
-                    candidate_matches, candidate_decisions, 0
+                    candidate_matches,
+                    candidate_decisions,
+                    0,
+                    inference.text,
                 )
                 introduced_safe_error = any(
                     decision["policy_group"] == "SAFE"
                     and decision["accepted"]
                     for decision in candidate_decisions
                 )
-                if (
-                    candidate_routing["route_to_gemma"]
-                    or introduced_safe_error
+                source_burden = _quality_burden(
+                    routing["evidence"], routing["quality_signals"]
+                )
+                candidate_burden = _quality_burden(
+                    candidate_routing["evidence"],
+                    candidate_routing["quality_signals"],
+                )
+                record["source_quality_burden"] = source_burden
+                record["candidate_quality_burden"] = candidate_burden
+                if introduced_safe_error:
+                    output = safe_output
+                    record["gemma_fallback"] = True
+                    record["gemma_rejection_reasons"] = [
+                        "introduced_deterministic_error"
+                    ]
+                elif (
+                    inference.text != safe_output
+                    and candidate_burden >= source_burden
                 ):
                     output = safe_output
                     record["gemma_fallback"] = True
                     record["gemma_rejection_reasons"] = [
-                        "remaining_languagetool_evidence"
+                        "no_demonstrable_quality_improvement"
                     ]
                 else:
                     output = inference.text
@@ -245,7 +279,7 @@ class HybridProofreadingService:
         telemetry = record["ollama_telemetry"]
         self.logger.info(
             "Hybrid chunk completed chunk_index=%s chunk_count=%s chars=%s "
-            "safe_corrections=%s safe_rules=%s routed=%s "
+            "safe_corrections=%s safe_rules=%s language_fixes=%s routed=%s "
             "routing_reason=%s rules=%s "
             "lt_seconds=%.3f gemma_seconds=%.3f accepted=%s fallback=%s "
             "rejection_reasons=%s acceleration=%s load_seconds=%s "
@@ -256,6 +290,7 @@ class HybridProofreadingService:
             record["character_count"],
             record["safe_correction_count"],
             ",".join(record["safe_rule_ids"]) or "none",
+            ",".join(record["deterministic_language_fixes"]) or "none",
             record["routing_decision"],
             record["routing_reason"],
             ",".join(record["routing_rule_ids"]) or "none",
@@ -295,11 +330,29 @@ def _summary_metadata(records: list[dict[str, Any]]) -> dict[str, Any]:
         "gemma_fallback": sum(
             bool(record["gemma_fallback"]) for record in records
         ),
+        "deterministic_language_correction_count": sum(
+            len(record["deterministic_language_fixes"])
+            for record in records
+        ),
+        "deterministic_language_fixes": sorted(
+            {
+                fix
+                for record in records
+                for fix in record["deterministic_language_fixes"]
+            }
+        ),
+        "gemma_rejection_reasons": sorted(
+            {
+                reason
+                for record in records
+                for reason in record["gemma_rejection_reasons"]
+            }
+        ),
         "language_tool_seconds": sum(
             record["language_tool_seconds"] for record in records
         ),
         "gemma_seconds": sum(record["gemma_seconds"] for record in records),
-        "routing_reasons": dict(
+            "routing_reasons": dict(
             Counter(record["routing_reason"] for record in records)
         ),
         "acceleration": next(
@@ -311,6 +364,12 @@ def _summary_metadata(records: list[dict[str, Any]]) -> dict[str, Any]:
             "unknown",
         ),
     }
+
+
+def _quality_burden(
+    evidence: list[dict[str, Any]], quality_signals: list[str]
+) -> int:
+    return len(evidence) * 2 + len(quality_signals)
 
 
 def _separate_outer_whitespace(value: str) -> tuple[str, str, str]:

@@ -77,13 +77,16 @@ def user_message_for_error(error: BaseException | str) -> UserMessage:
     if isinstance(error, OfflineWritingModelMissing):
         return UserMessage(
             "Configured model unavailable",
-            "Choose an installed Ollama model in Settings.",
+            "LanguageTool proofreading remains available. Run “Set up AI "
+            "proofreading” from the Start menu, or choose an installed Ollama "
+            "model in Settings.",
             ApplicationState.MODEL_UNAVAILABLE,
         )
     if isinstance(error, OfflineWritingProviderUnavailable):
         return UserMessage(
             "Ollama unavailable",
-            "Install or start Ollama, then refresh the model list in Settings.",
+            "LanguageTool proofreading remains available. Run “Set up AI "
+            "proofreading” from the Start menu to install or repair Ollama.",
             ApplicationState.OLLAMA_UNAVAILABLE,
         )
     if isinstance(error, OfflineWritingInputError):

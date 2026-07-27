@@ -196,7 +196,7 @@ class SettingsWindow:
         hotkey = QtWidgets.QLineEdit()
         hotkey.setAccessibleName("Global hotkey")
         hotkey.setAccessibleDescription(
-            "Hotkey for conservative proofreading. Use Ctrl and/or Alt plus "
+            "Hotkey for intelligent proofreading. Use Ctrl and/or Alt plus "
             "one letter or number."
         )
         hotkey_label.setBuddy(hotkey)

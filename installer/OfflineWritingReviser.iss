@@ -1,7 +1,7 @@
 #define AppName "Offline Writing Reviser"
 #define AppExeName "OfflineWritingReviser.exe"
-#define AppVersion "0.3.1-rc1"
-#define AppNumericVersion "0.3.1.0"
+#define AppVersion "0.3.1-rc2"
+#define AppNumericVersion "0.3.1.1"
 #define ProjectRoot AddBackslash(SourcePath) + ".."
 #define AppBuildDir ProjectRoot + "\dist\OfflineWritingReviser"
 
@@ -33,6 +33,7 @@ Source: "{#AppBuildDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdir
 [Icons]
 Name: "{group}\Offline Writing Reviser"; Filename: "{app}\{#AppExeName}"
 Name: "{group}\Settings"; Filename: "{app}\{#AppExeName}"; Parameters: "--settings"
+Name: "{group}\Set up AI proofreading"; Filename: "{app}\{#AppExeName}"; Parameters: "--provision-model"
 Name: "{group}\Diagnostics"; Filename: "{cmd}"; Parameters: "/k ""{app}\{#AppExeName}"" --diagnostics"; IconFilename: "{app}\{#AppExeName}"
 Name: "{group}\Uninstall Offline Writing Reviser"; Filename: "{uninstallexe}"
 
@@ -42,85 +43,13 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; \
     ValueData: """{app}\{#AppExeName}"""; Flags: uninsdeletevalue
 
 [Run]
-Filename: "{app}\{#AppExeName}"; Parameters: "--provision-model"; Description: "Provision the local proofreading model"; Flags: waituntilterminated skipifsilent
 Filename: "{app}\{#AppExeName}"; Description: "Start Offline Writing Reviser"; Flags: nowait runhidden
+Filename: "{app}\{#AppExeName}"; Parameters: "--provision-model"; Description: "Set up optional AI proofreading (can be retried later)"; Flags: postinstall nowait skipifsilent
 
 [UninstallRun]
 Filename: "{app}\{#AppExeName}"; Parameters: "--exit"; RunOnceId: "StopBackgroundApplication"; Flags: runhidden waituntilterminated skipifdoesntexist
 
 [Code]
-const
-  OllamaDownloadUrl = 'https://ollama.com/download/OllamaSetup.exe';
-
-function ExistingOllamaPath(): String;
-var
-  Candidate: String;
-begin
-  Candidate := ExpandConstant('{localappdata}\Programs\Ollama\ollama.exe');
-  if FileExists(Candidate) then
-  begin
-    Result := Candidate;
-    Exit;
-  end;
-  Candidate := ExpandConstant('{pf}\Ollama\ollama.exe');
-  if FileExists(Candidate) then
-  begin
-    Result := Candidate;
-    Exit;
-  end;
-  Result := '';
-end;
-
-function OnDownloadProgress(
-  const Url, FileName: String;
-  const Progress, ProgressMax: Int64): Boolean;
-forward;
-
-procedure EnsureOllamaInstalled();
-var
-  InstallerPath: String;
-  ResultCode: Integer;
-begin
-  if ExistingOllamaPath() <> '' then
-  begin
-    Log('Reusing existing Ollama installation: ' + ExistingOllamaPath());
-    Exit;
-  end;
-
-  if MsgBox(
-    'Offline Writing Reviser requires Ollama. Setup will download and run ' +
-    'the official Ollama installer. An internet connection is required.' +
-    Chr(13) + Chr(10) + Chr(13) + Chr(10) + 'Continue?',
-    mbConfirmation, MB_YESNO) <> IDYES then
-    RaiseException('Ollama installation was declined.');
-
-  InstallerPath := ExpandConstant('{tmp}\OllamaSetup.exe');
-  try
-    DownloadTemporaryFile(OllamaDownloadUrl, 'OllamaSetup.exe', '', @OnDownloadProgress);
-  except
-    RaiseException(
-      'Ollama could not be downloaded. Check the internet connection and retry.');
-  end;
-  if not Exec(InstallerPath, '', '', SW_SHOWNORMAL, ewWaitUntilTerminated, ResultCode) then
-    RaiseException('The official Ollama installer could not be started.');
-  if (ResultCode <> 0) or (ExistingOllamaPath() = '') then
-    RaiseException('Ollama installation did not complete successfully.');
-end;
-
-function OnDownloadProgress(
-  const Url, FileName: String;
-  const Progress, ProgressMax: Int64): Boolean;
-begin
-  if ProgressMax > 0 then
-    WizardForm.StatusLabel.Caption :=
-      Format('Downloading Ollama: %d%%', [Progress * 100 div ProgressMax])
-  else
-    WizardForm.StatusLabel.Caption := 'Downloading Ollama...';
-  Result := True;
-end;
-
-procedure CurStepChanged(CurStep: TSetupStep);
-begin
-  if CurStep = ssInstall then
-    EnsureOllamaInstalled();
-end;
+// Core setup never downloads OllamaSetup.exe or waits for a model download.
+// Optional AI setup runs only after setup has completed and is also available
+// from the Start menu, so interruption never prevents LanguageTool operation.

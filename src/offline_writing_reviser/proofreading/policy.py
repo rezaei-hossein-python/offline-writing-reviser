@@ -4,13 +4,19 @@ import difflib
 import math
 import re
 import time
+from collections.abc import Callable
 from typing import Any
+
+from offline_writing_reviser.proofreading.semantic import (
+    meaning_anchor_preserved,
+    validate_semantic_preservation,
+)
 
 
 SAFE = "SAFE"
 AMBIGUOUS = "AMBIGUOUS"
 IGNORE = "IGNORE"
-PROMPT_VERSION = "phase18d-v1"
+PROMPT_VERSION = "phase21-v1"
 
 RULE_POLICY = {
     "MORFOLOGIK_RULE_EN_US": SAFE,
@@ -93,20 +99,137 @@ CONTEXTUAL_SAFE_REJECTION_REASONS = {
 }
 AMBIGUOUS_NON_GRAMMAR_RULES = {"CALENDER"}
 
-HYBRID_PROMPT = """You are the second stage of a conservative proofreading system.
+HYBRID_PROMPT = """Intelligently proofread the supplied text.
 
-Correct only genuine objective grammar or spelling errors in the supplied text.
-Make the smallest possible changes.
+Make it correct, natural, idiomatic English while preserving what the author
+intended to say. You may replace awkward phrases, choose a clearly better word,
+remove redundancy, and restructure grammar when that produces materially
+better English.
 
-Do not improve style, paraphrase, change tone, substitute optional vocabulary, or rewrite a sentence unless a short grammatical correction requires it.
-Preserve meaning, facts, capitalization, punctuation, spacing, typography, paragraphs, line breaks, blank lines, list markers, and formatting.
-The LanguageTool evidence below is advisory. Correct only errors that are genuinely supported by the text and context.
-If no correction is needed, return the supplied text exactly unchanged.
+This is proofreading, not open-ended paraphrasing. Preserve the author's
+meaning, facts, names, organizations, dates, times, numbers, quantities,
+currencies, URLs, addresses, identifiers, quoted material, negation,
+certainty, modality, definite/indefinite reference, causal and temporal
+relationships, questions,
+commitments, tone, intent, and paragraph meaning. Do not invent, omit, or
+strengthen claims. Prefer the safer wording whenever meaning is uncertain.
+Never remove a polite request marker such as "please" or "kindly".
+Correct a non-native idiom directly without adding hedging; for example,
+"According to me, X" becomes "In my opinion, X", not "X appears..."
 
-Return only the resulting text. Do not add explanations, headings, commentary, markdown wrappers, quotation marks, labels, or reasoning."""
+Preserve paragraph boundaries, line breaks, list markers, and source formatting.
+If the text is already correct and natural, return it exactly unchanged.
+Return only the resulting text, with no commentary, label, explanation,
+quotation wrapper, or markdown fence."""
+
+LANGUAGE_QUALITY_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    (
+        "purpose_infinitive",
+        re.compile(r"\b(?:for|of)\s+(?:informing|explaining|discussing)\b", re.I),
+    ),
+    ("explain_object", re.compile(r"\bexplain(?:ed|s|ing)?\s+(?:me|him|her|us|them)\b", re.I)),
+    ("discuss_about", re.compile(r"\bdiscuss(?:ed|es|ing)?\s+about\b", re.I)),
+    ("strong_doubt", re.compile(r"\b(?:have|had)\s+(?:a\s+)?strong doubt\b", re.I)),
+    ("wordy_decision", re.compile(r"\b(?:make|made|making)\s+a decision to\b", re.I)),
+    ("wordy_improvement", re.compile(r"\bmade\s+a\s+(?:big|large)\s+improvement\b", re.I)),
+    ("feel_good_health", re.compile(r"\b(?:feel|feels|felt|feeling)\s+good\b", re.I)),
+    ("nonstandard_agreement", re.compile(r"\b(?:I am agree|he are|she are|it are)\b", re.I)),
+    ("double_comparative", re.compile(r"\b(?:more better|more easier|most easiest)\b", re.I)),
+    ("countability", re.compile(r"\b(?:informations|advices|equipments|feedbacks)\b", re.I)),
+    ("wrong_collocation", re.compile(
+        r"\b(?:depend(?:s|ed|ing)? of|married with|responsible of|"
+        r"do(?:ne|ing)? a mistake|make(?:s|d|ing)? a research)\b",
+        re.I,
+    )),
+    ("redundancy", re.compile(
+        r"\b(?:return back|revert back to|repeat(?:\s+\w+){0,5}\s+again|"
+        r"advance planning|final outcome|future plans|past history)\b",
+        re.I,
+    )),
+    ("non_native_frame", re.compile(
+        r"\b(?:according to me|I have a doubt|on the next week|"
+        r"informations about|discuss about)\b",
+        re.I,
+    )),
+)
+
+DETERMINISTIC_LANGUAGE_FIXES: tuple[
+    tuple[
+        str,
+        re.Pattern[str],
+        str | Callable[[re.Match[str]], str],
+    ],
+    ...,
+] = (
+    (
+        "writing_email_purpose",
+        re.compile(
+            r"\b(I am writing(?: this (?:email|message))?) for informing\b",
+            re.IGNORECASE,
+        ),
+        r"\1 to inform",
+    ),
+    (
+        "discuss_about",
+        re.compile(r"\b(discuss(?:ed|es|ing)?)\s+about\b", re.IGNORECASE),
+        r"\1",
+    ),
+    (
+        "i_am_agree",
+        re.compile(r"\bI am agree\b", re.IGNORECASE),
+        "I agree",
+    ),
+    (
+        "wordy_negative_decision",
+        re.compile(
+            r"\bmade a decision to not\s+([A-Za-z]+)\b",
+            re.IGNORECASE,
+        ),
+        r"decided not to \1",
+    ),
+    (
+        "wordy_decision",
+        re.compile(
+            r"\bmade a decision to\s+([A-Za-z]+)\b",
+            re.IGNORECASE,
+        ),
+        r"decided to \1",
+    ),
+    (
+        "feeling_well",
+        re.compile(
+            r"\bnot feeling good(?=\s*(?:[.!?,;]|$))",
+            re.IGNORECASE,
+        ),
+        "not feeling well",
+    ),
+    (
+        "uncountable_information",
+        re.compile(r"\b([Ii])nformations\b"),
+        lambda match: (
+            "Information" if match.group(1) == "I" else "information"
+        ),
+    ),
+    (
+        "uncountable_advice",
+        re.compile(r"\b([Aa])dvices\b"),
+        lambda match: "Advice" if match.group(1) == "A" else "advice",
+    ),
+    (
+        "return_back",
+        re.compile(r"\b([Rr])eturn back\b"),
+        lambda match: "Return" if match.group(1) == "R" else "return",
+    ),
+    (
+        "professional_revert",
+        re.compile(r"\b(Kindly|Please) revert back to me\b"),
+        r"\1 get back to me",
+    ),
+)
 
 COMMENTARY_PREFIX = re.compile(
-    r"^\s*(?:here(?:'s| is)|corrected(?: text)?|revised(?: text)?|"
+    r"^\s*(?:here(?:'s| is)(?:\s+the)?\s+(?:corrected|revised)\s+text|"
+    r"corrected(?: text)?|revised(?: text)?|"
     r"revision|output|result)\s*[:\-]",
     re.IGNORECASE,
 )
@@ -385,8 +508,10 @@ def route_post_safe(
     post_matches: list[dict[str, Any]],
     post_decisions: list[dict[str, Any]],
     safe_correction_count: int,
+    text: str | None = None,
 ) -> dict[str, Any]:
     evidence = compact_evidence(post_matches, post_decisions)
+    quality_signals = detect_language_quality_signals(text or "")
     if evidence:
         classes = {item["escalation_class"] for item in evidence}
         if safe_correction_count:
@@ -399,14 +524,37 @@ def route_post_safe(
             reason = "remaining_ambiguous_grammar"
         else:
             reason = "remaining_contextual_spelling"
-        return {"route_to_gemma": True, "reason": reason, "evidence": evidence}
+        return {
+            "route_to_gemma": True,
+            "reason": reason,
+            "evidence": evidence,
+            "quality_signals": quality_signals,
+        }
+    if quality_signals:
+        return {
+            "route_to_gemma": True,
+            "reason": "language_quality_signal",
+            "evidence": [],
+            "quality_signals": quality_signals,
+        }
     if not post_matches:
         reason = (
             "safe_resolved_all_actionable_evidence"
             if safe_correction_count
             else "clean_no_meaningful_evidence"
         )
-        return {"route_to_gemma": False, "reason": reason, "evidence": []}
+        if text is None:
+            return {
+                "route_to_gemma": False,
+                "reason": reason,
+                "evidence": [],
+            }
+        return {
+            "route_to_gemma": False,
+            "reason": reason,
+            "evidence": [],
+            "quality_signals": [],
+        }
     policy_groups = {
         decision["policy_group"] for decision in post_decisions
     }
@@ -419,11 +567,43 @@ def route_post_safe(
         reason = "post_safe_deterministic_evidence_not_escalated"
     else:
         reason = "non_escalatable_evidence"
-    return {"route_to_gemma": False, "reason": reason, "evidence": []}
+    return {
+        "route_to_gemma": False,
+        "reason": reason,
+        "evidence": [],
+        "quality_signals": [],
+    }
 
 
-def build_gemma_instruction(evidence: list[dict[str, Any]]) -> str:
-    lines = [HYBRID_PROMPT, "", "Unresolved LanguageTool evidence:"]
+def detect_language_quality_signals(text: str) -> list[str]:
+    """High-precision reasons to run Gemma even when LanguageTool is silent."""
+    return [
+        name
+        for name, pattern in LANGUAGE_QUALITY_PATTERNS
+        if pattern.search(text)
+    ]
+
+
+def apply_deterministic_language_fixes(
+    text: str,
+) -> tuple[str, list[str]]:
+    """Apply only context-independent idiom/countability corrections."""
+    output = text
+    applied: list[str] = []
+    for name, pattern, replacement in DETERMINISTIC_LANGUAGE_FIXES:
+        output, count = pattern.subn(replacement, output)
+        if count:
+            applied.extend([name] * count)
+    return output, applied
+
+
+def build_gemma_instruction(
+    evidence: list[dict[str, Any]],
+    quality_signals: list[str] | None = None,
+) -> str:
+    lines = [HYBRID_PROMPT]
+    if evidence:
+        lines.extend(("", "Unresolved LanguageTool evidence (advisory):"))
     for index, item in enumerate(evidence, 1):
         replacements = ", ".join(
             repr(value) for value in item["replacement_candidates"]
@@ -433,6 +613,14 @@ def build_gemma_instruction(evidence: list[dict[str, Any]]) -> str:
             f"span={item['offset']}:{item['offset'] + item['length']} "
             f"text={item['original_text']!r} message={item['message']!r} "
             f"candidates=[{replacements}]"
+        )
+    if quality_signals:
+        lines.extend(
+            (
+                "",
+                "Detected language-quality concerns (advisory): "
+                + ", ".join(quality_signals),
+            )
         )
     return "\n".join(lines)
 
@@ -537,16 +725,16 @@ def validate_gemma_output(
     source: str,
     output: str | None,
     evidence: list[dict[str, Any]],
+    quality_signals: list[str] | None = None,
 ) -> dict[str, Any]:
     started = time.perf_counter()
-    windows = evidence_windows(source, evidence)
     if output is None:
         return {
             "accepted": False,
             "rejection_reasons": ["missing_output"],
             "changed_opcodes": [],
             "changed_character_budget": 0,
-            "evidence_windows": windows,
+            "evidence_windows": [],
             "latency_seconds": time.perf_counter() - started,
         }
     reasons: list[str] = []
@@ -569,7 +757,7 @@ def validate_gemma_output(
     if source_length >= 20 and output_length < source_length * 0.65:
         reasons.append("possible_truncation")
     if abs(output_length - source_length) > max(
-        20, math.ceil(source_length * 0.25)
+        30, math.ceil(source_length * 0.50)
     ):
         reasons.append("extreme_length_change")
     opcodes = changed_opcodes(source, output)
@@ -581,16 +769,18 @@ def validate_gemma_output(
         for opcode in opcodes
     )
     maximum_changed = max(
-        16, math.ceil(source_length * 0.25), len(evidence) * 12
+        32, math.ceil(source_length * 0.75), len(evidence) * 24
     )
     if changed_budget > maximum_changed:
         reasons.append("excessive_character_changes")
-    if len(opcodes) > max(4, len(evidence) * 3):
+    if len(opcodes) > max(12, len(evidence) * 6):
         reasons.append("excessive_edit_segments")
-    if opcodes and not windows:
-        reasons.append("edit_without_unresolved_evidence")
-    elif any(not opcode_is_local(opcode, windows) for opcode in opcodes):
-        reasons.append("edit_outside_evidence_window")
+    if opcodes and not evidence and not quality_signals:
+        reasons.append("edit_without_quality_reason")
+    semantic = validate_semantic_preservation(source, output)
+    reasons.extend(semantic.reasons)
+    if opcodes and not meaning_anchor_preserved(source, output):
+        reasons.append("meaning_anchor_loss")
     for item in evidence:
         candidates = item["replacement_candidates"]
         if (
@@ -598,8 +788,8 @@ def validate_gemma_output(
             or len(candidates) < 2
         ):
             continue
-        candidate_only_outputs = {
-            apply_edits(
+        candidate_outputs = {
+            candidate: apply_edits(
                 source,
                 [
                     {
@@ -611,7 +801,18 @@ def validate_gemma_output(
             )
             for candidate in candidates
         }
-        if output in candidate_only_outputs:
+        selected = next(
+            (
+                candidate
+                for candidate, candidate_output in candidate_outputs.items()
+                if output == candidate_output
+            ),
+            None,
+        )
+        if (
+            selected is not None
+            and selected.casefold() not in UNCOUNTABLE_NOUNS
+        ):
             reasons.append(
                 "ambiguous_spelling_candidate_without_contextual_resolution"
             )
@@ -621,6 +822,10 @@ def validate_gemma_output(
         "changed_opcodes": opcodes,
         "changed_character_budget": changed_budget,
         "maximum_changed_character_budget": maximum_changed,
-        "evidence_windows": windows,
+        "evidence_windows": [],
+        "semantic_validation": {
+            "accepted": semantic.accepted,
+            "reasons": list(semantic.reasons),
+        },
         "latency_seconds": time.perf_counter() - started,
     }

@@ -1,35 +1,44 @@
 # Offline Writing Reviser
 
 Offline Writing Reviser is a local Windows background proofreader and explicit
-paraphraser. Select text and press `Ctrl+Alt+W` for conservative proofreading
+paraphraser. Select text and press `Ctrl+Alt+W` for intelligent proofreading
 or `Ctrl+Alt+P` for intentional meaning-preserving rewriting. Normal operation
 has no taskbar window, console, tray icon, or routine notification.
 
-Version 0.3.1-rc1 uses a conservative local hybrid proofreading pipeline:
+Version 0.3.1-rc2 uses a meaning-preserving local hybrid pipeline:
 
 1. bundled LanguageTool applies only deterministic SAFE spelling corrections;
-2. the corrected text is checked again for unresolved evidence;
-3. only justified contextual cases are sent to the local `gemma3:4b` model
-   through Ollama;
-4. broad rewrites, commentary, truncation, and formatting damage are rejected;
-5. a rejected model answer falls back to the safe LanguageTool result.
+2. an audited fast path handles a few context-independent idiom,
+   countability, and redundancy errors;
+3. the corrected text is checked again for unresolved evidence;
+4. unresolved grammar evidence and high-confidence naturalness signals can
+   route to the local `gemma3:4b` model through Ollama;
+5. Gemma may repair awkward phrases, idiom, vocabulary, redundancy, and
+   sentence construction without being confined to LanguageTool spans;
+6. deterministic guards preserve facts, names, dates, numbers, identifiers,
+   negation, modality, questions, relationships, and paragraph structure;
+7. a rejected model answer falls back to the deterministic safe result.
 
 Correct text is not sent to Gemma when LanguageTool provides no meaningful
 evidence. Selected or revised text is never written to the log.
+Semantic validation is a layered practical safeguard, not a claim of
+mathematically guaranteed equivalence; uncertain candidates fall back safely.
 
 ## Install
 
-Run `OfflineWritingReviser-Setup.exe`. The compact online installer:
+Run `OfflineWritingReviser-Setup.exe`. The core installer:
 
 - installs the application, a private Java 17 runtime, and LanguageTool;
-- reuses a compatible existing Ollama installation;
-- offers to download the official Ollama Windows installer when Ollama is
-  absent;
-- checks for `gemma3:4b` and, with explicit consent, shows progress while
-  Ollama downloads it;
-- validates Java, LanguageTool, Ollama, and a small proofreading request;
 - registers per-user Windows-login startup;
 - starts the hidden background application.
+
+Core setup never waits for Ollama or a multi-gigabyte model download. Optional
+AI setup is available from the installer's final page and the Start menu. It
+reuses compatible Ollama and `gemma3:4b` installations, otherwise shows the
+current stage, byte progress when available, safe cancellation, failure
+details, and Retry. Interrupted downloads retain reusable partial data.
+LanguageTool proofreading continues to work when AI setup is skipped, offline,
+cancelled, or incomplete.
 
 The application does not require Python, system Java, PATH configuration, or a
 manual LanguageTool service. Model provisioning requires internet access and
@@ -61,6 +70,7 @@ OfflineWritingReviser.exe --diagnostics
 OfflineWritingReviser.exe --diagnostics --gemma-test
 OfflineWritingReviser.exe --exit
 OfflineWritingReviser.exe --restart
+OfflineWritingReviser.exe --provision-model
 OfflineWritingReviser.exe --version
 OfflineWritingReviser.exe --validate-startup
 ```
@@ -132,6 +142,7 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -e ".[dev,build]"
 python -m pytest
+python benchmarks\run_semantic_quality_benchmark.py
 python -m offline_writing_reviser
 ```
 

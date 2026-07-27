@@ -1,0 +1,327 @@
+from __future__ import annotations
+
+import re
+from collections import Counter
+from dataclasses import dataclass
+from typing import Iterable
+
+
+URL_PATTERN = re.compile(r"https?://[^\s<>()\[\]{}\"']+", re.IGNORECASE)
+EMAIL_PATTERN = re.compile(
+    r"(?<![\w.+-])[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}(?![\w.-])"
+)
+PHONE_PATTERN = re.compile(
+    r"(?<!\w)(?:\+\d{1,3}[\s.-]?)?(?:\(\d{2,4}\)|\d{2,4})"
+    r"(?:[\s.-]?\d{2,4}){2,4}(?!\w)"
+)
+NUMBER_PATTERN = re.compile(
+    r"(?<![\w])(?:[$£€¥₹]\s*)?[+-]?\d+(?:,\d{3})*(?:\.\d+)?"
+    r"(?:\s?(?:%|USD|CAD|EUR|GBP|JPY|AUD))?(?![\w])",
+    re.IGNORECASE,
+)
+MONTH_DATE_PATTERN = re.compile(
+    r"\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|"
+    r"Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|"
+    r"Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?"
+    r"(?:,\s*\d{4})?\b",
+    re.IGNORECASE,
+)
+NUMERIC_DATE_PATTERN = re.compile(
+    r"(?<!\d)(?:\d{4}[-/]\d{1,2}[-/]\d{1,2}|"
+    r"\d{1,2}[-/]\d{1,2}[-/]\d{2,4})(?!\d)"
+)
+CALENDAR_PATTERN = re.compile(
+    r"\b(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|"
+    r"today|tomorrow|yesterday)\b",
+    re.IGNORECASE,
+)
+TIME_PATTERN = re.compile(
+    r"(?<!\w)\d{1,2}:\d{2}(?:\s?[ap]\.?m\.?)?(?!\w)|"
+    r"(?<!\w)\d{1,2}\s?[ap]\.?m\.?(?!\w)",
+    re.IGNORECASE,
+)
+IDENTIFIER_PATTERN = re.compile(
+    r"\b(?=[A-Za-z0-9_.:/-]*[A-Za-z])(?=[A-Za-z0-9_.:/-]*\d)"
+    r"[A-Za-z][A-Za-z0-9]*(?:[_.:/-][A-Za-z0-9]+)+\b"
+    r"|\b[A-Z]{2,}[A-Z0-9_.:/-]*\b"
+)
+CAPITALIZED_NAME_PATTERN = re.compile(
+    r"\b[A-Z][a-z]+(?:\s+(?:[A-Z][a-z]+|&)){1,4}\b"
+)
+SUBJECT_NAME_PATTERN = re.compile(
+    r"\b(?!(?:The|This|That|These|Those|They|He|She|It|We|You|Please|"
+    r"There|Here)\b)"
+    r"[A-Z][a-z]{2,}\b(?=\s+(?:may|might|must|should|can|could|"
+    r"will|would|is|was|has|had|approved|announced|reported|said|"
+    r"requested|promised|agreed|declined|refused|denied)\b)"
+)
+QUOTED_PATTERN = re.compile(
+    r'"[^"\r\n]+"|“[^”\r\n]+”|‘[^’\r\n]+’', re.UNICODE
+)
+NEGATION_PATTERN = re.compile(
+    r"\b(?:not|never|neither|nor|no|cannot|can't|cant|"
+    r"won't|wont|wouldn't|wouldnt|shouldn't|shouldnt|"
+    r"couldn't|couldnt|mustn't|mustnt|isn't|isnt|aren't|arent|"
+    r"wasn't|wasnt|weren't|werent|don't|dont|doesn't|doesnt|"
+    r"didn't|didnt|hasn't|hasnt|haven't|havent|hadn't|hadnt)\b",
+    re.IGNORECASE,
+)
+MODAL_PATTERN = re.compile(
+    r"\b(?:may|might|must|should|can|cannot|can't|cant|could|"
+    r"will|won't|wont|would|shall|ought)\b",
+    re.IGNORECASE,
+)
+CERTAINTY_PATTERN = re.compile(
+    r"\b(?:certainly|definitely|clearly|probably|possibly|perhaps|"
+    r"likely|unlikely|apparently|seemingly|appears?|seems?|doubt|doubtful)\b",
+    re.IGNORECASE,
+)
+CAUSAL_TEMPORAL_PATTERN = re.compile(
+    r"\b(?:because|therefore|thus|hence|consequently|before|after|"
+    r"until|unless|while|during|since|when|whenever)\b",
+    re.IGNORECASE,
+)
+INTENT_PATTERN = re.compile(
+    r"\b(?:promis(?:e|es|ed|ing)|commit(?:s|ted|ting)?|"
+    r"agree(?:s|d|ing)?|refus(?:e|es|ed|ing)|declin(?:e|es|ed|ing)|"
+    r"approv(?:e|es|ed|ing)|den(?:y|ies|ied|ying)|"
+    r"decid(?:e|es|ed|ing)|decision)\b",
+    re.IGNORECASE,
+)
+POLITENESS_PATTERN = re.compile(r"\b(?:please|kindly)\b", re.IGNORECASE)
+QUESTION_PATTERN = re.compile(r"\?(?=(?:[\"'”’)\]]*)\s*(?:$|\n))")
+PARAGRAPH_BREAK = re.compile(r"(?:\r\n|\r|\n)[ \t]*(?:\r\n|\r|\n)")
+REFERENCE_PATTERN = re.compile(
+    r"\b(?P<determiner>the|a|an|this|that|these|those)\s+"
+    r"(?P<noun>[A-Za-z][A-Za-z'-]*)\b",
+    re.IGNORECASE,
+)
+WORD_PATTERN = re.compile(r"[A-Za-z]+(?:['’][A-Za-z]+)?")
+SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+|\r?\n")
+ANCHOR_STOPWORDS = {
+    "a", "an", "and", "are", "as", "at", "be", "been", "being", "but",
+    "by", "do", "does", "did", "for", "from", "had", "has", "have", "he",
+    "her", "him", "his", "i", "in", "is", "it", "its", "me", "my", "of",
+    "on", "or", "our", "she", "that", "the", "their", "them", "they",
+    "this", "to", "us", "was", "we", "were", "with", "you", "your",
+}
+
+
+@dataclass(frozen=True)
+class SemanticValidation:
+    accepted: bool
+    reasons: tuple[str, ...]
+    protected_source: dict[str, Counter[str]]
+    protected_candidate: dict[str, Counter[str]]
+
+
+def validate_semantic_preservation(
+    source: str, candidate: str
+) -> SemanticValidation:
+    """Apply deterministic high-precision guards against obvious meaning drift.
+
+    This is deliberately a safety gate, not a mathematical proof of semantic
+    equivalence. It protects facts and meaning-bearing operators that are
+    especially risky for a small local language model to change.
+    """
+
+    source_values = protected_values(source)
+    candidate_values = protected_values(candidate)
+    reasons: list[str] = []
+    for category in (
+        "urls",
+        "emails",
+        "phones",
+        "numbers",
+        "dates",
+        "times",
+        "identifiers",
+        "quotes",
+        "names",
+        "negation",
+        "modality",
+        "certainty",
+        "relations",
+        "intent",
+        "politeness",
+    ):
+        if source_values[category] != candidate_values[category]:
+            reasons.append(f"{category}_not_preserved")
+
+    if _paragraph_count(source) != _paragraph_count(candidate):
+        reasons.append("paragraph_structure_changed")
+    if len(QUESTION_PATTERN.findall(source)) != len(
+        QUESTION_PATTERN.findall(candidate)
+    ):
+        reasons.append("question_structure_changed")
+    if not _shared_references_preserved(source, candidate):
+        reasons.append("reference_not_preserved")
+
+    return SemanticValidation(
+        accepted=not reasons,
+        reasons=tuple(reasons),
+        protected_source=source_values,
+        protected_candidate=candidate_values,
+    )
+
+
+def protected_values(value: str) -> dict[str, Counter[str]]:
+    return {
+        "urls": _matches(URL_PATTERN, value),
+        "emails": _matches(EMAIL_PATTERN, value),
+        "phones": _matches(PHONE_PATTERN, value),
+        "numbers": _matches(NUMBER_PATTERN, value),
+        "dates": _combined_matches(
+            value, MONTH_DATE_PATTERN, NUMERIC_DATE_PATTERN, CALENDAR_PATTERN
+        ),
+        "times": _matches(TIME_PATTERN, value),
+        "identifiers": _matches(IDENTIFIER_PATTERN, value),
+        "quotes": _matches(QUOTED_PATTERN, value, casefold=False),
+        "names": _combined_matches(
+            value, CAPITALIZED_NAME_PATTERN, SUBJECT_NAME_PATTERN
+        ),
+        "negation": Counter(_canonical_negations(value)),
+        "modality": Counter(_canonical_modality(value)),
+        "certainty": _matches(CERTAINTY_PATTERN, value),
+        "relations": _matches(CAUSAL_TEMPORAL_PATTERN, value),
+        "intent": Counter(_canonical_intent(value)),
+        "politeness": Counter(
+            "polite" for _match in POLITENESS_PATTERN.finditer(value)
+        ),
+    }
+
+
+def meaning_anchor_preserved(source: str, candidate: str) -> bool:
+    """Reject sentence replacements that discard most source content anchors."""
+    source_sentences = [
+        part for part in SENTENCE_SPLIT.split(source.strip()) if part.strip()
+    ]
+    candidate_sentences = [
+        part for part in SENTENCE_SPLIT.split(candidate.strip()) if part.strip()
+    ]
+    if len(source_sentences) != len(candidate_sentences):
+        return False
+    for source_sentence, candidate_sentence in zip(
+        source_sentences, candidate_sentences
+    ):
+        source_anchors = Counter(_anchors(source_sentence))
+        if len(source_anchors) < 2:
+            continue
+        candidate_anchors = Counter(_anchors(candidate_sentence))
+        overlap = sum(
+            min(count, candidate_anchors[token])
+            for token, count in source_anchors.items()
+        )
+        if overlap / sum(source_anchors.values()) < 0.30:
+            return False
+    return True
+
+
+def _matches(
+    pattern: re.Pattern[str], value: str, *, casefold: bool = True
+) -> Counter[str]:
+    found = pattern.findall(value)
+    return Counter(item.casefold() if casefold else item for item in found)
+
+
+def _combined_matches(
+    value: str, *patterns: re.Pattern[str]
+) -> Counter[str]:
+    items: list[str] = []
+    for pattern in patterns:
+        items.extend(match.group(0).casefold() for match in pattern.finditer(value))
+    return Counter(items)
+
+
+def _canonical_negations(value: str) -> Iterable[str]:
+    for match in NEGATION_PATTERN.finditer(value):
+        token = match.group(0).casefold().replace("’", "'")
+        if token in {"cannot", "can't", "cant"}:
+            yield "not"
+        elif token in {"never", "neither", "nor", "no"}:
+            yield token
+        else:
+            yield "not"
+
+
+def _canonical_modality(value: str) -> Iterable[str]:
+    for match in MODAL_PATTERN.finditer(value):
+        token = match.group(0).casefold().replace("’", "'")
+        if token in {"cannot", "can't", "cant"}:
+            yield "can"
+        elif token in {"won't", "wont"}:
+            yield "will"
+        else:
+            yield token
+
+
+def _canonical_intent(value: str) -> Iterable[str]:
+    for match in INTENT_PATTERN.finditer(value):
+        token = match.group(0).casefold()
+        if token.startswith("promis"):
+            yield "promise"
+        elif token.startswith("commit"):
+            yield "commit"
+        elif token.startswith("agree"):
+            yield "agree"
+        elif token.startswith("refus"):
+            yield "refuse"
+        elif token.startswith("declin"):
+            yield "decline"
+        elif token.startswith("approv"):
+            yield "approve"
+        elif token.startswith("den"):
+            yield "deny"
+        else:
+            yield "decide"
+
+
+def _paragraph_count(value: str) -> int:
+    stripped = value.strip()
+    return len(PARAGRAPH_BREAK.split(stripped)) if stripped else 0
+
+
+def _shared_references_preserved(source: str, candidate: str) -> bool:
+    source_refs = _references(source)
+    candidate_refs = _references(candidate)
+    return all(
+        candidate_refs[noun] == determiners
+        for noun, determiners in source_refs.items()
+        if noun in candidate_refs
+    )
+
+
+def _references(value: str) -> dict[str, Counter[str]]:
+    references: dict[str, Counter[str]] = {}
+    for match in REFERENCE_PATTERN.finditer(value):
+        noun = match.group("noun").casefold()
+        if noun in {"is", "are", "was", "were", "will", "would", "can", "may"}:
+            continue
+        determiner = match.group("determiner").casefold()
+        category = (
+            "definite"
+            if determiner == "the"
+            else "indefinite"
+            if determiner in {"a", "an"}
+            else determiner
+        )
+        references.setdefault(noun, Counter())[category] += 1
+    return references
+
+
+def _anchors(value: str) -> list[str]:
+    anchors: list[str] = []
+    for raw in WORD_PATTERN.findall(value):
+        token = raw.casefold().replace("’", "'")
+        if token in ANCHOR_STOPWORDS:
+            continue
+        if token.endswith("ing") and len(token) > 5:
+            token = token[:-3]
+        elif token.endswith("ed") and len(token) > 4:
+            token = token[:-2]
+        elif token.endswith("es") and len(token) > 4:
+            token = token[:-2]
+        elif token.endswith("s") and len(token) > 3:
+            token = token[:-1]
+        anchors.append(token)
+    return anchors
