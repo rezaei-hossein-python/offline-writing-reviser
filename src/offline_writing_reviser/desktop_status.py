@@ -4,10 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable
 
-from offline_writing_reviser.core.errors import (
-    OfflineWritingInputError,
-    OfflineWritingLanguageToolUnavailable,
-)
+from offline_writing_reviser.core.errors import OfflineWritingInputError
 from offline_writing_reviser.providers.base import (
     OfflineWritingModelMissing,
     OfflineWritingProviderError,
@@ -21,7 +18,6 @@ class ApplicationState(str, Enum):
     REVISING = "Revising"
     OLLAMA_UNAVAILABLE = "Ollama unavailable"
     MODEL_UNAVAILABLE = "Model unavailable"
-    LANGUAGETOOL_UNAVAILABLE = "LanguageTool unavailable"
     HOTKEY_UNAVAILABLE = "Hotkey unavailable"
     ERROR = "Error"
 
@@ -55,6 +51,19 @@ def user_message_for_error(error: BaseException | str) -> UserMessage:
             "The active window changed, so the revised text was not pasted.",
             ApplicationState.READY,
         )
+    if error == "clipboard_busy":
+        return UserMessage(
+            "Clipboard unavailable",
+            "Another application is using the clipboard. Wait a moment and "
+            "try again.",
+            ApplicationState.READY,
+        )
+    if error == "paste_failed":
+        return UserMessage(
+            "Revised text could not be pasted",
+            "Keep the target application active and try the hotkey again.",
+            ApplicationState.READY,
+        )
     if error == "hotkey":
         return UserMessage(
             "Hotkey unavailable",
@@ -67,26 +76,18 @@ def user_message_for_error(error: BaseException | str) -> UserMessage:
             "The local model did not finish before the configured timeout.",
             ApplicationState.ERROR,
         )
-    if isinstance(error, OfflineWritingLanguageToolUnavailable):
-        return UserMessage(
-            "Proofreading engine unavailable",
-            "The private LanguageTool runtime could not start. Run Diagnostics "
-            "and repair or reinstall the application.",
-            ApplicationState.LANGUAGETOOL_UNAVAILABLE,
-        )
     if isinstance(error, OfflineWritingModelMissing):
         return UserMessage(
-            "Configured model unavailable",
-            "LanguageTool proofreading remains available. Run “Set up AI "
-            "proofreading” from the Start menu, or choose an installed Ollama "
-            "model in Settings.",
+            "Model not ready",
+            "Run Set up AI revision from the Start menu, or choose an "
+            "installed Ollama model in Settings.",
             ApplicationState.MODEL_UNAVAILABLE,
         )
     if isinstance(error, OfflineWritingProviderUnavailable):
         return UserMessage(
             "Ollama unavailable",
-            "LanguageTool proofreading remains available. Run “Set up AI "
-            "proofreading” from the Start menu to install or repair Ollama.",
+            "Run Set up AI revision from the Start menu to install or repair "
+            "the local AI engine.",
             ApplicationState.OLLAMA_UNAVAILABLE,
         )
     if isinstance(error, OfflineWritingInputError):
@@ -98,11 +99,12 @@ def user_message_for_error(error: BaseException | str) -> UserMessage:
     if isinstance(error, OfflineWritingProviderError):
         return UserMessage(
             "Revision failed",
-            "The local model could not revise the selected text. See the log for details.",
+            "The local model could not revise the selected text. "
+            "See Diagnostics for details.",
             ApplicationState.ERROR,
         )
     return UserMessage(
         "Revision failed",
-        "The revision could not be completed. See the log for details.",
+        "The revision could not be completed. See Diagnostics for details.",
         ApplicationState.ERROR,
     )

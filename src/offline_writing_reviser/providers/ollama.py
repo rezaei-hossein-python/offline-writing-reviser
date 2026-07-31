@@ -136,6 +136,7 @@ class OllamaCliOfflineWritingProvider(OfflineWritingProvider):
 
     def revise(self, text: str, instruction: str, timeout_seconds: float) -> str:
         self.ensure_model_available(timeout_seconds=5.0)
+        self.ensure_api_running(timeout_seconds=min(20.0, timeout_seconds))
         return self._perform_revision(
             text, instruction, timeout_seconds
         ).text

@@ -97,15 +97,13 @@ class ChunkResponseProvider(OfflineWritingProvider):
 
 
 def test_revision_prompt_contract_is_tightly_scoped():
-    assert "Correct only objective spelling and grammatical errors" in REVISION_INSTRUCTION
-    assert "Make the minimum changes necessary" in REVISION_INSTRUCTION
-    assert "Do not paraphrase" in REVISION_INSTRUCTION
+    assert "correct, natural, clear, and professional" in REVISION_INSTRUCTION
+    assert "Do not rewrite correct, clear, natural text" in REVISION_INSTRUCTION
+    assert "negation, modality, questions" in REVISION_INSTRUCTION
     assert "return it exactly unchanged" in REVISION_INSTRUCTION
-    assert "straight versus curly quotes" in REVISION_INSTRUCTION
-    assert "apostrophe style" in REVISION_INSTRUCTION
     assert "Preserve every line break, blank line, paragraph boundary" in REVISION_INSTRUCTION
     assert "Never add explanations, headings, commentary" in REVISION_INSTRUCTION
-    assert "Return only the corrected text" in REVISION_INSTRUCTION
+    assert "Return only the revised text" in REVISION_INSTRUCTION
 
 
 def test_empty_selection_is_rejected():
@@ -247,10 +245,10 @@ def test_one_failed_chunk_aborts_remaining_chunks_and_logs_index(caplog):
     )
 
     with caplog.at_level("WARNING", logger="offline-writing-reviser"):
-        with pytest.raises(OfflineWritingMalformedOutput):
-            service.revise(text)
+        result = service.revise(text)
 
     assert len(provider.calls) == 2
+    assert result.revised_text == text
     log_text = "\n".join(record.getMessage() for record in caplog.records)
     assert "chunk_index=2" in log_text
     assert text not in log_text
@@ -316,7 +314,7 @@ def test_unicode_text_is_preserved_through_service():
 
     result = service.revise("Café résumé - José paid €5.")
 
-    assert result.revised_text == "Cafe resume - Jose paid EUR 5."
+    assert result.revised_text == provider.calls[0]["text"]
     assert "Café résumé" in provider.calls[0]["text"]
 
 
@@ -349,8 +347,9 @@ def test_provider_timeout_fails_locally():
 def test_malformed_provider_output_is_rejected():
     service = OfflineWritingService(FakeOfflineWritingProvider(response="Here is the revision: ok"))
 
-    with pytest.raises(OfflineWritingMalformedOutput):
-        service.revise("Fix this sentence.")
+    result = service.revise("Fix this sentence.")
+
+    assert result.revised_text == "Fix this sentence."
 
 
 def test_sanitize_revision_output_removes_wrapping_quotes():
@@ -579,7 +578,7 @@ def test_configuration_defaults():
     assert config.enabled is True
     assert config.provider == "ollama_cli"
     assert config.model == "gemma3:4b"
-    assert config.hotkey == "Ctrl+Alt+W"
+    assert config.hotkey == "Ctrl+Alt+P"
     assert config.max_characters == 20_000
     assert config.chunk_characters == 2000
 
@@ -664,11 +663,11 @@ def test_empty_capture_does_not_call_provider():
     assert adapter.replaced_with is None
 
 
-def test_hotkey_parser_supports_ctrl_alt_w():
-    modifiers, key = parse_hotkey("Ctrl+Alt+W")
+def test_hotkey_parser_supports_custom_ctrl_alt_shortcut():
+    modifiers, key = parse_hotkey("Ctrl+Alt+R")
 
     assert modifiers == 0x0003
-    assert key == ord("W")
+    assert key == ord("R")
 
 
 class FakePoint(ctypes.Structure):
@@ -738,7 +737,7 @@ def test_hotkey_registration_lifecycle(monkeypatch):
         [
             HotkeyBinding(
                 identifier=77,
-                shortcut="Ctrl+Alt+W",
+                shortcut="Ctrl+Alt+R",
                 callback=lambda: callback_calls.append("called"),
             )
         ]
@@ -747,7 +746,7 @@ def test_hotkey_registration_lifecycle(monkeypatch):
     manager.start()
     manager.stop()
 
-    assert fake_windll.user32.registered == [(77, 0x0003, ord("W"))]
+    assert fake_windll.user32.registered == [(77, 0x0003, ord("R"))]
     assert fake_windll.user32.unregistered == [77]
     assert callback_calls == ["called"]
 
@@ -820,9 +819,8 @@ def test_rejected_commentary_leaves_original_untouched_without_success_notificat
 
     assert adapter.capture_value.text == original
     assert adapter.replaced_with is None
-    assert len(notifications) == 1
-    assert notifications[0].title != "Revision complete"
-    assert all(state.value != "Ready" for state in states[1:])
+    assert notifications == []
+    assert states[-1].value == "Ready"
 
 
 def test_duplicate_hotkey_press_is_ignored_by_controller_lock():
@@ -871,6 +869,7 @@ class FakeClipboard:
 
     def set_unicode_text(self, text):
         self.set_values.append(text)
+        self.sequence += 1
 
 
 def test_clipboard_capture_and_replace_preserves_clipboard(monkeypatch):
@@ -884,9 +883,10 @@ def test_clipboard_capture_and_replace_preserves_clipboard(monkeypatch):
 
     def fake_send_ctrl_key(vk, logger=None):
         send_keys.append(vk)
-        clipboard.text = "Selected text."
-        clipboard.unicode_available = True
-        clipboard.sequence += 1
+        if vk == text_selection.VK_C:
+            clipboard.text = "Selected text."
+            clipboard.unicode_available = True
+            clipboard.sequence += 1
         return True
 
     monkeypatch.setattr(text_selection, "_send_ctrl_key", fake_send_ctrl_key)
@@ -1322,8 +1322,9 @@ def test_ollama_cli_request(monkeypatch):
     assert provider.revise("Bad.", "Fix.", timeout_seconds=1) == "Fixed."
     assert calls[0][0][1] == "list"
     assert all(call[0][1] == "list" for call in calls)
-    payload = json.loads(requests[0][0].data.decode("utf-8"))
-    assert requests[0][0].full_url == "http://127.0.0.1:11434/api/chat"
+    chat_request = next(request for request, _timeout in requests if request.data)
+    payload = json.loads(chat_request.data.decode("utf-8"))
+    assert chat_request.full_url == "http://127.0.0.1:11434/api/chat"
     assert payload["model"] == "gemma3:4b"
     assert payload["think"] is False
     assert payload["keep_alive"] == "10m"
@@ -1411,6 +1412,79 @@ def test_ollama_run_failure_is_provider_error(monkeypatch):
 
     with pytest.raises(OfflineWritingProviderError):
         provider.revise("Bad.", "Fix.", timeout_seconds=1)
+
+
+@pytest.mark.parametrize(
+    ("size_vram", "expected"),
+    [(0, "cpu"), (1000, "gpu"), (400, "partial_gpu")],
+)
+def test_ollama_runtime_diagnostics_classifies_acceleration(
+    monkeypatch, size_vram, expected
+):
+    import offline_writing_reviser.providers.ollama as ollama_cli
+
+    provider = ollama_cli.OllamaCliOfflineWritingProvider("gemma3:4b")
+    monkeypatch.setattr(
+        provider,
+        "_request_json",
+        lambda *_args, **_kwargs: {
+            "models": [
+                {
+                    "name": "gemma3:4b",
+                    "size": 1000,
+                    "size_vram": size_vram,
+                    "context_length": 8192,
+                }
+            ]
+        },
+    )
+
+    diagnostics = provider.runtime_diagnostics()
+
+    assert diagnostics["acceleration"] == expected
+    assert diagnostics["device"] is None
+    assert diagnostics["backend"] is None
+
+
+def test_ollama_runtime_diagnostics_is_unknown_when_model_not_loaded(
+    monkeypatch,
+):
+    import offline_writing_reviser.providers.ollama as ollama_cli
+
+    provider = ollama_cli.OllamaCliOfflineWritingProvider("gemma3:4b")
+    monkeypatch.setattr(
+        provider,
+        "_request_json",
+        lambda *_args, **_kwargs: {"models": []},
+    )
+
+    diagnostics = provider.runtime_diagnostics()
+
+    assert diagnostics["model_loaded"] is False
+    assert diagnostics["acceleration"] == "unknown"
+    assert diagnostics["device"] is None
+    assert diagnostics["backend"] is None
+
+
+def test_ollama_cli_subprocess_is_created_without_a_window(monkeypatch):
+    import offline_writing_reviser.providers.ollama as ollama_cli
+
+    captured = {}
+
+    def fake_run(*args, **kwargs):
+        captured.update(kwargs)
+        return subprocess.CompletedProcess(args[0], 0, stdout="", stderr="")
+
+    provider = ollama_cli.OllamaCliOfflineWritingProvider(
+        "gemma3:4b", executable="ollama.exe"
+    )
+    monkeypatch.setattr(provider, "_resolve_executable", lambda: "ollama.exe")
+    monkeypatch.setattr(ollama_cli.subprocess, "run", fake_run)
+
+    provider.list_installed_models()
+
+    expected_flag = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
+    assert captured["creationflags"] & expected_flag
 
 
 def test_single_instance_detects_existing_mutex(monkeypatch):
@@ -1555,7 +1629,7 @@ def test_startup_failure_is_logged_and_surfaced(monkeypatch, tmp_path, capsys):
     assert app.run() == 1
 
     captured = capsys.readouterr()
-    assert "could not register Ctrl+Alt+W" in captured.err
+    assert "could not register Ctrl+Alt+P" in captured.err
     assert "hotkey_unavailable" in log_file.read_text(encoding="utf-8")
     assert released == [True]
 

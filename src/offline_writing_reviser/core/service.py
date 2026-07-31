@@ -15,12 +15,20 @@ from offline_writing_reviser.core.errors import (
 from offline_writing_reviser.core.models import WritingRevisionResult
 from offline_writing_reviser.core.prompt import REVISION_INSTRUCTION
 from offline_writing_reviser.core.sanitizer import sanitize_revision_output
+from offline_writing_reviser.proofreading.semantic import (
+    meaning_anchor_preserved,
+    validate_semantic_preservation,
+)
 from offline_writing_reviser.providers.base import (
     OfflineWritingProvider,
     OfflineWritingProviderError,
     OfflineWritingProviderTimeout,
     OfflineWritingProviderUnavailable,
 )
+
+
+class _UnsafeRevision(RuntimeError):
+    """Internal signal to return the complete original selection unchanged."""
 
 
 class OfflineWritingService:
@@ -75,6 +83,21 @@ class OfflineWritingService:
             revised_text = sanitize_revision_output(
                 "".join(revised_chunks), original_text=selected_text
             )
+            final_validation = validate_semantic_preservation(
+                selected_text, revised_text
+            )
+            anchors_preserved = meaning_anchor_preserved(
+                selected_text, revised_text
+            )
+            if not final_validation.accepted or not anchors_preserved:
+                self.logger.warning(
+                    "Revision rejected stage=final semantic_reasons=%s "
+                    "meaning_anchor_preserved=%s chars=%s",
+                    ",".join(final_validation.reasons) or "none",
+                    anchors_preserved,
+                    len(selected_text),
+                )
+                revised_text = selected_text
             duration_ms = (time.perf_counter() - started) * 1000
             if revised_text == selected_text:
                 self.logger.info(
@@ -98,6 +121,23 @@ class OfflineWritingService:
             return WritingRevisionResult(
                 original_character_count=len(selected_text),
                 revised_text=revised_text,
+                provider=self.provider.provider_name,
+                model=self.provider.model_identifier,
+                duration_ms=duration_ms,
+            )
+        except _UnsafeRevision:
+            duration_ms = (time.perf_counter() - started) * 1000
+            self.logger.warning(
+                "Offline writing revision rejected outcome=original_preserved "
+                "chars=%s duration_ms=%.2f provider=%s model=%s",
+                len(selected_text),
+                duration_ms,
+                self.provider.provider_name,
+                self.provider.model_identifier,
+            )
+            return WritingRevisionResult(
+                original_character_count=len(selected_text),
+                revised_text=selected_text,
                 provider=self.provider.provider_name,
                 model=self.provider.model_identifier,
                 duration_ms=duration_ms,
@@ -141,8 +181,28 @@ class OfflineWritingService:
                 timeout_seconds=self.config.timeout_seconds,
             )
             revised = sanitize_revision_output(raw_output, original_text=chunk)
+            validation = validate_semantic_preservation(chunk, revised)
+            anchors_preserved = meaning_anchor_preserved(chunk, revised)
+            if not validation.accepted or not anchors_preserved:
+                self.logger.warning(
+                    "Revision chunk rejected chunk_index=%s chunk_count=%s "
+                    "semantic_reasons=%s meaning_anchor_preserved=%s",
+                    index,
+                    chunk_count,
+                    ",".join(validation.reasons) or "none",
+                    anchors_preserved,
+                )
+                raise _UnsafeRevision from None
+        except OfflineWritingMalformedOutput as exc:
+            self.logger.warning(
+                "Revision chunk rejected chunk_index=%s chunk_count=%s "
+                "category=%s",
+                index,
+                chunk_count,
+                exc.__class__.__name__,
+            )
+            raise _UnsafeRevision from exc
         except (
-            OfflineWritingMalformedOutput,
             OfflineWritingProviderError,
             OfflineWritingProviderTimeout,
             OfflineWritingProviderUnavailable,

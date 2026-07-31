@@ -19,7 +19,6 @@ VK_CONTROL = 0x11
 VK_MENU = 0x12
 VK_C = 0x43
 VK_V = 0x56
-VK_W = 0x57
 VK_P = 0x50
 VK_SHIFT = 0x10
 VK_LWIN = 0x5B
@@ -312,7 +311,7 @@ class WindowsSelectedTextAdapter:
         self.modifier_release_wait_seconds = modifier_release_wait_seconds
         self.logger = logger or logging.getLogger("offline-writing-reviser")
 
-    def capture_target(self, mode: str = "proofread") -> SelectionTarget:
+    def capture_target(self, mode: str = "revision") -> SelectionTarget:
         foreground = get_foreground_window()
         if not foreground:
             raise SelectionCaptureError(
@@ -326,7 +325,7 @@ class WindowsSelectedTextAdapter:
             foreground_pid=pid,
             foreground_process=process_name,
             mode=mode,
-            action_key=VK_P if mode == "paraphrase" else VK_W,
+            action_key=VK_P,
             operation_id=uuid.uuid4().hex[:12],
         )
         self.logger.info(
@@ -351,7 +350,7 @@ class WindowsSelectedTextAdapter:
     def capture(
         self,
         target: SelectionTarget | None = None,
-        mode: str = "proofread",
+        mode: str = "revision",
     ) -> SelectedTextCapture | None:
         legacy_call = target is None
         target = target or self.capture_target(mode)
@@ -500,7 +499,18 @@ class WindowsSelectedTextAdapter:
             return False
         if telemetry:
             self._transition(telemetry, CaptureState.TARGET_REFOCUSED)
-        self.clipboard.set_unicode_text(replacement)
+        try:
+            current_snapshot = self.clipboard.snapshot()
+            self.clipboard.set_unicode_text(replacement)
+            replacement_sequence = self.clipboard.get_sequence_number()
+        except ClipboardBusyError:
+            if telemetry:
+                self._fail(
+                    telemetry,
+                    CaptureFailure.CLIPBOARD_BUSY,
+                    raise_error=False,
+                )
+            return False
         try:
             paste_sent = (
                 send_control_message(capture.focused_window, WM_PASTE)
@@ -528,7 +538,20 @@ class WindowsSelectedTextAdapter:
                 self._log_summary(telemetry)
             return True
         finally:
-            self.clipboard.restore(capture.clipboard_snapshot)
+            if self.clipboard.get_sequence_number() == replacement_sequence:
+                try:
+                    self.clipboard.restore(current_snapshot)
+                except ClipboardBusyError:
+                    self.logger.warning(
+                        "Clipboard restore failed operation=%s category=busy",
+                        telemetry.operation_id if telemetry else "unknown",
+                    )
+            else:
+                self.logger.info(
+                    "Clipboard restore skipped operation=%s "
+                    "category=external_change",
+                    telemetry.operation_id if telemetry else "unknown",
+                )
 
     def mark_processing(
         self, capture: SelectedTextCapture, duration_ms: float | None = None
@@ -885,7 +908,7 @@ def restore_foreground_window(hwnd: int, timeout_seconds: float = 0.5) -> bool:
 
 def _wait_for_modifier_release(
     timeout_seconds: float,
-    action_key: int = VK_W,
+    action_key: int = VK_P,
     logger: logging.Logger | None = None,
 ) -> bool:
     deadline = time.perf_counter() + timeout_seconds

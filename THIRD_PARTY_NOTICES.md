@@ -1,29 +1,7 @@
 # Third-party notices
 
 Offline Writing Reviser includes or interoperates with the following
-third-party components. This notice is informational and does not replace the
-license files shipped with each private runtime.
-
-## Eclipse Temurin 17
-
-The application installer includes an unmodified Eclipse Temurin Java runtime.
-Temurin is distributed under GPLv2 with the Classpath Exception and additional
-licenses for bundled components. The complete `legal`, `NOTICE`, and release
-metadata supplied by Eclipse Adoptium are included under `runtime/java`.
-
-Source and license information:
-https://adoptium.net/ and https://projects.eclipse.org/projects/adoptium.temurin
-
-## LanguageTool 6.6
-
-The application installer includes the unmodified LanguageTool 6.6 standalone
-distribution. LanguageTool core is licensed under LGPL-2.1-or-later; language
-resources and dependencies may carry their own compatible notices. The
-distribution's `COPYING.txt`, `README.md`, and `third-party-licenses` directory
-are included under `runtime/languagetool`.
-
-Source and license information:
-https://github.com/languagetool-org/languagetool
+third-party components. This notice is informational.
 
 ## Ollama
 

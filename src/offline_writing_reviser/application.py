@@ -33,10 +33,6 @@ from offline_writing_reviser.windows.controller import (
     start_offline_writing_runtime,
 )
 from offline_writing_reviser.windows.single_instance import WindowsSingleInstance
-from offline_writing_reviser.windows.owned_processes import (
-    cleanup_owned_languagetool_processes,
-)
-from offline_writing_reviser.proofreading.languagetool import default_java_paths
 
 
 APP_NAME = "Offline Writing Reviser"
@@ -132,20 +128,6 @@ class BackgroundCoordinator:
     def refresh_status(self) -> None:
         if not self.runtime.has_registered_hotkeys:
             return
-        language_tool = getattr(self.runtime, "language_tool", None)
-        if language_tool:
-            healthy, latency, error = language_tool.health_check()
-            self.logger.info(
-                "LanguageTool startup health healthy=%s latency_seconds=%s",
-                healthy,
-                latency,
-            )
-            if not healthy:
-                self.set_state(ApplicationState.LANGUAGETOOL_UNAVAILABLE)
-                self.logger.error(
-                    "LanguageTool startup health failed error=%s", error
-                )
-                return
         try:
             models = self.discover_models()
         except OfflineWritingProviderError as exc:
@@ -253,18 +235,14 @@ class OfflineWritingReviserApplication:
 
         configure_logging(self.config.log_file)
         logger = logging.getLogger("offline-writing-reviser")
-        cleanup_owned_languagetool_processes(
-            default_java_paths(), logger=logger
-        )
         if self.settings_store.recovered_corrupt_file:
             logger.warning("Corrupt settings recovered with defaults")
         logger.info(
-            "Application startup version=%s model=%s proofread_hotkey=%s "
-            "paraphrase_hotkey=%s log_file=%s desktop_mode=hidden",
+            "Application startup version=%s model=%s revision_hotkey=%s "
+            "log_file=%s desktop_mode=hidden",
             __version__,
             self.config.model,
             self.config.hotkey,
-            self.config.paraphrase_hotkey,
             self.config.log_file,
         )
         if self.settings_store.migrated_legacy_defaults:
@@ -280,9 +258,8 @@ class OfflineWritingReviserApplication:
             ):
                 logger.error("Application startup failed stage=hotkey_unavailable")
                 _console_print(
-                    f"{APP_NAME} could not register {self.config.hotkey} or "
-                    f"{self.config.paraphrase_hotkey}. Another application "
-                    "may already be using a hotkey.",
+                    f"{APP_NAME} could not register {self.config.hotkey}. "
+                    "Another application may already be using the hotkey.",
                     error=True,
                 )
                 return 1
@@ -351,10 +328,8 @@ def execute_control_command(command: ControlCommand) -> int:
     if send_control_command(command):
         if command is ControlCommand.EXIT:
             wait_for_control_server_stop()
-            cleanup_owned_languagetool_processes(default_java_paths())
         return 0
     if command is ControlCommand.EXIT:
-        cleanup_owned_languagetool_processes(default_java_paths())
         _console_print(f"{APP_NAME} is not running.")
         return 0
 

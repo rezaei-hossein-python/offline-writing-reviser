@@ -15,7 +15,3 @@ class OfflineWritingInputError(OfflineWritingError):
 
 class OfflineWritingMalformedOutput(OfflineWritingError):
     pass
-
-
-class OfflineWritingLanguageToolUnavailable(OfflineWritingError):
-    pass

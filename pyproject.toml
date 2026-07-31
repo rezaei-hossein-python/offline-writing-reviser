@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "offline-writing-reviser"
-version = "0.3.1rc2"
+version = "0.4.0rc1"
 description = "Offline-only Windows hotkey writing reviser backed by a local Ollama model."
 readme = "README.md"
 requires-python = ">=3.11"

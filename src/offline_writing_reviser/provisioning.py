@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import subprocess
 import threading
 import time
@@ -159,7 +160,7 @@ class AIProvisioner:
             timeout_seconds=30.0,
             cancelled=cancelled,
         )
-        progress("AI proofreader is ready", 1, 1)
+        progress("Intelligent revision is ready", 1, 1)
 
     def download_ollama(
         self,
@@ -167,6 +168,7 @@ class AIProvisioner:
         *,
         cancelled: CancelCheck,
         timeout_seconds: float = 30.0,
+        _allow_range_restart: bool = True,
     ) -> Path:
         self.cache_directory.mkdir(parents=True, exist_ok=True)
         destination = self.cache_directory / "OllamaSetup.exe"
@@ -209,6 +211,19 @@ class AIProvisioner:
                         )
         except ProvisioningCancelled:
             raise
+        except urllib.error.HTTPError as exc:
+            if exc.code == 416 and existing and _allow_range_restart:
+                partial.unlink(missing_ok=True)
+                return self.download_ollama(
+                    progress,
+                    cancelled=cancelled,
+                    timeout_seconds=timeout_seconds,
+                    _allow_range_restart=False,
+                )
+            raise OfflineWritingProviderUnavailable(
+                "The Ollama installer download failed. Check the connection "
+                "and choose Retry."
+            ) from exc
         except (TimeoutError, OSError, urllib.error.URLError) as exc:
             raise OfflineWritingProviderUnavailable(
                 "The Ollama installer download was interrupted. Check the "
@@ -251,16 +266,21 @@ def run_model_provisioning(config: OfflineWritingConfig | None = None) -> int:
         QVBoxLayout,
     )
 
-    config = config or OfflineWritingConfig()
+    from offline_writing_reviser.logging_config import configure_logging
+    from offline_writing_reviser.settings import SettingsStore
+
+    config = config or SettingsStore().load()
+    configure_logging(config.log_file)
+    logger = logging.getLogger("offline-writing-reviser")
     app = QApplication.instance() or QApplication([])
     consent = QMessageBox.question(
         None,
-        "Set up optional AI proofreading",
-        "LanguageTool proofreading is already available without AI.\n\n"
-        f"AI setup reuses a compatible Ollama installation when present and "
+        "Set up intelligent revision",
+        f"Setup reuses a compatible Ollama installation when present and "
         f"otherwise downloads the official Ollama installer. It then downloads "
         f"{config.model} (approximately 3 GB, subject to the Gemma Terms of "
-        "Use). Core application installation does not depend on this step.\n\n"
+        "Use). The application installation does not depend on this step, but "
+        "intelligent revision requires the model.\n\n"
         "Continue?",
         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         QMessageBox.StandardButton.Yes,
@@ -269,14 +289,24 @@ def run_model_provisioning(config: OfflineWritingConfig | None = None) -> int:
         return 0
 
     provisioner = AIProvisioner(config)
-    dialog = QDialog()
-    dialog.setWindowTitle("Offline Writing Reviser — AI Setup")
-    dialog.setAccessibleName("AI proofreading setup")
+    outcome = {"code": 1, "working": False}
+    cancel_event = threading.Event()
+
+    class AccessibleProvisioningDialog(QDialog):
+        def reject(self) -> None:
+            if outcome["working"]:
+                cancel_event.set()
+                return
+            super().reject()
+
+    dialog = AccessibleProvisioningDialog()
+    dialog.setWindowTitle("Offline Writing Reviser - AI Setup")
+    dialog.setAccessibleName("Intelligent revision setup")
     dialog.setMinimumWidth(500)
     dialog.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
     dialog.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, False)
     layout = QVBoxLayout(dialog)
-    label = QLabel("Ready to set up AI proofreading.")
+    label = QLabel("Ready to set up intelligent revision.")
     label.setAccessibleName("AI setup current stage")
     detail = QLabel("")
     detail.setAccessibleName("AI setup download details")
@@ -302,8 +332,6 @@ def run_model_provisioning(config: OfflineWritingConfig | None = None) -> int:
     layout.addWidget(progress_bar)
     layout.addLayout(button_layout)
 
-    outcome = {"code": 1, "working": False}
-    cancel_event = threading.Event()
     active: dict[str, object] = {}
 
     class Worker(QObject):
@@ -324,9 +352,17 @@ def run_model_provisioning(config: OfflineWritingConfig | None = None) -> int:
             except ProvisioningCancelled as exc:
                 self.failed.emit(str(exc), True)
             except Exception as exc:
-                self.failed.emit(
-                    f"{exc.__class__.__name__}: {exc}", False
+                logger.exception(
+                    "Provisioning failed category=%s",
+                    exc.__class__.__name__,
                 )
+                message = (
+                    str(exc)
+                    if isinstance(exc, OfflineWritingProviderError)
+                    else "Setup encountered an unexpected problem. Choose "
+                    "Retry, or close setup and run it again later."
+                )
+                self.failed.emit(message, False)
             else:
                 self.succeeded.emit()
 
@@ -360,7 +396,7 @@ def run_model_provisioning(config: OfflineWritingConfig | None = None) -> int:
     def succeeded() -> None:
         finish_thread()
         outcome["code"] = 0
-        label.setText("AI proofreading is ready.")
+        label.setText("Intelligent revision is ready.")
         detail.setText("")
         progress_bar.setRange(0, 100)
         progress_bar.setValue(100)
@@ -389,7 +425,7 @@ def run_model_provisioning(config: OfflineWritingConfig | None = None) -> int:
         retry_button.setEnabled(False)
         close_button.setEnabled(False)
         cancel_button.setEnabled(True)
-        label.setText("Checking AI components…")
+        label.setText("Checking AI components...")
         detail.setText("")
         progress_bar.setRange(0, 0)
         thread = QThread(dialog)
@@ -407,7 +443,7 @@ def run_model_provisioning(config: OfflineWritingConfig | None = None) -> int:
     def cancel() -> None:
         if outcome["working"]:
             cancel_event.set()
-            label.setText("Cancelling safely…")
+            label.setText("Cancelling safely...")
             cancel_button.setEnabled(False)
         else:
             dialog.reject()
@@ -415,9 +451,6 @@ def run_model_provisioning(config: OfflineWritingConfig | None = None) -> int:
     retry_button.clicked.connect(start_attempt)
     cancel_button.clicked.connect(cancel)
     close_button.clicked.connect(dialog.accept)
-    dialog.rejected.connect(
-        lambda: cancel_event.set() if outcome["working"] else None
-    )
     start_attempt()
     dialog.exec()
     thread = active.get("thread")

@@ -1,7 +1,7 @@
 #define AppName "Offline Writing Reviser"
 #define AppExeName "OfflineWritingReviser.exe"
-#define AppVersion "0.3.1-rc2"
-#define AppNumericVersion "0.3.1.1"
+#define AppVersion "0.4.0-rc1"
+#define AppNumericVersion "0.4.0.1"
 #define ProjectRoot AddBackslash(SourcePath) + ".."
 #define AppBuildDir ProjectRoot + "\dist\OfflineWritingReviser"
 
@@ -21,6 +21,8 @@ OutputBaseFilename=OfflineWritingReviser-Setup
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
+CloseApplications=yes
+RestartApplications=no
 UninstallDisplayIcon={app}\{#AppExeName}
 VersionInfoVersion={#AppNumericVersion}
 VersionInfoProductName={#AppName}
@@ -33,8 +35,7 @@ Source: "{#AppBuildDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdir
 [Icons]
 Name: "{group}\Offline Writing Reviser"; Filename: "{app}\{#AppExeName}"
 Name: "{group}\Settings"; Filename: "{app}\{#AppExeName}"; Parameters: "--settings"
-Name: "{group}\Set up AI proofreading"; Filename: "{app}\{#AppExeName}"; Parameters: "--provision-model"
-Name: "{group}\Diagnostics"; Filename: "{cmd}"; Parameters: "/k ""{app}\{#AppExeName}"" --diagnostics"; IconFilename: "{app}\{#AppExeName}"
+Name: "{group}\Set up intelligent revision"; Filename: "{app}\{#AppExeName}"; Parameters: "--provision-model"
 Name: "{group}\Uninstall Offline Writing Reviser"; Filename: "{uninstallexe}"
 
 [Registry]
@@ -44,12 +45,23 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; \
 
 [Run]
 Filename: "{app}\{#AppExeName}"; Description: "Start Offline Writing Reviser"; Flags: nowait runhidden
-Filename: "{app}\{#AppExeName}"; Parameters: "--provision-model"; Description: "Set up optional AI proofreading (can be retried later)"; Flags: postinstall nowait skipifsilent
+Filename: "{app}\{#AppExeName}"; Parameters: "--provision-model"; Description: "Set up intelligent revision (can be retried later)"; Flags: postinstall nowait skipifsilent
 
 [UninstallRun]
 Filename: "{app}\{#AppExeName}"; Parameters: "--exit"; RunOnceId: "StopBackgroundApplication"; Flags: runhidden waituntilterminated skipifdoesntexist
 
 [Code]
 // Core setup never downloads OllamaSetup.exe or waits for a model download.
-// Optional AI setup runs only after setup has completed and is also available
-// from the Start menu, so interruption never prevents LanguageTool operation.
+// Model setup runs only after setup has completed and remains retryable from
+// the Start menu, so interruption never corrupts the application installation.
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  ResultCode: Integer;
+  ExistingExe: String;
+begin
+  Result := '';
+  ExistingExe := ExpandConstant('{app}\{#AppExeName}');
+  if FileExists(ExistingExe) then
+    Exec(ExistingExe, '--exit', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+end;

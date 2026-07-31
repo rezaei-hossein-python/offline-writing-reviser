@@ -7,10 +7,6 @@ from pathlib import Path
 import pytest
 
 from offline_writing_reviser.windows.controller import OfflineWritingController
-from offline_writing_reviser.windows.owned_processes import (
-    JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
-    cleanup_owned_languagetool_processes,
-)
 from offline_writing_reviser.windows.text_selection import (
     CaptureFailure,
     CaptureState,
@@ -56,14 +52,14 @@ class DeterministicClipboard:
         self.writes.append(text)
 
 
-def target(mode: str = "proofread") -> SelectionTarget:
+def target(mode: str = "revision") -> SelectionTarget:
     return SelectionTarget(
         foreground_window=100,
         focused_window=101,
         foreground_pid=55,
         foreground_process="editor.exe",
         mode=mode,
-        action_key=VK_P if mode == "paraphrase" else 0x57,
+        action_key=VK_P,
         operation_id="operation123",
     )
 
@@ -176,7 +172,7 @@ def test_target_is_captured_synchronously_before_worker_starts():
         notification_callback=lambda _message: completed.set(),
     )
 
-    controller.trigger_proofread()
+    controller.trigger()
 
     assert completed.wait(2)
     controller.stop()
@@ -216,23 +212,6 @@ def test_telemetry_is_metadata_only(monkeypatch, caplog):
     assert "failure_code=none" in caplog.text
 
 
-def test_cleanup_recognizes_old_and_new_private_java_names(tmp_path):
-    java = tmp_path / "app" / "runtime" / "java" / "bin" / "java.exe"
-    javaw = tmp_path / "app" / "runtime" / "java" / "bin" / "javaw.exe"
-    unrelated = tmp_path / "other" / "javaw.exe"
-    terminated: list[int] = []
-
-    stopped = cleanup_owned_languagetool_processes(
-        (javaw, java),
-        process_paths=[(10, java), (11, javaw), (12, unrelated)],
-        terminate=lambda pid: terminated.append(pid) or True,
-    )
-
-    assert stopped == [10, 11]
-    assert terminated == [10, 11]
-    assert JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE == 0x2000
-
-
 def test_installer_uses_one_quoted_canonical_windowless_entry_point():
     root = Path(__file__).resolve().parents[1]
     installer = (
@@ -247,7 +226,8 @@ def test_installer_uses_one_quoted_canonical_windowless_entry_point():
     ) in installer
     assert 'Filename: "{app}\\{#AppExeName}"; Parameters: "--exit"' in installer
     assert "--windowed" in build
-    assert 'bin\\javaw.exe' in build
+    assert 'bin\\javaw.exe' not in build
+    assert "LanguageTool" not in build
     assert ".cmd" not in installer
     assert ".bat" not in installer
     assert ".ps1" not in installer

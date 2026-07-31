@@ -1,27 +1,15 @@
-"""Shared production and benchmark proofreading policy."""
+"""Deterministic semantic safeguards for intelligent revision."""
 
-from offline_writing_reviser.proofreading.policy import (
-    AMBIGUOUS,
-    HYBRID_PROMPT,
-    IGNORE,
-    RULE_POLICY,
-    SAFE,
-    build_gemma_instruction,
-    normalize_matches,
-    route_post_safe,
-    safe_filter,
-    validate_gemma_output,
+from offline_writing_reviser.proofreading.semantic import (
+    SemanticValidation,
+    meaning_anchor_preserved,
+    protected_values,
+    validate_semantic_preservation,
 )
 
 __all__ = [
-    "AMBIGUOUS",
-    "HYBRID_PROMPT",
-    "IGNORE",
-    "RULE_POLICY",
-    "SAFE",
-    "build_gemma_instruction",
-    "normalize_matches",
-    "route_post_safe",
-    "safe_filter",
-    "validate_gemma_output",
+    "SemanticValidation",
+    "meaning_anchor_preserved",
+    "protected_values",
+    "validate_semantic_preservation",
 ]

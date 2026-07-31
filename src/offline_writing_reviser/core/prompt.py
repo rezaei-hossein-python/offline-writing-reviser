@@ -1,16 +1,14 @@
 from __future__ import annotations
 
 
-REVISION_INSTRUCTION = """Correct only objective spelling and grammatical errors.
+REVISION_INSTRUCTION = """Make the supplied text correct, natural, clear, and professional while preserving the author's intended meaning, factual content, and overall tone.
 
-Make the minimum changes necessary.
+Correct spelling, grammar, punctuation, awkward or non-native phrasing, poor word choice, and unnecessary redundancy. Restructure a sentence only when that makes it clearly better. Do not rewrite correct, clear, natural text merely for variety.
 
-Do not paraphrase, improve style, change tone, change vocabulary, or restructure sentences unless required to correct an objective error.
+Preserve all facts and meaning-bearing details, especially names, numbers, dates, times, quantities, currencies, URLs, email addresses, technical identifiers, quoted text, negation, modality, questions, and the author's intent.
 
-If the text is already grammatically and orthographically correct, return it exactly unchanged.
+Preserve every line break, blank line, paragraph boundary, indentation, and list marker. Do not add or remove content.
 
-Preserve punctuation, capitalization, spacing, and typography exactly, including straight versus curly quotes, apostrophe style, and dash style.
+If the text is already correct, clear, and natural, return it exactly unchanged.
 
-Preserve every line break, blank line, paragraph boundary, and list or bullet line exactly. Never wrap, unwrap, merge, or reorder lines.
-
-Return only the corrected text. Never add explanations, headings, commentary, markdown, analysis, or reasoning."""
+Return only the revised text. Never add explanations, headings, commentary, markdown fences, analysis, or reasoning."""

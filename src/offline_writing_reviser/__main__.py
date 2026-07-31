@@ -25,7 +25,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--gemma-test",
         action="store_true",
-        help="Include a small local Gemma proofreading health test.",
+        help="Include a small local intelligent-revision health test.",
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     parser.add_argument(

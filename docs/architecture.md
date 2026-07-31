@@ -1,147 +1,83 @@
 # Architecture
 
-Offline Writing Reviser 0.3.1-rc2 combines intelligent hybrid proofreading
-and explicit paraphrasing with a hidden Windows lifecycle.
+Offline Writing Reviser 0.4 has one canonical action: Intelligent Revision on
+`Ctrl+Alt+P`.
 
-## Process lifecycle
+## Runtime flow
 
-`offline_writing_reviser.__main__` handles background startup, Settings,
-Exit/Restart, diagnostics, provisioning, version, and startup validation.
-`application` acquires the per-session mutex, configures per-user logging,
-creates the runtime, starts the hidden Win32 command endpoint and global hotkey,
-and owns orderly shutdown.
+The windowed executable acquires a per-session mutex, configures metadata-only
+logging, starts a hidden Qt dispatcher for accessible Settings and error
+dialogs, starts a hidden Win32 control endpoint, and registers one global
+hotkey. There is no tray icon or taskbar window.
 
-There is no tray icon or visible background window. Short-lived command
-processes communicate with a zero-size, never-shown Win32 control window.
-Duplicate-instance protection remains mutex-authoritative.
+When the hotkey fires, the foreground and focused window handles are captured
+synchronously. A worker waits for Ctrl, Alt, and P to be physically released,
+snapshots the clipboard, sends a standard-control `WM_COPY` or a scan-code
+Ctrl+C sequence, and waits for the clipboard sequence number to change. Empty
+standard-edit selections are distinguished from copy timeout and clipboard
+contention.
 
-The runtime owns one `LanguageToolRuntime`, one `HybridProofreadingService`,
-one `ParaphraseService`, and the hotkey controller. Shutdown rejects new work,
-unregisters both hotkeys, waits
-briefly for active revision threads, then terminates the owned Java child.
+The clipboard is restored immediately after capture. Before replacement, the
+original target is restored and verified. The adapter snapshots the current
+clipboard again, writes the revision, sends `WM_PASTE` or Ctrl+V, and restores
+that fresh snapshot only if no other application changed the clipboard in the
+meantime.
 
-## Hybrid proofreading
+## Revision engine
 
-The authoritative SAFE/routing/validation policy lives in
-`offline_writing_reviser.proofreading.policy`. Both production and benchmark
-runners import that policy so their executable behavior cannot silently
-diverge.
+`OfflineWritingService` validates input, divides long selections at paragraph,
+sentence, or word boundaries, and sends each non-empty chunk to the configured
+local Ollama model. The prompt permits spelling, grammar, punctuation,
+naturalness, vocabulary, redundancy, and clarity improvements while requiring
+unchanged output for already-good text.
 
-For each boundary-aware input chunk:
+Output sanitation rejects control characters, commentary, Markdown wrappers,
+truncation, excessive expansion/deletion, damaged indentation, changed blank
+lines, or altered list structure. Deterministic semantic validation compares
+URLs, email addresses, phone numbers, numbers and currencies, dates, times,
+identifiers, quoted text, names, negation, modality, certainty, causal and
+temporal relations, intent, politeness, question structure, paragraph
+structure, and meaning anchors. An unsafe chunk falls back to its original
+text; a failed final whole-selection validation returns the full original.
 
-1. analyze the original text with LanguageTool using explicit `en-US`;
-2. apply non-overlapping, single-candidate SAFE edits in reverse-offset order;
-3. apply a small audited fast path for context-independent idiom,
-   countability, and redundancy corrections;
-4. analyze the deterministic result again;
-5. route unresolved grammar/context evidence or high-confidence deterministic
-   signals for awkward, redundant, non-native, or non-idiomatic English;
-6. send post-SAFE text plus advisory evidence to `gemma3:4b`;
-7. allow sentence-level grammatical and lexical improvement;
-8. reject factual/operator drift with deterministic protected-value checks,
-   content-anchor loss, formatting damage, truncation, or a candidate whose
-   measured language-quality burden does not improve;
-9. otherwise retain the SAFE output.
+`Ctrl+Alt+W` is removed. It is not registered as an alias. LanguageTool, its
+SAFE routing policy, private Java, lifecycle management, diagnostics, and
+installer payload are removed.
 
-Clean, IGNORE-only, and completely resolved chunks bypass Gemma. Provider
-failure and model timeout also fall back to the SAFE result. LanguageTool
-failure aborts replacement because the deterministic safety stage is required.
-The final joined selection is structurally validated before clipboard
-replacement.
+## Ollama and provisioning
 
-These checks are a layered practical safeguard, not a mathematical guarantee
-of semantic equivalence. Any detected uncertainty falls back to the
-LanguageTool-safe version.
+The application reuses an existing compatible Ollama installation and model.
+If the API is stopped, it starts `ollama serve` hidden and detached. Inference
+uses Ollama's local loopback API with deterministic generation options and does
+not force a CPU or GPU backend. Diagnostics classify CPU, full GPU, or partial
+GPU offload from Ollama's reported model and VRAM sizes; vendor/backend remain
+unknown when Ollama does not expose them.
 
-## Explicit paraphrasing
+Provisioning is a separate accessible post-install process. Setup never waits
+for the Ollama installer or model download. The provisioner supports consent,
+cancel, retry, resumable installer download, streamed model-pull progress,
+existing-install reuse, and model verification. Failure does not corrupt the
+core installation, but revision remains unavailable until the model is ready.
 
-`Ctrl+Alt+P` captures the selection through the same guarded clipboard adapter
-but routes directly to `gemma3:4b` with a paraphrase-specific prompt. Its
-validator permits intentional sentence restructuring while rejecting empty or
-truncated output, commentary and unexpected markdown wrappers, new URLs,
-material number/name loss, massive deletion/expansion, and paragraph collapse.
-It does not apply proofreading edit-locality rules.
+## Lifecycle and installation
 
-The Windows controller retains foreground-window/process identity and restores
-clipboard formats where practical. It abandons replacement if focus changes or
-shutdown begins.
+The installer is per-user and writes one quoted HKCU Run entry. Duplicate
+launches exit without disturbing the running instance. Settings, exit, and
+restart commands use the hidden control endpoint. Shutdown unregisters the
+hotkey and joins active revision workers for a bounded interval. Ollama is
+shared user software and is intentionally preserved by uninstall.
 
-## LanguageTool lifecycle
+Inno Setup stops the application before removing its files and deletes the
+startup entry. The packaged application contains Python/PySide runtime files,
+the application icon, and third-party notices. It contains no model, Ollama,
+Java, LanguageTool, benchmark output, or test artifact.
 
-`proofreading.languagetool.LanguageToolRuntime` resolves application-private
-paths relative to either `vendor` (source) or the PyInstaller runtime directory.
-It invokes the bundled `java.exe` explicitly and never consults system Java or
-PATH.
+## Privacy and accessibility
 
-The runtime reserves a dynamic localhost port, starts LanguageTool without a
-visible console, waits for HTTP health, and uses explicit `en-US` requests. It
-starts lazily, serializes access, retries once after a failed request, and
-terminates only its owned child during shutdown. The server is not started with
-LanguageTool's public-bind option.
+Selected and revised text never enters production logs. Logs contain operation
+IDs, character counts, window/process metadata, timings, state transitions,
+provider/model status, and error categories.
 
-## Ollama lifecycle and hardware
-
-The Ollama provider reuses an existing compatible user installation. If its
-loopback API is stopped, the app may launch `ollama serve` hidden; it does not
-own or terminate an already-running shared server. Model requests use a
-ten-minute keep-alive and retain the validated deterministic options and
-prompt.
-
-No CPU/GPU vendor environment variable or forced device option is set. Ollama
-therefore performs its normal hardware selection and CPU fallback. `/api/ps`
-telemetry supplies loaded state, model allocation, and `size_vram`; inference
-responses supply load, prompt-evaluation, generation, token, and total timing.
-The provider reports CPU/GPU/partial/unknown conservatively and never equates
-the presence of a Windows GPU with actual acceleration.
-
-## Diagnostics and provisioning
-
-`diagnostics` checks private files, Java version, LanguageTool health and a
-deterministic correction, Ollama version/API/model/load state, memory, and
-optional Gemma inference telemetry. Reports exclude selected text.
-
-`provisioning` provides a retryable accessible Qt progress dialog. It
-starts/reuses Ollama, requests explicit consent, downloads the official Ollama
-installer only when necessary, retains resumable partial installer data,
-streams Ollama model-layer progress, permits cancellation at safe stages, and
-explains failures. Ollama resumes completed model layers on Retry.
-
-The Inno core installer never invokes network provisioning during `ssInstall`
-and never waits for AI setup. Its optional post-install action launches the
-same provisioning UI with `nowait`; the Start-menu shortcut can retry it later.
-Offline failure therefore leaves the application and LanguageTool fully
-installed and usable.
-
-Normal startup performs inexpensive dependency checks in the background and
-records actionable state without showing a routine surface.
-
-## Accessibility and errors
-
-Settings remains the Phase 17 Qt/UIA boundary: standard widgets, accessible
-names, label buddies, focus order, keyboard behavior, and screen-reader-exposed
-validation dialogs. Successful proofreading is silent. Operational errors are
-logged and important intervention errors use rate-limited dialogs.
-
-Per-operation logs include character count, LanguageTool duration, routing,
-Gemma and native Ollama timing, token counts, validation result, and conservative
-compute classification. They do not contain the user's text.
-
-## Packaging
-
-PyInstaller creates a Windows-subsystem onedir application. Normal startup has
-no console, taskbar surface, or tray icon:
-
-```text
-OfflineWritingReviser\
-  OfflineWritingReviser.exe
-  app\...
-  runtime\java\...
-  runtime\languagetool\...
-  licenses\THIRD_PARTY_NOTICES.md
-```
-
-Inno Setup creates a per-user installer with the application and private
-runtimes embedded. Ollama and `gemma3:4b` remain separable shared dependencies.
-Setup starts the hidden controller and registers its quoted executable path in
-the current user's `Run` key. Uninstall stops the app, removes that one startup
-value and owned files, and preserves shared Ollama and its model store.
+Settings and provisioning use labelled Qt widgets with accessible names,
+descriptions, status text, logical tab order, keyboard operation, and standard
+dialogs exposed through Windows UI Automation for NVDA.

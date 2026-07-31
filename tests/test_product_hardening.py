@@ -16,7 +16,16 @@ from offline_writing_reviser.desktop_status import (
     ApplicationState,
     user_message_for_error,
 )
+from offline_writing_reviser.diagnostics import (
+    collect_diagnostics,
+    format_diagnostics,
+)
 from offline_writing_reviser.paths import resource_path
+from offline_writing_reviser.production_acceptance import (
+    ACCEPTANCE_ENVIRONMENT,
+    _validate_request,
+    run_production_acceptance,
+)
 from offline_writing_reviser.providers.base import (
     OfflineWritingModelMissing,
     OfflineWritingProviderTimeout,
@@ -50,6 +59,113 @@ def clear_settings_environment(monkeypatch):
         monkeypatch.delenv(name, raising=False)
 
 
+class DiagnosticProvider:
+    provider_name = "ollama_cli"
+    model_identifier = "gemma3:4b"
+
+    def resolved_executable(self):
+        return "ollama.exe"
+
+    def ensure_api_running(self, timeout_seconds):
+        return None
+
+    def api_version(self, timeout_seconds):
+        return "1.2.3"
+
+    def cli_version(self, timeout_seconds):
+        return "1.2.3"
+
+    def api_models(self, timeout_seconds):
+        return ["gemma3:4b"]
+
+    def runtime_diagnostics(self, timeout_seconds):
+        return {
+            "model_loaded": False,
+            "acceleration": "unknown",
+            "model_vram_bytes": None,
+            "context_length": None,
+            "device": None,
+            "backend": None,
+        }
+
+    def is_available(self):
+        return True
+
+    def revise(self, text, instruction, timeout_seconds):
+        return "She works in the finance department."
+
+
+def test_diagnostics_formats_unknown_backend_and_device(tmp_path):
+    report, healthy = collect_diagnostics(
+        OfflineWritingConfig(log_file=tmp_path / "app.log"),
+        provider=DiagnosticProvider(),
+    )
+
+    output = format_diagnostics(report)
+
+    assert healthy is True
+    assert "Acceleration: unknown" in output
+    assert "Device: Not exposed by Ollama" in output
+    assert "Backend: Not exposed by Ollama" in output
+    assert "Health test: Not run" in output
+
+
+def test_diagnostics_health_output_reports_success(tmp_path):
+    report, healthy = collect_diagnostics(
+        OfflineWritingConfig(log_file=tmp_path / "app.log"),
+        include_gemma_test=True,
+        provider=DiagnosticProvider(),
+    )
+
+    output = format_diagnostics(report)
+
+    assert healthy is True
+    assert report["ollama"]["model_usable"] is True
+    assert report["revision"]["health_test_passed"] is True
+    assert "Health test requested: Yes" in output
+    assert "Health test: Passed" in output
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        None,
+        {},
+        {"cases": []},
+        {"cases": ["not-an-object"]},
+        {"cases": [{"id": "", "mode": "revision", "input": "Text."}]},
+        {"cases": [{"id": "case", "mode": "paraphrase", "input": "Text."}]},
+        {"cases": [{"id": "case", "mode": "revision", "input": ""}]},
+    ],
+)
+def test_production_acceptance_rejects_invalid_requests(payload):
+    with pytest.raises(ValueError):
+        _validate_request(payload)
+
+
+def test_production_acceptance_accepts_only_unified_revision_cases():
+    request = {
+        "cases": [
+            {"id": "grammar", "mode": "revision", "input": "He go daily."}
+        ]
+    }
+
+    assert _validate_request(request) == request["cases"]
+
+
+def test_production_acceptance_requires_explicit_environment_gate(
+    monkeypatch, tmp_path
+):
+    monkeypatch.delenv(ACCEPTANCE_ENVIRONMENT, raising=False)
+
+    exit_code = run_production_acceptance(
+        tmp_path / "request.json", tmp_path / "response.json"
+    )
+
+    assert exit_code == 2
+    assert not (tmp_path / "response.json").exists()
+
+
 def test_default_settings_are_sensible(tmp_path):
     defaults = OfflineWritingConfig(log_file=tmp_path / "app.log")
     loaded = SettingsStore(tmp_path / "settings.json", defaults=defaults).load()
@@ -58,8 +174,7 @@ def test_default_settings_are_sensible(tmp_path):
     assert loaded.timeout_seconds == 45.0
     assert loaded.max_characters == 20_000
     assert loaded.chunk_characters == 2000
-    assert loaded.hotkey == "Ctrl+Alt+W"
-    assert loaded.paraphrase_hotkey == "Ctrl+Alt+P"
+    assert loaded.hotkey == "Ctrl+Alt+P"
 
 
 def test_internal_chunk_size_can_be_configured_by_environment(monkeypatch, tmp_path):
@@ -91,7 +206,7 @@ def test_settings_save_and_load_round_trip(tmp_path):
         "hotkey": "Ctrl+Alt+R",
         "max_characters": 8000,
         "model": "qwen2.5:3b",
-        "settings_version": 1,
+        "settings_version": 2,
         "timeout_seconds": 90.0,
     }
     assert not path.with_suffix(".json.tmp").exists()
@@ -119,7 +234,9 @@ def test_legacy_default_model_is_migrated_to_current_production_default(
     ).load()
 
     assert loaded.model == "gemma3:4b"
-    assert json.loads(path.read_text(encoding="utf-8"))["settings_version"] == 1
+    saved = json.loads(path.read_text(encoding="utf-8"))
+    assert saved["settings_version"] == 2
+    assert saved["hotkey"] == "Ctrl+Alt+P"
 
 
 def test_corrupt_settings_are_preserved_and_defaults_recovered(tmp_path):
@@ -198,7 +315,7 @@ def test_failed_hotkey_change_preserves_previous_working_manager():
 
     assert runtime.apply_config(replace(runtime.config, hotkey="Ctrl+Alt+R")) is False
     assert runtime.hotkey_manager is old_manager
-    assert runtime.config.hotkey == "Ctrl+Alt+W"
+    assert runtime.config.hotkey == "Ctrl+Alt+P"
     assert old_manager.stopped == 0
     assert rejected.stopped == 1
 
@@ -237,7 +354,7 @@ def test_local_model_discovery_parses_and_sorts(monkeypatch):
         (
             OfflineWritingModelMissing("missing"),
             ApplicationState.MODEL_UNAVAILABLE,
-            "Configured model unavailable",
+            "Model not ready",
         ),
         (
             OfflineWritingProviderTimeout("timeout"),
@@ -396,11 +513,6 @@ def test_exit_command_is_successful_when_background_is_not_running(
 
     monkeypatch.setattr(application.sys, "platform", "win32")
     monkeypatch.setattr(application, "send_control_command", lambda command: False)
-    monkeypatch.setattr(
-        application,
-        "cleanup_owned_languagetool_processes",
-        lambda _path: [],
-    )
 
     assert execute_control_command(ControlCommand.EXIT) == 0
     assert "not running" in capsys.readouterr().out
@@ -647,5 +759,5 @@ def test_version_command_reports_release_version(capsys):
         main(["--version"])
 
     assert exit_info.value.code == 0
-    assert __version__ == "0.3.1rc2"
-    assert "0.3.1rc2" in capsys.readouterr().out
+    assert __version__ == "0.4.0rc1"
+    assert "0.4.0rc1" in capsys.readouterr().out

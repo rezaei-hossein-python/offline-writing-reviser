@@ -18,8 +18,6 @@ $IconFile = Join-Path $ProjectRoot "src\offline_writing_reviser\assets\offline-w
 $EntryPoint = Join-Path $ProjectRoot "src\offline_writing_reviser\__main__.py"
 $ExpectedApplicationDir = Join-Path $OutputDir "OfflineWritingReviser"
 $ExpectedExecutable = Join-Path $ExpectedApplicationDir "OfflineWritingReviser.exe"
-$JavaRuntime = Join-Path $ProjectRoot "vendor\java"
-$LanguageToolRuntime = Join-Path $ProjectRoot "vendor\languagetool"
 $ThirdPartyNotices = Join-Path $ProjectRoot "THIRD_PARTY_NOTICES.md"
 
 foreach ($Target in @($OutputDir, $BuildDir, $TempDir)) {
@@ -53,11 +51,7 @@ if (-not (Test-Path -LiteralPath $IconFile -PathType Leaf)) {
         throw "Application icon generation failed."
     }
 }
-foreach ($RequiredPath in @(
-    (Join-Path $JavaRuntime "bin\javaw.exe"),
-    (Join-Path $LanguageToolRuntime "languagetool-server.jar"),
-    $ThirdPartyNotices
-)) {
+foreach ($RequiredPath in @($ThirdPartyNotices)) {
     if (-not (Test-Path -LiteralPath $RequiredPath -PathType Leaf)) {
         throw "Required private runtime or notice file is missing: $RequiredPath"
     }
@@ -79,8 +73,6 @@ if (-not $SkipTests) {
     --name OfflineWritingReviser `
     --icon $IconFile `
     --add-data "$IconFile;assets" `
-    --add-data "$JavaRuntime;runtime\java" `
-    --add-data "$LanguageToolRuntime;runtime\languagetool" `
     --add-data "$ThirdPartyNotices;licenses" `
     --exclude-module gi `
     --exclude-module matplotlib `
