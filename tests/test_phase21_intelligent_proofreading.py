@@ -6,6 +6,9 @@ from pathlib import Path
 import pytest
 
 from offline_writing_reviser.config import OfflineWritingConfig
+from offline_writing_reviser.core.errors import OfflineWritingMalformedOutput
+from offline_writing_reviser.core.prompt import REVISION_INSTRUCTION
+from offline_writing_reviser.core.sanitizer import sanitize_revision_output
 from offline_writing_reviser.core.service import OfflineWritingService
 from offline_writing_reviser.proofreading.semantic import (
     validate_semantic_preservation,
@@ -133,6 +136,122 @@ def test_service_accepts_material_naturalness_improvement():
     candidate = "He explained the process to me."
     result = OfflineWritingService(Provider(candidate)).revise(source)
     assert result.revised_text == candidate
+
+
+def test_equivalent_negation_and_causal_phrasing_is_accepted():
+    source = (
+        "I made a decision to not attend the meeting because I was not feeling good."
+    )
+    candidate = "I decided not to attend the meeting due to feeling unwell."
+
+    assert OfflineWritingService(Provider(candidate)).revise(source).revised_text == candidate
+
+    causal_as = "I decided not to attend the meeting as I wasn't feeling well."
+    assert OfflineWritingService(Provider(causal_as)).revise(source).revised_text == causal_as
+
+
+def test_each_negated_clause_remains_protected():
+    source = "I do not approve the request, and I do not reject the alternative."
+    candidate = "I approve the request, and I do not reject the alternative."
+
+    result = validate_semantic_preservation(source, candidate)
+
+    assert result.accepted is False
+    assert "negation_not_preserved" in result.reasons
+
+
+@pytest.mark.parametrize(
+    ("source", "candidate"),
+    [
+        (
+            "The meeting was very good and we discussed about many important things.",
+            "The meeting went very well, and we discussed many important issues.",
+        ),
+        (
+            "The proposal gives a very clear explanation of the plan.",
+            "The proposal clearly explains the plan.",
+        ),
+        (
+            "First, we reviewed the draft. Then, we approved the final plan.",
+            "We approved the final plan after reviewing the draft.",
+        ),
+        (
+            "The concise report clearly explains the issue.",
+            "The concise report clearly explains the issue and makes the next steps easy to understand.",
+        ),
+        ("The meeting starts at nine tomorrow morning.",) * 2,
+        ("I recieved the adress yesterday.", "I received the address yesterday."),
+        ("He go to work every day.", "He goes to work every day."),
+    ],
+)
+def test_service_accepts_broad_safe_revision_matrix(source, candidate):
+    assert OfflineWritingService(Provider(candidate)).revise(source).revised_text == candidate
+
+
+def test_semantic_guard_allows_sentence_reordering_across_selection():
+    source = "We reviewed the draft. Then, we approved the plan."
+    candidate = "We approved the plan after reviewing the draft."
+
+    assert validate_semantic_preservation(source, candidate).accepted
+
+
+@pytest.mark.parametrize(
+    "output",
+    [
+        "Analysis: I corrected the grammar.",
+        "# Revised text\nI received the address yesterday.",
+        "**I received the address yesterday.**",
+        '```text\nI received the address yesterday.\n```',
+        '{"revised_text":"I received the address yesterday."}',
+        "<revised>I received the address yesterday.</revised>",
+        "",
+        "You are an expert English editor. Return only the final revised text.",
+    ],
+)
+def test_unusable_model_wrappers_are_rejected(output):
+    with pytest.raises(OfflineWritingMalformedOutput):
+        sanitize_revision_output(
+            output, original_text="I recieved the adress yesterday."
+        )
+
+
+@pytest.mark.parametrize(
+    "output",
+    [
+        "Revised text:\nI received the address yesterday.",
+        '" I received the address yesterday. "',
+    ],
+)
+def test_conservative_harmless_wrapper_extraction(output):
+    assert sanitize_revision_output(
+        output, original_text="I recieved the adress yesterday."
+    ) == "I received the address yesterday."
+
+
+def test_truncated_and_factually_deleted_output_is_rejected_by_service():
+    source = (
+        "The final report explains the budget risks and includes the approved "
+        "mitigation plan for the launch."
+    )
+    candidate = "The final report explains the budget risks."
+
+    assert OfflineWritingService(Provider(candidate)).revise(source).revised_text == source
+
+
+def test_rejection_diagnostic_is_specific_and_does_not_log_selection(caplog):
+    source = "Private selected wording that must never appear in logs."
+    with caplog.at_level("WARNING", logger="offline-writing-reviser"):
+        result = OfflineWritingService(Provider("Analysis: no change")).revise(source)
+
+    log_text = "\n".join(record.getMessage() for record in caplog.records)
+    assert result.revised_text == source
+    assert "rejection_reason=commentary" in log_text
+    assert source not in log_text
+
+
+def test_prompt_does_not_contain_obsolete_locality_restrictions():
+    assert "minimal edit" not in REVISION_INSTRUCTION.casefold()
+    assert "preserve every line break" not in REVISION_INSTRUCTION.casefold()
 
 
 def test_service_preserves_original_when_number_role_changes():

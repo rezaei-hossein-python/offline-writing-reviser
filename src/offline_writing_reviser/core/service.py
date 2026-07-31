@@ -200,10 +200,11 @@ class OfflineWritingService:
         except OfflineWritingMalformedOutput as exc:
             self.logger.warning(
                 "Revision chunk rejected chunk_index=%s chunk_count=%s "
-                "category=%s",
+                "category=%s rejection_reason=%s",
                 index,
                 chunk_count,
                 exc.__class__.__name__,
+                exc.reason,
             )
             raise _UnsafeRevision from exc
         except (
@@ -218,6 +219,8 @@ class OfflineWritingService:
                 chunk_count,
                 exc.__class__.__name__,
             )
+            raise
+        except _UnsafeRevision:
             raise
         except Exception as exc:
             self.logger.warning(

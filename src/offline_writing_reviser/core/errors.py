@@ -14,4 +14,11 @@ class OfflineWritingInputError(OfflineWritingError):
 
 
 class OfflineWritingMalformedOutput(OfflineWritingError):
-    pass
+    def __init__(
+        self,
+        message: str = "Local model returned unusable output",
+        *,
+        reason: str = "malformed_output",
+    ):
+        super().__init__(message)
+        self.reason = reason

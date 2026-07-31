@@ -96,14 +96,16 @@ class ChunkResponseProvider(OfflineWritingProvider):
         return response
 
 
-def test_revision_prompt_contract_is_tightly_scoped():
-    assert "correct, natural, clear, and professional" in REVISION_INSTRUCTION
-    assert "Do not rewrite correct, clear, natural text" in REVISION_INSTRUCTION
-    assert "negation, modality, questions" in REVISION_INSTRUCTION
-    assert "return it exactly unchanged" in REVISION_INSTRUCTION
-    assert "Preserve every line break, blank line, paragraph boundary" in REVISION_INSTRUCTION
-    assert "Never add explanations, headings, commentary" in REVISION_INSTRUCTION
-    assert "Return only the revised text" in REVISION_INSTRUCTION
+def test_revision_prompt_contract_allows_broad_meaning_preserving_revision():
+    assert "You are an expert English editor" in REVISION_INSTRUCTION
+    assert "paraphrase as much as necessary" in REVISION_INSTRUCTION
+    assert "A larger rewrite is acceptable" in REVISION_INSTRUCTION
+    assert "Do not limit the revision to minimal or local edits" in REVISION_INSTRUCTION
+    assert "names, numbers, dates, times, amounts" in REVISION_INSTRUCTION
+    assert "negation, modality, commitments, questions" in REVISION_INSTRUCTION
+    assert "Return only the final revised text" in REVISION_INSTRUCTION
+    assert "Markdown fences" in REVISION_INSTRUCTION
+    assert "Preserve every line break" not in REVISION_INSTRUCTION
 
 
 def test_empty_selection_is_rejected():
@@ -413,11 +415,12 @@ def test_curly_quotes_are_preserved_when_present_in_original():
     assert sanitize_revision_output(original, original_text=original) == original
 
 
-def test_existing_repeated_spacing_cannot_be_cosmetically_normalized():
+def test_existing_repeated_spacing_can_be_normalized():
     original = "Keep  this spacing."
 
-    with pytest.raises(OfflineWritingMalformedOutput):
-        sanitize_revision_output("Keep this spacing.", original_text=original)
+    assert sanitize_revision_output(
+        "Keep this spacing.", original_text=original
+    ) == "Keep this spacing."
 
 
 def test_blank_lines_and_multi_paragraph_structure_are_preserved():
@@ -476,11 +479,12 @@ def test_excessive_expansion_is_rejected():
         sanitize_revision_output(output, original_text=original)
 
 
-def test_changed_line_break_or_paragraph_structure_is_rejected():
+def test_changed_line_break_or_paragraph_structure_is_accepted():
     original = "First paragraph.\n\nSecond paragraph."
 
-    with pytest.raises(OfflineWritingMalformedOutput):
-        sanitize_revision_output("First paragraph. Second paragraph.", original_text=original)
+    assert sanitize_revision_output(
+        "First paragraph. Second paragraph.", original_text=original
+    ) == "First paragraph. Second paragraph."
 
 
 def test_changed_bullet_structure_is_rejected():

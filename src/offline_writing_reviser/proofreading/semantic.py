@@ -62,11 +62,13 @@ QUOTED_PATTERN = re.compile(
     r'"[^"\r\n]+"|“[^”\r\n]+”|‘[^’\r\n]+’', re.UNICODE
 )
 NEGATION_PATTERN = re.compile(
-    r"\b(?:not|never|neither|nor|no|cannot|can't|cant|"
-    r"won't|wont|wouldn't|wouldnt|shouldn't|shouldnt|"
-    r"couldn't|couldnt|mustn't|mustnt|isn't|isnt|aren't|arent|"
-    r"wasn't|wasnt|weren't|werent|don't|dont|doesn't|doesnt|"
-    r"didn't|didnt|hasn't|hasnt|haven't|havent|hadn't|hadnt)\b",
+    r"\b(?:not|never|neither|nor|no|cannot|"
+    r"(?:can|won|wouldn|shouldn|couldn|mustn|isn|aren|wasn|weren|"
+    r"don|doesn|didn|hasn|haven|hadn)['’]?t)\b",
+    re.IGNORECASE,
+)
+LEXICAL_NEGATION_PATTERN = re.compile(
+    r"\b(?:unable|unavailable|impossible|unlikely|unwell|without)\b",
     re.IGNORECASE,
 )
 MODAL_PATTERN = re.compile(
@@ -75,13 +77,14 @@ MODAL_PATTERN = re.compile(
     re.IGNORECASE,
 )
 CERTAINTY_PATTERN = re.compile(
-    r"\b(?:certainly|definitely|clearly|probably|possibly|perhaps|"
+    r"\b(?:certainly|definitely|probably|possibly|perhaps|"
     r"likely|unlikely|apparently|seemingly|appears?|seems?|doubt|doubtful)\b",
     re.IGNORECASE,
 )
 CAUSAL_TEMPORAL_PATTERN = re.compile(
-    r"\b(?:because|therefore|thus|hence|consequently|before|after|"
-    r"until|unless|while|during|since|when|whenever)\b",
+    r"\b(?:because|due\s+to|as(?=\s+(?:I|we|you|he|she|they|it)\b)|"
+    r"therefore|thus|hence|consequently|before|after|"
+    r"then|until|unless|while|during|since|when|whenever)\b",
     re.IGNORECASE,
 )
 INTENT_PATTERN = re.compile(
@@ -93,14 +96,12 @@ INTENT_PATTERN = re.compile(
 )
 POLITENESS_PATTERN = re.compile(r"\b(?:please|kindly)\b", re.IGNORECASE)
 QUESTION_PATTERN = re.compile(r"\?(?=(?:[\"'”’)\]]*)\s*(?:$|\n))")
-PARAGRAPH_BREAK = re.compile(r"(?:\r\n|\r|\n)[ \t]*(?:\r\n|\r|\n)")
 REFERENCE_PATTERN = re.compile(
     r"\b(?P<determiner>the|a|an|this|that|these|those)\s+"
     r"(?P<noun>[A-Za-z][A-Za-z'-]*)\b",
     re.IGNORECASE,
 )
 WORD_PATTERN = re.compile(r"[A-Za-z]+(?:['’][A-Za-z]+)?")
-SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+|\r?\n")
 ANCHOR_STOPWORDS = {
     "a", "an", "and", "are", "as", "at", "be", "been", "being", "but",
     "by", "do", "does", "did", "for", "from", "had", "has", "have", "he",
@@ -157,8 +158,6 @@ def validate_semantic_preservation(
     ):
         reasons.append("number_context_changed")
 
-    if _paragraph_count(source) != _paragraph_count(candidate):
-        reasons.append("paragraph_structure_changed")
     if len(QUESTION_PATTERN.findall(source)) != len(
         QUESTION_PATTERN.findall(candidate)
     ):
@@ -194,7 +193,7 @@ def protected_values(value: str) -> dict[str, Counter[str]]:
         "negation": Counter(_canonical_negations(value)),
         "modality": Counter(_canonical_modality(value)),
         "certainty": _matches(CERTAINTY_PATTERN, value),
-        "relations": _matches(CAUSAL_TEMPORAL_PATTERN, value),
+        "relations": Counter(_canonical_relations(value)),
         "intent": Counter(_canonical_intent(value)),
         "politeness": Counter(
             "polite" for _match in POLITENESS_PATTERN.finditer(value)
@@ -252,28 +251,25 @@ def restore_source_number_formatting(source: str, candidate: str) -> str:
 
 
 def meaning_anchor_preserved(source: str, candidate: str) -> bool:
-    """Reject sentence replacements that discard most source content anchors."""
-    source_sentences = [
-        part for part in SENTENCE_SPLIT.split(source.strip()) if part.strip()
-    ]
-    candidate_sentences = [
-        part for part in SENTENCE_SPLIT.split(candidate.strip()) if part.strip()
-    ]
-    if len(source_sentences) != len(candidate_sentences):
+    """Reject unrelated output or severe deletion without enforcing locality.
+
+    Anchors are compared across the complete selection so sentence combining,
+    splitting, reordering, and substantial paraphrasing remain possible.
+    """
+    source_anchors = Counter(_anchors(source))
+    if len(source_anchors) < 4:
+        return True
+    candidate_anchors = Counter(_anchors(candidate))
+    overlap = sum(
+        min(count, candidate_anchors[token])
+        for token, count in source_anchors.items()
+    )
+    overlap_ratio = overlap / sum(source_anchors.values())
+    if overlap_ratio < 0.20:
         return False
-    for source_sentence, candidate_sentence in zip(
-        source_sentences, candidate_sentences
-    ):
-        source_anchors = Counter(_anchors(source_sentence))
-        if len(source_anchors) < 2:
-            continue
-        candidate_anchors = Counter(_anchors(candidate_sentence))
-        overlap = sum(
-            min(count, candidate_anchors[token])
-            for token, count in source_anchors.items()
-        )
-        if overlap / sum(source_anchors.values()) < 0.30:
-            return False
+    source_length = max(len(source.strip()), 1)
+    if len(candidate.strip()) < source_length * 0.60 and overlap_ratio < 0.70:
+        return False
     return True
 
 
@@ -332,6 +328,8 @@ def _canonical_negations(value: str) -> Iterable[str]:
             yield token
         else:
             yield "not"
+    for _match in LEXICAL_NEGATION_PATTERN.finditer(value):
+        yield "not"
 
 
 def _canonical_modality(value: str) -> Iterable[str]:
@@ -366,9 +364,13 @@ def _canonical_intent(value: str) -> Iterable[str]:
             yield "decide"
 
 
-def _paragraph_count(value: str) -> int:
-    stripped = value.strip()
-    return len(PARAGRAPH_BREAK.split(stripped)) if stripped else 0
+def _canonical_relations(value: str) -> Iterable[str]:
+    for match in CAUSAL_TEMPORAL_PATTERN.finditer(value):
+        token = match.group(0).casefold()
+        if token in {"because", "due to", "as"}:
+            yield "cause"
+        else:
+            yield "after" if token == "then" else token
 
 
 def _shared_references_preserved(source: str, candidate: str) -> bool:
