@@ -56,6 +56,10 @@ class Provider:
             "things.",
             "The meeting went very well, and we discussed many important things.",
         ),
+        (
+            "There is 3 issue in the report.",
+            "There are 3 issues in the report.",
+        ),
     ],
 )
 def test_larger_meaning_preserving_revision_is_accepted(source, candidate):
@@ -75,6 +79,11 @@ def test_larger_meaning_preserving_revision_is_accepted(source, candidate):
             "I received item 9 yesterday.",
             "I received item #9 yesterday.",
             "numbers_not_preserved",
+        ),
+        (
+            "He go to office 50 every day.",
+            "He goes to the office 50 times every day.",
+            "number_context_changed",
         ),
         (
             "Build API-42 may ship after 3:30 PM.",
@@ -124,6 +133,15 @@ def test_service_accepts_material_naturalness_improvement():
     candidate = "He explained the process to me."
     result = OfflineWritingService(Provider(candidate)).revise(source)
     assert result.revised_text == candidate
+
+
+def test_service_preserves_original_when_number_role_changes():
+    source = "He go to office 50 every day."
+    candidate = "He goes to the office 50 times every day."
+
+    result = OfflineWritingService(Provider(candidate)).revise(source)
+
+    assert result.revised_text == source
 
 
 @pytest.mark.parametrize(

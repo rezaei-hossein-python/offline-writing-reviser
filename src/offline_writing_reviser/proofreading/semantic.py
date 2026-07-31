@@ -152,6 +152,11 @@ def validate_semantic_preservation(
         if source_values[category] != candidate_values[category]:
             reasons.append(f"{category}_not_preserved")
 
+    if source_values["numbers"] and _number_contexts(source) != _number_contexts(
+        candidate
+    ):
+        reasons.append("number_context_changed")
+
     if _paragraph_count(source) != _paragraph_count(candidate):
         reasons.append("paragraph_structure_changed")
     if len(QUESTION_PATTERN.findall(source)) != len(
@@ -277,6 +282,36 @@ def _matches(
 ) -> Counter[str]:
     found = pattern.findall(value)
     return Counter(item.casefold() if casefold else item for item in found)
+
+
+def _number_contexts(value: str) -> Counter[tuple[str, str, str]]:
+    """Protect the grammatical role of a number, not only its literal value."""
+    words = list(WORD_PATTERN.finditer(value))
+    contexts: Counter[tuple[str, str, str]] = Counter()
+    for number in NUMBER_PATTERN.finditer(value):
+        previous = _nearest_anchor(
+            word.group(0)
+            for word in reversed(words)
+            if word.end() <= number.start()
+        )
+        following = _nearest_anchor(
+            word.group(0) for word in words if word.start() >= number.end()
+        )
+        contexts[(number.group(0).casefold(), previous, following)] += 1
+    return contexts
+
+
+def _nearest_anchor(words: Iterable[str]) -> str:
+    for word in words:
+        token = word.casefold().replace("â€™", "'")
+        if token in ANCHOR_STOPWORDS:
+            continue
+        if token.endswith("ies") and len(token) > 4:
+            token = token[:-3] + "y"
+        elif token.endswith("s") and len(token) > 3:
+            token = token[:-1]
+        return token
+    return ""
 
 
 def _combined_matches(
