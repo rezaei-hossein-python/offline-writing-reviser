@@ -18,6 +18,7 @@ from offline_writing_reviser.provisioning import (
     AIProvisioner,
     ModelProvisioner,
     ProvisioningCancelled,
+    run_model_provisioning,
 )
 
 
@@ -71,6 +72,11 @@ def test_larger_meaning_preserving_revision_is_accepted(source, candidate):
             "numbers_not_preserved",
         ),
         (
+            "I received item 9 yesterday.",
+            "I received item #9 yesterday.",
+            "numbers_not_preserved",
+        ),
+        (
             "Build API-42 may ship after 3:30 PM.",
             "Build API-42 must ship after 3:30 PM.",
             "modality_not_preserved",
@@ -118,6 +124,37 @@ def test_service_accepts_material_naturalness_improvement():
     candidate = "He explained the process to me."
     result = OfflineWritingService(Provider(candidate)).revise(source)
     assert result.revised_text == candidate
+
+
+@pytest.mark.parametrize(
+    ("source", "candidate", "expected"),
+    [
+        (
+            "He go to office 2 every day.",
+            "He goes to Office 2 every day.",
+            "He goes to office 2 every day.",
+        ),
+        (
+            "We discussed about project API-3.",
+            "We discussed Project API-3.",
+            "We discussed project API-3.",
+        ),
+    ],
+)
+def test_service_preserves_unique_noninitial_word_casing(
+    source, candidate, expected
+):
+    result = OfflineWritingService(Provider(candidate)).revise(source)
+    assert result.revised_text == expected
+
+
+def test_service_removes_new_number_sign_while_retaining_correction():
+    source = "I recieved item 9 yesterday."
+    candidate = "I received item #9 yesterday."
+
+    result = OfflineWritingService(Provider(candidate)).revise(source)
+
+    assert result.revised_text == "I received item 9 yesterday."
 
 
 @pytest.mark.parametrize(
@@ -421,3 +458,50 @@ def test_installer_never_waits_for_model_setup():
     assert "postinstall" in provision_line
     assert "nowait" in provision_line
     assert "waituntilterminated" not in provision_line
+
+
+def test_provisioning_ui_survives_consent_window_closing(
+    monkeypatch, tmp_path
+):
+    from PySide6 import QtCore, QtWidgets
+
+    class ExistingComponentsProvisioner:
+        def __init__(self, config):
+            self.config = config
+
+        def provision(self, progress, **_kwargs):
+            progress(f"{self.config.model} is already installed", 1, 1)
+
+    monkeypatch.setattr(
+        "offline_writing_reviser.provisioning.AIProvisioner",
+        ExistingComponentsProvisioner,
+    )
+    app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
+    timer = QtCore.QTimer()
+
+    def advance_dialogs():
+        for widget in app.topLevelWidgets():
+            if not widget.isVisible():
+                continue
+            if isinstance(widget, QtWidgets.QMessageBox):
+                widget.done(int(QtWidgets.QMessageBox.StandardButton.Yes))
+                continue
+            if widget.windowTitle() != "Offline Writing Reviser - AI Setup":
+                continue
+            for button in widget.findChildren(QtWidgets.QPushButton):
+                if (
+                    button.accessibleName() == "Close AI setup"
+                    and button.isEnabled()
+                ):
+                    button.click()
+
+    timer.timeout.connect(advance_dialogs)
+    timer.start(20)
+    try:
+        exit_code = run_model_provisioning(
+            OfflineWritingConfig(log_file=tmp_path / "app.log")
+        )
+    finally:
+        timer.stop()
+
+    assert exit_code == 0

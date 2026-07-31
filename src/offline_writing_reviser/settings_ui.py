@@ -61,12 +61,20 @@ class SettingsWindow:
         class DispatchBridge(QtCore.QObject):
             requested = QtCore.Signal(object)
 
+            def __init__(self, execute_callback):
+                super().__init__()
+                self._execute_callback = execute_callback
+
+            @QtCore.Slot(object)
+            def execute(self, callback) -> None:
+                self._execute_callback(callback)
+
         self._app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
         self._running = True
         self._app.setApplicationName("Offline Writing Reviser")
         self._app.setQuitOnLastWindowClosed(False)
-        self._bridge = DispatchBridge()
-        self._bridge.requested.connect(self._execute_callback)
+        self._bridge = DispatchBridge(self._execute_callback)
+        self._bridge.requested.connect(self._bridge.execute)
 
         queue_timer = QtCore.QTimer()
         queue_timer.timeout.connect(self._drain_queue)

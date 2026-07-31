@@ -17,6 +17,8 @@ from offline_writing_reviser.core.prompt import REVISION_INSTRUCTION
 from offline_writing_reviser.core.sanitizer import sanitize_revision_output
 from offline_writing_reviser.proofreading.semantic import (
     meaning_anchor_preserved,
+    restore_source_number_formatting,
+    restore_source_word_casing,
     validate_semantic_preservation,
 )
 from offline_writing_reviser.providers.base import (
@@ -181,6 +183,8 @@ class OfflineWritingService:
                 timeout_seconds=self.config.timeout_seconds,
             )
             revised = sanitize_revision_output(raw_output, original_text=chunk)
+            revised = restore_source_number_formatting(chunk, revised)
+            revised = restore_source_word_casing(chunk, revised)
             validation = validate_semantic_preservation(chunk, revised)
             anchors_preserved = meaning_anchor_preserved(chunk, revised)
             if not validation.accepted or not anchors_preserved:

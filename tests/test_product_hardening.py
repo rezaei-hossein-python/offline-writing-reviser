@@ -631,6 +631,35 @@ def test_settings_accessibility_contract_has_names_roles_and_logical_tab_order()
     }
 
 
+def test_settings_dispatch_runs_callback_on_gui_thread():
+    stop_event = threading.Event()
+    callback_thread = []
+    window = SettingsWindow(
+        config_getter=OfflineWritingConfig,
+        save_callback=lambda config: config,
+        reset_callback=OfflineWritingConfig,
+        model_loader=lambda: ["gemma3:4b"],
+    )
+    main_thread = threading.get_ident()
+
+    def dispatch_from_worker():
+        while not window._running:
+            threading.Event().wait(0.01)
+
+        def callback():
+            callback_thread.append(threading.get_ident())
+            stop_event.set()
+
+        window.dispatch(callback)
+
+    worker = threading.Thread(target=dispatch_from_worker)
+    worker.start()
+    window.run(stop_event)
+    worker.join(timeout=1)
+
+    assert callback_thread == [main_thread]
+
+
 def test_settings_validation_routes_focus_to_relevant_control():
     assert SettingsWindow._validation_control(
         "Revision timeout must be between 5 and 600 seconds."

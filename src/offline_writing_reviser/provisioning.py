@@ -273,6 +273,7 @@ def run_model_provisioning(config: OfflineWritingConfig | None = None) -> int:
     configure_logging(config.log_file)
     logger = logging.getLogger("offline-writing-reviser")
     app = QApplication.instance() or QApplication([])
+    app.setQuitOnLastWindowClosed(False)
     consent = QMessageBox.question(
         None,
         "Set up intelligent revision",

@@ -19,6 +19,9 @@ NUMBER_PATTERN = re.compile(
     r"(?:\s?(?:%|USD|CAD|EUR|GBP|JPY|AUD))?(?![\w])",
     re.IGNORECASE,
 )
+HASHED_NUMBER_PATTERN = re.compile(
+    r"(?<![\w])#\s*[+-]?\d+(?:,\d{3})*(?:\.\d+)?(?![\w])"
+)
 MONTH_DATE_PATTERN = re.compile(
     r"\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|"
     r"Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|"
@@ -105,6 +108,7 @@ ANCHOR_STOPWORDS = {
     "on", "or", "our", "she", "that", "the", "their", "them", "they",
     "this", "to", "us", "was", "we", "were", "with", "you", "your",
 }
+CASING_WORD_PATTERN = re.compile(r"[A-Za-z]+(?:'[A-Za-z]+)?")
 
 
 @dataclass(frozen=True)
@@ -170,7 +174,9 @@ def protected_values(value: str) -> dict[str, Counter[str]]:
         "urls": _matches(URL_PATTERN, value),
         "emails": _matches(EMAIL_PATTERN, value),
         "phones": _matches(PHONE_PATTERN, value),
-        "numbers": _matches(NUMBER_PATTERN, value),
+        "numbers": _combined_matches(
+            value, NUMBER_PATTERN, HASHED_NUMBER_PATTERN
+        ),
         "dates": _combined_matches(
             value, MONTH_DATE_PATTERN, NUMERIC_DATE_PATTERN, CALENDAR_PATTERN
         ),
@@ -189,6 +195,55 @@ def protected_values(value: str) -> dict[str, Counter[str]]:
             "polite" for _match in POLITENESS_PATTERN.finditer(value)
         ),
     }
+
+
+def restore_source_word_casing(source: str, candidate: str) -> str:
+    """Preserve casing for uniquely matched words outside sentence starts."""
+    source_matches: dict[str, list[str]] = {}
+    candidate_matches: dict[str, list[re.Match[str]]] = {}
+    for match in CASING_WORD_PATTERN.finditer(source):
+        source_matches.setdefault(match.group(0).casefold(), []).append(
+            match.group(0)
+        )
+    for match in CASING_WORD_PATTERN.finditer(candidate):
+        candidate_matches.setdefault(match.group(0).casefold(), []).append(
+            match
+        )
+
+    replacements: list[tuple[int, int, str]] = []
+    for folded, source_words in source_matches.items():
+        matches = candidate_matches.get(folded, [])
+        if len(source_words) != 1 or len(matches) != 1:
+            continue
+        match = matches[0]
+        source_word = source_words[0]
+        if source_word == match.group(0):
+            continue
+        prefix = candidate[: match.start()].rstrip()
+        if not prefix or prefix[-1] in ".!?\r\n":
+            continue
+        replacements.append((match.start(), match.end(), source_word))
+
+    restored = candidate
+    for start, end, source_word in reversed(replacements):
+        restored = restored[:start] + source_word + restored[end:]
+    return restored
+
+
+def restore_source_number_formatting(source: str, candidate: str) -> str:
+    """Remove a newly added number-sign prefix from a unique source number."""
+    source_numbers = _matches(NUMBER_PATTERN, source, casefold=False)
+    hashed_matches = list(HASHED_NUMBER_PATTERN.finditer(candidate))
+    replacements: list[tuple[int, int, str]] = []
+    for match in hashed_matches:
+        number = match.group(0).removeprefix("#").lstrip()
+        if source_numbers[number] == 1:
+            replacements.append((match.start(), match.end(), number))
+
+    restored = candidate
+    for start, end, number in reversed(replacements):
+        restored = restored[:start] + number + restored[end:]
+    return restored
 
 
 def meaning_anchor_preserved(source: str, candidate: str) -> bool:
