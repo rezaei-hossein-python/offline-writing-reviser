@@ -302,12 +302,14 @@ class WindowsSelectedTextAdapter:
         clipboard: WindowsClipboard | None = None,
         copy_wait_seconds: float = 0.75,
         paste_restore_delay_seconds: float = 0.35,
+        word_paste_restore_delay_seconds: float = 1.5,
         modifier_release_wait_seconds: float = 2.0,
         logger: logging.Logger | None = None,
     ):
         self.clipboard = clipboard or WindowsClipboard()
         self.copy_wait_seconds = copy_wait_seconds
         self.paste_restore_delay_seconds = paste_restore_delay_seconds
+        self.word_paste_restore_delay_seconds = word_paste_restore_delay_seconds
         self.modifier_release_wait_seconds = modifier_release_wait_seconds
         self.logger = logger or logging.getLogger("offline-writing-reviser")
 
@@ -530,7 +532,11 @@ class WindowsSelectedTextAdapter:
                 return False
             _wait_for_foreground_stability(
                 capture.foreground_window,
-                timeout_seconds=self.paste_restore_delay_seconds,
+                timeout_seconds=(
+                    self.word_paste_restore_delay_seconds
+                    if capture.foreground_process.casefold() == "winword.exe"
+                    else self.paste_restore_delay_seconds
+                ),
             )
             if telemetry:
                 telemetry.paste_success = True

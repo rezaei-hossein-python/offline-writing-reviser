@@ -231,7 +231,7 @@ def test_mixed_changed_and_unchanged_chunks_reassemble_in_order():
     assert len(provider.calls) == 3
 
 
-def test_one_failed_chunk_aborts_remaining_chunks_and_logs_index(caplog):
+def test_one_failed_chunk_is_preserved_and_later_chunks_continue(caplog):
     text = "\n\n".join(
         f"Paragraph {index} is long enough to require its own bounded request."
         for index in range(1, 5)
@@ -249,14 +249,14 @@ def test_one_failed_chunk_aborts_remaining_chunks_and_logs_index(caplog):
     with caplog.at_level("WARNING", logger="offline-writing-reviser"):
         result = service.revise(text)
 
-    assert len(provider.calls) == 2
+    assert len(provider.calls) == 4
     assert result.revised_text == text
     log_text = "\n".join(record.getMessage() for record in caplog.records)
     assert "chunk_index=2" in log_text
     assert text not in log_text
 
 
-def test_one_timeout_aborts_remaining_chunks():
+def test_one_timeout_is_retried_and_later_chunks_continue():
     text = "\n\n".join(
         f"Paragraph {index} is long enough to require its own bounded request."
         for index in range(1, 5)
@@ -271,10 +271,10 @@ def test_one_timeout_aborts_remaining_chunks():
         config=OfflineWritingConfig(chunk_characters=80),
     )
 
-    with pytest.raises(OfflineWritingProviderTimeout):
-        service.revise(text)
+    result = service.revise(text)
 
-    assert len(provider.calls) == 2
+    assert result.revised_text == text
+    assert len(provider.calls) == 5
 
 
 @pytest.mark.parametrize(
@@ -337,13 +337,15 @@ def test_provider_unavailable_fails_locally():
         service.revise("Fix this sentence.")
 
 
-def test_provider_timeout_fails_locally():
+def test_provider_timeout_preserves_single_chunk_after_one_retry():
     service = OfflineWritingService(
         FakeOfflineWritingProvider(error=OfflineWritingProviderTimeout("timeout"))
     )
 
-    with pytest.raises(OfflineWritingProviderTimeout):
-        service.revise("Fix this sentence.")
+    result = service.revise("Fix this sentence.")
+
+    assert result.revised_text == "Fix this sentence."
+    assert result.metadata["timeout_chunks"] == 1
 
 
 def test_malformed_provider_output_is_rejected():
@@ -584,7 +586,7 @@ def test_configuration_defaults():
     assert config.model == "gemma3:4b"
     assert config.hotkey == "Ctrl+Alt+P"
     assert config.max_characters == 20_000
-    assert config.chunk_characters == 2000
+    assert config.chunk_characters == 700
 
 
 class FakeCapture:
@@ -797,7 +799,7 @@ def test_failed_chunk_performs_no_partial_replacement():
 
     controller._run_revision()
 
-    assert len(provider.calls) == 2
+    assert len(provider.calls) == 4
     assert adapter.capture_value.text == text
     assert adapter.replaced_with is None
 
@@ -906,6 +908,34 @@ def test_clipboard_capture_and_replace_preserves_clipboard(monkeypatch):
     assert clipboard.set_values == ["Revised text."]
     assert clipboard.restore_calls == 2
     assert send_keys
+
+
+def test_word_paste_waits_for_delayed_clipboard_consumption(monkeypatch):
+    import offline_writing_reviser.windows.text_selection as text_selection
+
+    clipboard = FakeClipboard()
+    delays = []
+    monkeypatch.setattr(text_selection, "get_foreground_window", lambda: 100)
+    monkeypatch.setattr(text_selection, "is_standard_edit_control", lambda _hwnd: False)
+    monkeypatch.setattr(text_selection, "_send_ctrl_key", lambda *_a, **_k: True)
+    monkeypatch.setattr(
+        text_selection,
+        "_wait_for_foreground_stability",
+        lambda _hwnd, timeout_seconds: delays.append(timeout_seconds) or True,
+    )
+    adapter = WindowsSelectedTextAdapter(clipboard=clipboard)
+    capture = SelectedTextCapture(
+        text="Original.",
+        foreground_window=100,
+        foreground_pid=55,
+        foreground_process="WINWORD.EXE",
+        clipboard_snapshot=ClipboardSnapshot(tuple()),
+        focused_window=101,
+    )
+
+    assert adapter.replace(capture, "Revised.") is True
+    assert delays == [1.5]
+    assert clipboard.restore_calls == 1
 
 
 def test_capture_waits_for_hotkey_modifiers_to_release(monkeypatch):
@@ -1302,16 +1332,37 @@ def test_ollama_cli_request(monkeypatch):
         )
 
     class FakeResponse:
+        def __init__(self):
+            self.lines = iter(
+                [
+                    json.dumps(
+                        {
+                            "message": {"role": "assistant", "content": "Fixed."},
+                            "done": False,
+                        }
+                    ).encode("utf-8")
+                    + b"\n",
+                    json.dumps({"message": {"content": ""}, "done": True}).encode(
+                        "utf-8"
+                    )
+                    + b"\n",
+                ]
+            )
+
         def __enter__(self):
             return self
 
         def __exit__(self, *_args):
             return None
 
+        def readline(self):
+            return next(self.lines, b"")
+
         def read(self):
-            return json.dumps(
-                {"message": {"role": "assistant", "content": "Fixed."}}
-            ).encode("utf-8")
+            return json.dumps({"version": "0.1.0"}).encode("utf-8")
+
+        def close(self):
+            return None
 
     def fake_urlopen(request, timeout):
         requests.append((request, timeout))
@@ -1330,6 +1381,7 @@ def test_ollama_cli_request(monkeypatch):
     payload = json.loads(chat_request.data.decode("utf-8"))
     assert chat_request.full_url == "http://127.0.0.1:11434/api/chat"
     assert payload["model"] == "gemma3:4b"
+    assert payload["stream"] is True
     assert payload["think"] is False
     assert payload["keep_alive"] == "10m"
     assert payload["options"] == {

@@ -112,6 +112,19 @@ def main() -> int:
                     "semantic_preservation": validation.accepted,
                     "semantic_reasons": list(validation.reasons),
                     "latency_seconds": elapsed,
+                    "chunk_count": result.metadata.get("chunk_count"),
+                    "chunk_durations_ms": result.metadata.get(
+                        "chunk_durations_ms", []
+                    ),
+                    "successful_chunks": result.metadata.get(
+                        "successful_chunks", 0
+                    ),
+                    "preserved_chunks": result.metadata.get(
+                        "preserved_chunks", 0
+                    ),
+                    "timeout_chunks": result.metadata.get("timeout_chunks", 0),
+                    "unsafe_chunks": result.metadata.get("unsafe_chunks", 0),
+                    "output_complete": len(result.revised_text) > 0,
                 }
             )
 

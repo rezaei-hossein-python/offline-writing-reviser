@@ -12,9 +12,15 @@ from offline_writing_reviser.desktop_status import (
     UserMessage,
     user_message_for_error,
 )
-from offline_writing_reviser.core.errors import OfflineWritingError
+from offline_writing_reviser.core.errors import (
+    OfflineWritingCancelled,
+    OfflineWritingError,
+)
 from offline_writing_reviser.core.service import OfflineWritingService
-from offline_writing_reviser.providers.base import OfflineWritingProviderError
+from offline_writing_reviser.providers.base import (
+    OfflineWritingProviderError,
+    OfflineWritingProviderUnavailable,
+)
 from offline_writing_reviser.providers.ollama import OllamaCliOfflineWritingProvider
 from offline_writing_reviser.windows.hotkeys import HotkeyBinding, WindowsHotkeyManager
 from offline_writing_reviser.windows.text_selection import (
@@ -72,6 +78,9 @@ class OfflineWritingController:
 
     def stop(self, timeout_seconds: float = 3.0) -> None:
         self._shutdown_event.set()
+        cancel = getattr(self.service, "cancel", None)
+        if callable(cancel):
+            cancel()
         with self._threads_lock:
             threads = list(self._threads)
         deadline = time.monotonic() + timeout_seconds
@@ -132,12 +141,27 @@ class OfflineWritingController:
             if hasattr(self.text_adapter, "mark_processing"):
                 self.text_adapter.mark_processing(capture)
             try:
-                result = self.service.revise(capture.text)
+                result = (
+                    self.service.revise(capture.text, progress=self._progress)
+                    if getattr(self.service, "supports_progress", False)
+                    else self.service.revise(capture.text)
+                )
+            except OfflineWritingCancelled as exc:
+                self.logger.info("Offline writing cancelled")
+                if hasattr(self.text_adapter, "complete_without_replacement"):
+                    self.text_adapter.complete_without_replacement(capture)
+                self._progress("Cancelled")
+                self.state_callback(ApplicationState.READY)
+                return
             except OfflineWritingProviderError as exc:
                 self.logger.warning(
                     "Offline writing local provider failure category=%s",
                     exc.__class__.__name__,
                 )
+                if hasattr(self.text_adapter, "complete_without_replacement"):
+                    self.text_adapter.complete_without_replacement(capture)
+                if isinstance(exc, OfflineWritingProviderUnavailable):
+                    self._progress("AI unavailable")
                 self._report_error(exc)
                 return
             except ImportError as exc:
@@ -221,6 +245,10 @@ class OfflineWritingController:
         message = user_message_for_error(error)
         self.state_callback(message.state)
         self.notification_callback(message)
+
+    def _progress(self, message: str) -> None:
+        self.logger.info("Revision progress status=%s", message)
+        self.state_callback(message)
 
 
 class OfflineWritingRuntime:

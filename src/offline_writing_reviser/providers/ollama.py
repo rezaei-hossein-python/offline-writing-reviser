@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -14,6 +15,7 @@ from offline_writing_reviser.providers.base import (
     OfflineWritingModelMissing,
     OfflineWritingProvider,
     OfflineWritingProviderError,
+    OfflineWritingProviderCancelled,
     OfflineWritingProviderTimeout,
     OfflineWritingProviderUnavailable,
 )
@@ -40,6 +42,19 @@ class OllamaCliOfflineWritingProvider(OfflineWritingProvider):
         self._executable = executable
         self._model_cache: list[str] | None = None
         self._model_cache_time = 0.0
+        self._cancel_event = threading.Event()
+        self._response_lock = threading.Lock()
+        self._active_response = None
+
+    def cancel_current(self) -> None:
+        self._cancel_event.set()
+        with self._response_lock:
+            response = self._active_response
+        if response is not None:
+            try:
+                response.close()
+            except OSError:
+                pass
 
     @property
     def provider_name(self) -> str:
@@ -135,6 +150,7 @@ class OllamaCliOfflineWritingProvider(OfflineWritingProvider):
         return sorted(_parse_ollama_list(result.stdout), key=str.casefold)
 
     def revise(self, text: str, instruction: str, timeout_seconds: float) -> str:
+        self._cancel_event.clear()
         self.ensure_model_available(timeout_seconds=5.0)
         self.ensure_api_running(timeout_seconds=min(20.0, timeout_seconds))
         return self._perform_revision(
@@ -144,6 +160,7 @@ class OllamaCliOfflineWritingProvider(OfflineWritingProvider):
     def revise_with_telemetry(
         self, text: str, instruction: str, timeout_seconds: float
     ) -> OllamaInferenceResult:
+        self._cancel_event.clear()
         installed = self.api_models(timeout_seconds=5.0)
         if self._model not in installed:
             raise OfflineWritingModelMissing(
@@ -156,7 +173,7 @@ class OllamaCliOfflineWritingProvider(OfflineWritingProvider):
     ) -> OllamaInferenceResult:
         payload = {
             "model": self._model,
-            "stream": False,
+            "stream": True,
             "think": False,
             "keep_alive": PROOFREADING_KEEP_ALIVE,
             "messages": [
@@ -266,18 +283,65 @@ class OllamaCliOfflineWritingProvider(OfflineWritingProvider):
             headers={"Content-Type": "application/json"},
             method="POST",
         )
+        deadline = time.monotonic() + timeout_seconds
+        pieces: list[str] = []
+        final: dict[str, Any] = {}
         try:
             with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
-                parsed = json.loads(response.read().decode("utf-8"))
+                with self._response_lock:
+                    self._active_response = response
+                while True:
+                    if self._cancel_event.is_set():
+                        raise OfflineWritingProviderCancelled(
+                            "Local revision was cancelled"
+                        )
+                    if time.monotonic() >= deadline:
+                        raise OfflineWritingProviderTimeout(
+                            "Local revision timed out"
+                        )
+                    _set_response_timeout(response, deadline - time.monotonic())
+                    line = response.readline()
+                    if not line:
+                        if self._cancel_event.is_set():
+                            raise OfflineWritingProviderCancelled(
+                                "Local revision was cancelled"
+                            )
+                        break
+                    item = json.loads(line.decode("utf-8"))
+                    if not isinstance(item, dict):
+                        raise OfflineWritingProviderError(
+                            "Local revision response was invalid"
+                        )
+                    message = item.get("message")
+                    content = (
+                        message.get("content")
+                        if isinstance(message, dict)
+                        else None
+                    )
+                    if isinstance(content, str):
+                        pieces.append(content)
+                    final = item
+                    if item.get("done") is True:
+                        break
+            parsed = dict(final)
+            parsed["message"] = {"content": "".join(pieces)}
         except urllib.error.HTTPError as exc:
             if exc.code == 404:
                 raise OfflineWritingModelMissing(
                     f"Configured Ollama model is missing model={self._model}"
                 ) from exc
             raise OfflineWritingProviderError("Local revision request failed") from exc
+        except OfflineWritingProviderCancelled:
+            raise
+        except OfflineWritingProviderTimeout:
+            raise
         except (TimeoutError, subprocess.TimeoutExpired) as exc:
             raise OfflineWritingProviderTimeout("Local revision timed out") from exc
         except (OSError, urllib.error.URLError) as exc:
+            if self._cancel_event.is_set():
+                raise OfflineWritingProviderCancelled(
+                    "Local revision was cancelled"
+                ) from exc
             raise OfflineWritingProviderUnavailable(
                 "Ollama local API is unavailable"
             ) from exc
@@ -285,10 +349,12 @@ class OllamaCliOfflineWritingProvider(OfflineWritingProvider):
             raise OfflineWritingProviderError(
                 "Local revision response was invalid"
             ) from exc
+        finally:
+            with self._response_lock:
+                self._active_response = None
         if not isinstance(parsed, dict):
             raise OfflineWritingProviderError("Local revision response was invalid")
         return parsed
-
     def _request_json(
         self,
         path: str,
@@ -366,6 +432,14 @@ class OllamaCliOfflineWritingProvider(OfflineWritingProvider):
             raise OfflineWritingProviderTimeout("Local revision timed out") from exc
         except OSError as exc:
             raise OfflineWritingProviderUnavailable("Ollama executable is unavailable") from exc
+
+
+def _set_response_timeout(response: Any, remaining_seconds: float) -> None:
+    """Bound the next blocking read by the request's absolute deadline."""
+    try:
+        response.fp.raw._sock.settimeout(max(0.1, remaining_seconds))
+    except (AttributeError, OSError):
+        return
 
 
 def _parse_ollama_list(output: str) -> set[str]:

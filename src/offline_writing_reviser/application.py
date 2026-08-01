@@ -94,9 +94,11 @@ class BackgroundCoordinator:
         """Run the GUI dispatcher on the main thread, hidden until requested."""
         self.settings_window.run(self.stop_event)
 
-    def set_state(self, state: ApplicationState) -> None:
+    def set_state(self, state: ApplicationState | str) -> None:
         self.state = state
-        self.logger.info("Application state changed state=%s", state.value)
+        value = state.value if isinstance(state, ApplicationState) else state
+        self.logger.info("Application state changed state=%s", value)
+        self.settings_window.update_runtime_status(value)
 
     def present_error(self, message: UserMessage) -> None:
         """Show only actionable errors and rate-limit repeated dialogs."""

@@ -4,7 +4,10 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable
 
-from offline_writing_reviser.core.errors import OfflineWritingInputError
+from offline_writing_reviser.core.errors import (
+    OfflineWritingCancelled,
+    OfflineWritingInputError,
+)
 from offline_writing_reviser.providers.base import (
     OfflineWritingModelMissing,
     OfflineWritingProviderError,
@@ -33,6 +36,12 @@ StateListener = Callable[[ApplicationState], None]
 
 
 def user_message_for_error(error: BaseException | str) -> UserMessage:
+    if isinstance(error, OfflineWritingCancelled):
+        return UserMessage(
+            "Cancelled",
+            "The revision was cancelled and the selected text was not changed.",
+            ApplicationState.READY,
+        )
     if error == "no_selection":
         return UserMessage(
             "No text selected",

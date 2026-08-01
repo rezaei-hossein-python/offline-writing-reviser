@@ -98,6 +98,30 @@ class SettingsWindow:
     def show_error(self, message: UserMessage) -> None:
         self.dispatch(lambda: self._show_error_dialog(message.title, message.message))
 
+    def update_runtime_status(self, text: str) -> None:
+        """Expose progress through the status label and screen-reader events."""
+        def update() -> None:
+            if self._window and "status" in self._controls:
+                self._set_status(text)
+            self._announce_accessibly(text)
+
+        self.dispatch(update)
+
+    def _announce_accessibly(self, text: str) -> None:
+        if not self._app:
+            return
+        try:
+            from PySide6 import QtGui
+
+            target = self._window or self._app
+            event = QtGui.QAccessibleAnnouncementEvent(target, text)
+            event.setPoliteness(
+                QtGui.QAccessible.AnnouncementPoliteness.Polite
+            )
+            QtGui.QAccessible.updateAccessibility(event)
+        except (AttributeError, RuntimeError, TypeError):
+            self.logger.debug("Accessible status announcement unavailable")
+
     def close(self) -> None:
         if not self._running:
             return

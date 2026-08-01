@@ -19,7 +19,7 @@ class OfflineWritingConfig:
     hotkey: str = "Ctrl+Alt+P"
     timeout_seconds: float = 45.0
     max_characters: int = 20_000
-    chunk_characters: int = 2000
+    chunk_characters: int = 700
     ollama_executable: str = "ollama"
     log_file: Path = DEFAULT_LOG_FILE
 

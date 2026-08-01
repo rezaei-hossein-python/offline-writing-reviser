@@ -173,7 +173,7 @@ def test_default_settings_are_sensible(tmp_path):
     assert loaded.model == "gemma3:4b"
     assert loaded.timeout_seconds == 45.0
     assert loaded.max_characters == 20_000
-    assert loaded.chunk_characters == 2000
+    assert loaded.chunk_characters == 700
     assert loaded.hotkey == "Ctrl+Alt+P"
 
 

@@ -19,6 +19,10 @@ class OfflineWritingProviderTimeout(OfflineWritingProviderError):
     pass
 
 
+class OfflineWritingProviderCancelled(OfflineWritingProviderError):
+    pass
+
+
 class OfflineWritingProvider(ABC):
     @property
     @abstractmethod
