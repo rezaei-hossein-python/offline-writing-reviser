@@ -227,6 +227,27 @@ class OllamaCliOfflineWritingProvider(OfflineWritingProvider):
             key=str.casefold,
         )
 
+    def verify_minimal_inference(self, timeout_seconds: float = 120.0) -> None:
+        """Load the configured model and prove that it can produce a response."""
+        response = self._request_json(
+            "/api/generate",
+            {
+                "model": self._model,
+                "prompt": "Reply with OK.",
+                "stream": False,
+                "keep_alive": PROOFREADING_KEEP_ALIVE,
+                "options": {
+                    "temperature": 0,
+                    "num_predict": 1,
+                },
+            },
+            timeout_seconds,
+        )
+        if response.get("done") is not True:
+            raise OfflineWritingProviderError(
+                "Ollama did not complete the model readiness check"
+            )
+
     def runtime_diagnostics(
         self, timeout_seconds: float = 5.0
     ) -> dict[str, Any]:

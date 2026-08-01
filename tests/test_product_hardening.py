@@ -371,6 +371,26 @@ def test_errors_map_to_user_facing_messages_without_internal_details(
     assert message.state is state
     assert message.title == title
     assert "Traceback" not in message.message
+    if isinstance(error, OfflineWritingModelMissing):
+        assert "AI model is not installed yet" in message.message
+
+
+def test_active_model_download_has_in_progress_hotkey_message(monkeypatch):
+    import offline_writing_reviser.desktop_status as desktop_status
+
+    monkeypatch.setattr(
+        desktop_status,
+        "ProvisioningStateStore",
+        lambda: type("ActiveStore", (), {"is_active": lambda self: True})(),
+    )
+
+    message = user_message_for_error(OfflineWritingModelMissing("missing"))
+
+    assert message.title == "AI model setup in progress"
+    assert message.state is ApplicationState.MODEL_UNAVAILABLE
+    assert message.message == (
+        "AI model setup is still in progress. Open Model Setup to view progress."
+    )
 
 
 class FakeService:
@@ -438,12 +458,16 @@ def test_missing_model_state_transition_in_background_coordinator(
         logger=logging.getLogger("test"),
     )
     states = []
+    messages = []
     monkeypatch.setattr(coordinator, "discover_models", lambda: ["other:latest"])
     monkeypatch.setattr(coordinator, "set_state", states.append)
+    monkeypatch.setattr(coordinator, "present_error", messages.append)
 
     coordinator.refresh_status()
 
     assert states == [ApplicationState.MODEL_UNAVAILABLE]
+    assert messages[0].title == "AI model setup required"
+    assert "gemma3:4b is not installed yet" in messages[0].message
 
 
 def test_actionable_error_dialogs_are_rate_limited(monkeypatch, tmp_path):

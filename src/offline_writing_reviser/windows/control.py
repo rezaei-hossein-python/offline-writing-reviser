@@ -91,12 +91,17 @@ class WindowsControlServer:
         on_exit: Callable[[], None],
         on_restart: Callable[[], None],
         logger: logging.Logger | None = None,
+        window_class: str = CONTROL_WINDOW_CLASS,
+        window_title: str = CONTROL_WINDOW_TITLE,
+        callbacks: dict[int, Callable[[], None]] | None = None,
     ):
-        self.callbacks = {
+        self.callbacks = callbacks or {
             WM_CONTROL_SETTINGS: on_settings,
             WM_CONTROL_EXIT: on_exit,
             WM_CONTROL_RESTART: on_restart,
         }
+        self.window_class = window_class
+        self.window_title = window_title
         self.logger = logger or logging.getLogger("offline-writing-reviser")
         self._thread: threading.Thread | None = None
         self._window_handle: int | None = None
@@ -169,7 +174,7 @@ class WindowsControlServer:
             hCursor=None,
             hbrBackground=None,
             lpszMenuName=None,
-            lpszClassName=CONTROL_WINDOW_CLASS,
+            lpszClassName=self.window_class,
         )
         atom = 0
         try:
@@ -178,8 +183,8 @@ class WindowsControlServer:
                 raise ctypes.WinError()
             handle = user32.CreateWindowExW(
                 WS_EX_TOOLWINDOW,
-                CONTROL_WINDOW_CLASS,
-                CONTROL_WINDOW_TITLE,
+                self.window_class,
+                self.window_title,
                 WS_POPUP,
                 0,
                 0,
@@ -210,7 +215,7 @@ class WindowsControlServer:
             self._window_handle = None
             self._started.set()
             if atom:
-                user32.UnregisterClassW(CONTROL_WINDOW_CLASS, instance)
+                user32.UnregisterClassW(self.window_class, instance)
             self.logger.info("Background control endpoint stopped")
 
     def _handle_message(self, hwnd, message, wparam, lparam):
@@ -234,12 +239,24 @@ class WindowsControlServer:
 
 
 def send_control_command(command: ControlCommand) -> bool:
+    return send_window_command(
+        CONTROL_WINDOW_CLASS,
+        CONTROL_WINDOW_TITLE,
+        COMMAND_MESSAGES[command],
+    )
+
+
+def send_window_command(
+    window_class: str,
+    window_title: str,
+    message: int,
+) -> bool:
     user32 = ctypes.windll.user32
     _configure_user32(user32)
-    handle = user32.FindWindowW(CONTROL_WINDOW_CLASS, CONTROL_WINDOW_TITLE)
+    handle = user32.FindWindowW(window_class, window_title)
     if not handle:
         return False
-    return bool(user32.PostMessageW(handle, COMMAND_MESSAGES[command], 0, 0))
+    return bool(user32.PostMessageW(handle, message, 0, 0))
 
 
 def wait_for_control_server(timeout_seconds: float = 10.0) -> bool:

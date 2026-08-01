@@ -14,6 +14,7 @@ from offline_writing_reviser.providers.base import (
     OfflineWritingProviderTimeout,
     OfflineWritingProviderUnavailable,
 )
+from offline_writing_reviser.provisioning_state import ProvisioningStateStore
 
 
 class ApplicationState(str, Enum):
@@ -79,6 +80,15 @@ def user_message_for_error(error: BaseException | str) -> UserMessage:
             "That global hotkey is already in use or could not be registered.",
             ApplicationState.HOTKEY_UNAVAILABLE,
         )
+    if isinstance(
+        error, (OfflineWritingModelMissing, OfflineWritingProviderUnavailable)
+    ) and ProvisioningStateStore().is_active():
+        return UserMessage(
+            "AI model setup in progress",
+            "AI model setup is still in progress. Open Model Setup to view "
+            "progress.",
+            ApplicationState.MODEL_UNAVAILABLE,
+        )
     if isinstance(error, OfflineWritingProviderTimeout):
         return UserMessage(
             "Revision timed out",
@@ -88,8 +98,9 @@ def user_message_for_error(error: BaseException | str) -> UserMessage:
     if isinstance(error, OfflineWritingModelMissing):
         return UserMessage(
             "Model not ready",
-            "Run Set up AI revision from the Start menu, or choose an "
-            "installed Ollama model in Settings.",
+            "The AI model is not installed yet. Run Set up intelligent "
+            "revision from the Start menu to download it, then retry "
+            "Ctrl+Alt+P.",
             ApplicationState.MODEL_UNAVAILABLE,
         )
     if isinstance(error, OfflineWritingProviderUnavailable):

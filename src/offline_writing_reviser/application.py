@@ -11,7 +11,11 @@ from dataclasses import replace
 from pathlib import Path
 
 from offline_writing_reviser.config import OfflineWritingConfig
-from offline_writing_reviser.desktop_status import ApplicationState, UserMessage
+from offline_writing_reviser.desktop_status import (
+    ApplicationState,
+    UserMessage,
+    user_message_for_error,
+)
 from offline_writing_reviser.logging_config import configure_logging
 from offline_writing_reviser.providers.base import (
     OfflineWritingModelMissing,
@@ -144,10 +148,27 @@ class BackgroundCoordinator:
             executable=self.config.ollama_executable,
         )
         if self.config.model not in models:
-            self.set_state(ApplicationState.MODEL_UNAVAILABLE)
-            self.logger.warning(
-                "Configured model unavailable model=%s", self.config.model
+            message = user_message_for_error(
+                OfflineWritingModelMissing(
+                    f"Configured Ollama model is missing model={self.config.model}"
+                )
             )
+            if message.title != "AI model setup in progress":
+                message = UserMessage(
+                    "AI model setup required",
+                    f"The AI model {self.config.model} is not installed yet. "
+                    "Open Set up intelligent revision from the Start menu "
+                    "to download it. Ctrl+Alt+P will remain unavailable "
+                    "until setup verifies the model.",
+                    ApplicationState.MODEL_UNAVAILABLE,
+                )
+            self.set_state(message.state)
+            self.logger.warning(
+                "Model status state=%s model=%s",
+                "downloading" if message.title == "AI model setup in progress" else "missing",
+                self.config.model,
+            )
+            self.present_error(message)
             return
         try:
             provider.ensure_api_running(timeout_seconds=20.0)
@@ -171,6 +192,7 @@ class BackgroundCoordinator:
             )
             return
         self.set_state(ApplicationState.READY)
+        self.logger.info("Model status state=ready model=%s", self.config.model)
 
     def apply_settings(self, requested: OfflineWritingConfig) -> OfflineWritingConfig:
         previous = self.config

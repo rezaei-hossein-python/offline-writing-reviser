@@ -1408,6 +1408,42 @@ def test_ollama_unavailable_when_executable_missing(monkeypatch):
         provider.revise("Bad.", "Fix.", timeout_seconds=1)
 
 
+def test_ollama_minimal_inference_verification_uses_configured_model(monkeypatch):
+    import offline_writing_reviser.providers.ollama as ollama_cli
+
+    captured = {}
+    provider = ollama_cli.OllamaCliOfflineWritingProvider(model="gemma3:4b")
+
+    def request_json(path, payload, timeout_seconds):
+        captured.update(
+            path=path, payload=payload, timeout_seconds=timeout_seconds
+        )
+        return {"done": True, "response": "OK"}
+
+    monkeypatch.setattr(provider, "_request_json", request_json)
+    provider.verify_minimal_inference(timeout_seconds=45)
+
+    assert captured["path"] == "/api/generate"
+    assert captured["payload"]["model"] == "gemma3:4b"
+    assert captured["payload"]["stream"] is False
+    assert captured["payload"]["options"]["num_predict"] == 1
+    assert captured["timeout_seconds"] == 45
+
+
+def test_ollama_minimal_inference_must_complete(monkeypatch):
+    import offline_writing_reviser.providers.ollama as ollama_cli
+
+    provider = ollama_cli.OllamaCliOfflineWritingProvider(model="gemma3:4b")
+    monkeypatch.setattr(
+        provider,
+        "_request_json",
+        lambda *_args, **_kwargs: {"done": False},
+    )
+
+    with pytest.raises(OfflineWritingProviderError, match="readiness check"):
+        provider.verify_minimal_inference()
+
+
 def test_ollama_model_missing_fails_locally(monkeypatch):
     import offline_writing_reviser.providers.ollama as ollama_cli
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 import urllib.error
 from pathlib import Path
 
@@ -21,7 +22,14 @@ from offline_writing_reviser.provisioning import (
     AIProvisioner,
     ModelProvisioner,
     ProvisioningCancelled,
+    ProvisioningController,
+    send_provisioning_show_command,
+    _format_progress,
     run_model_provisioning,
+)
+from offline_writing_reviser.provisioning_state import (
+    ProvisioningPhase,
+    ProvisioningStateStore,
 )
 
 
@@ -331,13 +339,18 @@ class Model:
         self.provider = ExistingProvider()
         self.installed = installed
         self.pulled = 0
+        self.verified = 0
 
     def model_installed(self):
         return self.installed
 
     def pull_model(self, progress, **kwargs):
         self.pulled += 1
+        self.installed = True
         progress("pulling manifest", 5, 10)
+
+    def verify_inference(self, timeout_seconds):
+        self.verified += 1
 
 
 def test_ai_provisioner_reuses_existing_ollama_and_model(tmp_path):
@@ -348,7 +361,8 @@ def test_ai_provisioner_reuses_existing_ollama_and_model(tmp_path):
     updates = []
     provisioner.provision(lambda *values: updates.append(values))
     assert model.pulled == 0
-    assert updates[-1] == ("gemma3:4b is already installed", 1, 1)
+    assert model.verified == 1
+    assert updates[-1] == ("Intelligent revision is ready", 1, 1)
 
 
 def test_ai_provisioner_retries_only_missing_model(tmp_path):
@@ -358,6 +372,271 @@ def test_ai_provisioner_retries_only_missing_model(tmp_path):
     )
     provisioner.provision(lambda *_values: None)
     assert model.pulled == 1
+    assert model.verified == 1
+
+
+def test_provisioning_is_not_complete_before_model_and_inference_verification(
+    tmp_path,
+):
+    model = Model(installed=False)
+    updates = []
+    AIProvisioner(
+        OfflineWritingConfig(), model_provisioner=model, cache_directory=tmp_path
+    ).provision(lambda *values: updates.append(values))
+
+    assert updates[-2:] == [
+        ("Testing minimal inference", None, None),
+        ("Intelligent revision is ready", 1, 1),
+    ]
+    assert model.installed is True
+    assert model.verified == 1
+
+
+def test_provisioning_rejects_model_that_disappears_before_final_verification(
+    tmp_path,
+):
+    class DisappearingModel(Model):
+        def __init__(self):
+            super().__init__(installed=True)
+            self.checks = 0
+
+        def model_installed(self):
+            self.checks += 1
+            return self.checks == 1
+
+    model = DisappearingModel()
+    with pytest.raises(OfflineWritingProviderError, match="not installed after setup"):
+        AIProvisioner(
+            OfflineWritingConfig(),
+            model_provisioner=model,
+            cache_directory=tmp_path,
+        ).provision(lambda *_values: None)
+    assert model.verified == 0
+
+
+def test_clean_state_installs_ollama_then_pulls_and_verifies(tmp_path):
+    events = []
+
+    class CleanProvider:
+        installed = False
+
+        def resolved_executable(self):
+            events.append("find_ollama")
+            if not self.installed:
+                raise OfflineWritingProviderUnavailable("not installed")
+            return "ollama.exe"
+
+        def ensure_api_running(self, timeout_seconds):
+            events.append("api_ready")
+
+    class CleanModel(Model):
+        def __init__(self):
+            super().__init__(installed=False)
+            self.provider = CleanProvider()
+
+        def model_installed(self):
+            events.append("model_list")
+            return self.installed
+
+        def pull_model(self, progress, **kwargs):
+            events.append("pull_model")
+            super().pull_model(progress, **kwargs)
+
+        def verify_inference(self, timeout_seconds):
+            events.append("inference")
+            super().verify_inference(timeout_seconds)
+
+    class CleanProvisioner(AIProvisioner):
+        def download_ollama(self, progress, **kwargs):
+            events.append("download_ollama")
+            return tmp_path / "OllamaSetup.exe"
+
+        def install_ollama(self, installer):
+            events.append("install_ollama")
+            self.model.provider.installed = True
+
+    model = CleanModel()
+    CleanProvisioner(
+        OfflineWritingConfig(), model_provisioner=model, cache_directory=tmp_path
+    ).provision(lambda *_values: None)
+
+    assert events == [
+        "find_ollama",
+        "download_ollama",
+        "install_ollama",
+        "api_ready",
+        "model_list",
+        "pull_model",
+        "model_list",
+        "inference",
+    ]
+
+
+def test_interrupted_model_pull_retries_and_resumes_without_reinstall(tmp_path):
+    class ResumableModel(Model):
+        def __init__(self):
+            super().__init__(installed=False)
+
+        def pull_model(self, progress, **kwargs):
+            self.pulled += 1
+            progress("downloading layer", self.pulled * 5, 10)
+            if self.pulled == 1:
+                raise OfflineWritingProviderUnavailable(
+                    "interrupted; Ollama retains completed layers"
+                )
+            self.installed = True
+
+    model = ResumableModel()
+    provisioner = AIProvisioner(
+        OfflineWritingConfig(), model_provisioner=model, cache_directory=tmp_path
+    )
+    updates = []
+
+    with pytest.raises(OfflineWritingProviderUnavailable, match="interrupted"):
+        provisioner.provision(lambda *values: updates.append(values))
+    assert model.installed is False
+    assert model.verified == 0
+    assert ("Intelligent revision is ready", 1, 1) not in updates
+
+    provisioner.provision(lambda *_values: None)
+    assert model.pulled == 2
+    assert model.installed is True
+    assert model.verified == 1
+
+
+def test_model_progress_details_include_bytes_and_percentage():
+    detail, percentage = _format_progress(5 * 1024 * 1024, 20 * 1024 * 1024)
+
+    assert detail == "5.0 MB of 20.0 MB (25%)"
+    assert percentage == 25
+
+
+def test_shared_controller_persists_progress_and_prevents_duplicate_workers(
+    tmp_path,
+):
+    entered = threading.Event()
+    release = threading.Event()
+
+    class BlockingProvisioner:
+        calls = 0
+
+        def provision(self, progress, **_kwargs):
+            self.calls += 1
+            progress("downloading model layer", 1_500_000_000, 3_000_000_000)
+            entered.set()
+            assert release.wait(timeout=3)
+
+    worker = BlockingProvisioner()
+    store = ProvisioningStateStore(tmp_path / "state.json")
+    controller = ProvisioningController(
+        OfflineWritingConfig(), provisioner=worker, state_store=store
+    )
+
+    assert controller.start() is True
+    assert entered.wait(timeout=1)
+    assert controller.start() is False
+    persisted = store.load()
+    assert persisted.phase is ProvisioningPhase.DOWNLOADING_MODEL
+    assert persisted.downloaded_bytes == 1_500_000_000
+    assert persisted.total_bytes == 3_000_000_000
+    assert persisted.percentage == 50
+    assert persisted.active is True
+    assert worker.calls == 1
+
+    release.set()
+    assert controller.wait()
+    assert controller.snapshot.ready is True
+
+
+def test_ready_and_failed_states_persist_outside_window(tmp_path):
+    ready_store = ProvisioningStateStore(tmp_path / "ready.json")
+    ready = ProvisioningController(
+        OfflineWritingConfig(),
+        provisioner=type(
+            "ReadyProvisioner",
+            (),
+            {"provision": lambda self, progress, **kwargs: None},
+        )(),
+        state_store=ready_store,
+    )
+    ready.start()
+    assert ready.wait()
+    assert ProvisioningController(
+        OfflineWritingConfig(), state_store=ready_store
+    ).snapshot.phase is ProvisioningPhase.READY
+
+    failed_store = ProvisioningStateStore(tmp_path / "failed.json")
+
+    class FailedProvisioner:
+        def provision(self, progress, **_kwargs):
+            raise OfflineWritingProviderUnavailable("pull interrupted")
+
+    failed = ProvisioningController(
+        OfflineWritingConfig(),
+        provisioner=FailedProvisioner(),
+        state_store=failed_store,
+    )
+    failed.start()
+    assert failed.wait()
+    restored = ProvisioningController(
+        OfflineWritingConfig(), state_store=failed_store
+    ).snapshot
+    assert restored.phase is ProvisioningPhase.FAILED
+    assert restored.latest_error == "pull interrupted"
+    assert restored.retry_available is True
+
+
+def test_retry_resumes_failed_shared_controller(tmp_path):
+    class RetryProvisioner:
+        def __init__(self):
+            self.calls = 0
+
+        def provision(self, progress, **_kwargs):
+            self.calls += 1
+            if self.calls == 1:
+                raise OfflineWritingProviderUnavailable("temporary failure")
+            progress("Verifying installed model", None, None)
+
+    provisioner = RetryProvisioner()
+    controller = ProvisioningController(
+        OfflineWritingConfig(),
+        provisioner=provisioner,
+        state_store=ProvisioningStateStore(tmp_path / "state.json"),
+    )
+    assert controller.start()
+    assert controller.wait()
+    assert controller.snapshot.phase is ProvisioningPhase.FAILED
+    assert controller.start()
+    assert controller.wait()
+    assert controller.snapshot.phase is ProvisioningPhase.READY
+    assert provisioner.calls == 2
+
+
+def test_start_menu_invocation_focuses_existing_setup(monkeypatch, tmp_path):
+    releases = []
+    focus_requests = []
+
+    class ExistingInstance:
+        def acquire(self):
+            return False
+
+        def release(self):
+            releases.append(True)
+
+    monkeypatch.setattr(
+        "offline_writing_reviser.windows.single_instance.WindowsSingleInstance",
+        lambda _name: ExistingInstance(),
+    )
+    monkeypatch.setattr(
+        "offline_writing_reviser.provisioning.send_provisioning_show_command",
+        lambda: focus_requests.append(True) or True,
+    )
+
+    assert run_model_provisioning(
+        OfflineWritingConfig(log_file=tmp_path / "app.log")
+    ) == 0
+    assert focus_requests == [True]
+    assert releases == [True]
 
 
 def test_model_pull_reports_streamed_progress_and_verifies_installation(
@@ -430,6 +709,45 @@ def test_model_pull_rejects_success_stream_without_installed_model(monkeypatch):
         match="without installing the required model",
     ):
         provisioner.pull_model(lambda *_values: None)
+
+
+def test_model_pull_cancellation_leaves_model_not_ready(monkeypatch):
+    class MissingModelProvider:
+        def __init__(self):
+            self.model_checks = 0
+
+        def api_models(self, timeout_seconds):
+            self.model_checks += 1
+            return []
+
+    class Response:
+        def __enter__(self):
+            return iter(
+                [
+                    b'{"status":"downloading","completed":5,"total":10}\n',
+                    b'{"status":"downloading","completed":6,"total":10}\n',
+                ]
+            )
+
+        def __exit__(self, *_args):
+            return None
+
+    provider = MissingModelProvider()
+    provisioner = ModelProvisioner(OfflineWritingConfig(), provider=provider)
+    updates = []
+    monkeypatch.setattr(
+        "offline_writing_reviser.provisioning.urllib.request.urlopen",
+        lambda *_args, **_kwargs: Response(),
+    )
+
+    with pytest.raises(ProvisioningCancelled, match="later retry can resume"):
+        provisioner.pull_model(
+            lambda *values: updates.append(values),
+            cancelled=lambda: bool(updates),
+        )
+
+    assert updates == [("downloading", 5, 10)]
+    assert provider.model_checks == 0
 
 
 def test_ollama_download_keeps_partial_file_on_cancel(monkeypatch, tmp_path):
@@ -597,40 +915,125 @@ def test_installer_never_waits_for_model_setup():
     assert "waituntilterminated" not in provision_line
 
 
-def test_provisioning_ui_survives_consent_window_closing(
+def test_setup_window_hides_without_cancelling_and_reopens_same_job(
     monkeypatch, tmp_path
 ):
     from PySide6 import QtCore, QtWidgets
+    import offline_writing_reviser.provisioning as provisioning_module
 
-    class ExistingComponentsProvisioner:
+    monkeypatch.setattr(
+        provisioning_module,
+        "PROVISIONING_MUTEX_NAME",
+        r"Local\OfflineWritingReviserProvisioningReopenTest",
+    )
+    monkeypatch.setattr(
+        provisioning_module,
+        "PROVISIONING_CONTROL_WINDOW_CLASS",
+        "OfflineWritingReviserProvisioningReopenTest",
+    )
+    monkeypatch.setattr(
+        provisioning_module,
+        "PROVISIONING_CONTROL_WINDOW_TITLE",
+        "Offline Writing Reviser Provisioning Reopen Test",
+    )
+    monkeypatch.setattr(
+        "offline_writing_reviser.windows.single_instance.WindowsSingleInstance",
+        lambda _name: type(
+            "TestInstance",
+            (),
+            {"acquire": lambda self: True, "release": lambda self: None},
+        )(),
+    )
+    monkeypatch.setattr(
+        QtWidgets.QMessageBox,
+        "question",
+        lambda *_args, **_kwargs: QtWidgets.QMessageBox.StandardButton.Yes,
+    )
+
+    release = threading.Event()
+    started = threading.Event()
+    observations = {
+        "calls": 0,
+        "cancelled": False,
+        "hidden": False,
+        "reopened": False,
+        "ready_visible": False,
+    }
+
+    class BlockingProvisioner:
         def __init__(self, config):
             self.config = config
 
-        def provision(self, progress, **_kwargs):
-            progress(f"{self.config.model} is already installed", 1, 1)
+        def provision(self, progress, *, cancelled, **_kwargs):
+            observations["calls"] += 1
+            progress("downloading model layer", 1_500_000_000, 3_000_000_000)
+            started.set()
+            while not release.wait(timeout=0.01):
+                if cancelled():
+                    observations["cancelled"] = True
+                    raise ProvisioningCancelled("cancelled")
+            progress("Verifying installed model", None, None)
+            progress("Testing minimal inference", None, None)
 
     monkeypatch.setattr(
         "offline_writing_reviser.provisioning.AIProvisioner",
-        ExistingComponentsProvisioner,
+        BlockingProvisioner,
+    )
+    state_store = ProvisioningStateStore(tmp_path / "state.json")
+    monkeypatch.setattr(
+        "offline_writing_reviser.provisioning.ProvisioningStateStore",
+        lambda: state_store,
+    )
+    announcements = []
+    monkeypatch.setattr(
+        "offline_writing_reviser.provisioning._announce_provisioning",
+        lambda _target, text, _logger: announcements.append(text),
     )
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
     timer = QtCore.QTimer()
+    step = {"value": 0, "ticks": 0}
 
     def advance_dialogs():
+        step["ticks"] += 1
         for widget in app.topLevelWidgets():
-            if not widget.isVisible():
-                continue
-            if isinstance(widget, QtWidgets.QMessageBox):
+            if isinstance(widget, QtWidgets.QMessageBox) and widget.isVisible():
                 widget.done(int(QtWidgets.QMessageBox.StandardButton.Yes))
-                continue
-            if widget.windowTitle() != "Offline Writing Reviser - AI Setup":
-                continue
-            for button in widget.findChildren(QtWidgets.QPushButton):
-                if (
-                    button.accessibleName() == "Close AI setup"
-                    and button.isEnabled()
-                ):
+                return
+        setup = next(
+            (
+                widget
+                for widget in app.topLevelWidgets()
+                if widget.windowTitle() == "Offline Writing Reviser - AI Setup"
+            ),
+            None,
+        )
+        if setup is None:
+            return
+        if step["value"] == 0 and started.is_set() and setup.isVisible():
+            setup.close()
+            step["value"] = 1
+            step["ticks"] = 0
+            return
+        if step["value"] == 1 and step["ticks"] >= 3:
+            observations["hidden"] = not setup.isVisible()
+            assert state_store.load().active is True
+            assert send_provisioning_show_command() is True
+            step["value"] = 2
+            return
+        if step["value"] == 2 and setup.isVisible():
+            observations["reopened"] = True
+            assert "downloading model layer" in setup.findChild(
+                QtWidgets.QLabel, ""
+            ).text() or state_store.load().percentage == 50
+            release.set()
+            step["value"] = 3
+            return
+        if step["value"] == 3 and state_store.load().ready:
+            observations["ready_visible"] = setup.isVisible()
+            for button in setup.findChildren(QtWidgets.QPushButton):
+                if button.text() == "Close":
                     button.click()
+                    return
 
     timer.timeout.connect(advance_dialogs)
     timer.start(20)
@@ -640,5 +1043,15 @@ def test_provisioning_ui_survives_consent_window_closing(
         )
     finally:
         timer.stop()
+        release.set()
 
     assert exit_code == 0
+    assert observations == {
+        "calls": 1,
+        "cancelled": False,
+        "hidden": True,
+        "reopened": True,
+        "ready_visible": True,
+    }
+    assert "Offline Writing Reviser is ready." in announcements
+    assert state_store.load().phase is ProvisioningPhase.READY
