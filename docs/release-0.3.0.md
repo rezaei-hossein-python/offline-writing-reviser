@@ -1,4 +1,7 @@
-# 0.3.0 release-candidate validation
+# 0.3.0 release-candidate validation (historical)
+
+> This document records the superseded 0.3.0 release-candidate architecture
+> and measurements. It is not current product or v0.4.0 installation guidance.
 
 Phase 19 integrates the Phase 18 hybrid policy into the production hotkey path
 and adds private LanguageTool/Java lifecycle management, Ollama telemetry,

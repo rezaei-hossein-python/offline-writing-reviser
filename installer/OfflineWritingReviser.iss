@@ -1,7 +1,7 @@
 #define AppName "Offline Writing Reviser"
 #define AppExeName "OfflineWritingReviser.exe"
-#define AppVersion "0.4.0-rc1"
-#define AppNumericVersion "0.4.0.1"
+#define AppVersion "0.4.0"
+#define AppNumericVersion "0.4.0.0"
 #define ProjectRoot AddBackslash(SourcePath) + ".."
 #define AppBuildDir ProjectRoot + "\dist\OfflineWritingReviser"
 

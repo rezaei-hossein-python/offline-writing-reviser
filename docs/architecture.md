@@ -1,83 +1,86 @@
-# Architecture
+# Architecture (v0.4.0)
 
-Offline Writing Reviser 0.4 has one canonical action: Intelligent Revision on
-`Ctrl+Alt+P`.
+Offline Writing Reviser has one production revision engine and one canonical action: Intelligent Revision on `Ctrl+Alt+P`. There is no separate proofreading/paraphrase service, LanguageTool or private Java runtime.
 
-## Runtime flow
+## End-to-end revision flow
 
-The windowed executable acquires a per-session mutex, configures metadata-only
-logging, starts a hidden Qt dispatcher for accessible Settings and error
-dialogs, starts a hidden Win32 control endpoint, and registers one global
-hotkey. There is no tray icon or taskbar window.
+```mermaid
+flowchart LR
+    A[Selected text] --> B[Ctrl+Alt+P]
+    B --> C[Capture foreground/focus target]
+    C --> D[Wait for modifiers to release]
+    D --> E[Copy selection and restore clipboard]
+    E --> F[Adaptive section plan]
+    F --> G[Ollama / gemma3:4b]
+    G --> H[Output sanitizer]
+    H --> I[Semantic validation]
+    I -->|unsafe or timed out| J[Keep original section]
+    I -->|accepted| K[Use revised section]
+    J --> L[Reconstruct full document]
+    K --> L
+    L --> M[Restore and verify target]
+    M --> N[Paste complete result]
+    N --> O[Restore current clipboard snapshot]
+    O --> P[Ready]
+```
 
-When the hotkey fires, the foreground and focused window handles are captured
-synchronously. A worker waits for Ctrl, Alt, and P to be physically released,
-snapshots the clipboard, sends a standard-control `WM_COPY` or a scan-code
-Ctrl+C sequence, and waits for the clipboard sequence number to change. Empty
-standard-edit selections are distinguished from copy timeout and clipboard
-contention.
+The hidden windowed process acquires a per-session mutex, initializes metadata-only logging and a Qt event dispatcher, exposes a hidden Win32 control endpoint, then registers one Windows global hotkey. The hotkey callback captures the foreground and focused window handles synchronously. A single guarded worker prevents duplicate invocations, waits for Ctrl, Alt, and P to be physically released, and begins the clipboard state machine.
 
-The clipboard is restored immediately after capture. Before replacement, the
-original target is restored and verified. The adapter snapshots the current
-clipboard again, writes the revision, sends `WM_PASTE` or Ctrl+V, and restores
-that fresh snapshot only if no other application changed the clipboard in the
-meantime.
+Selection acquisition prefers synchronous `WM_COPY` for standard controls and otherwise sends a scan-code Ctrl+C sequence. It waits for the clipboard sequence number to change and distinguishes an empty selection, copy timeout, and clipboard contention. The pre-capture clipboard snapshot is restored without overwriting a newer external clipboard change. Replacement restores and verifies the original target, snapshots the clipboard again, uses `WM_PASTE` or Ctrl+V, and conditionally restores that fresh snapshot.
 
-## Revision engine
+No replacement occurs until the entire result has been reconstructed. Focus change, capture failure, provider failure, cancellation, or an invalid full reconstruction leaves the original selection intact.
 
-`OfflineWritingService` validates input, divides long selections at paragraph,
-sentence, or word boundaries, and sends each non-empty chunk to the configured
-local Ollama model. The prompt permits spelling, grammar, punctuation,
-naturalness, vocabulary, redundancy, and clarity improvements while requiring
-unchanged output for already-good text.
+## Revision engine and safety
 
-Output sanitation rejects control characters, commentary, Markdown wrappers,
-truncation, excessive expansion/deletion, damaged indentation, changed blank
-lines, or altered list structure. Deterministic semantic validation compares
-URLs, email addresses, phone numbers, numbers and currencies, dates, times,
-identifiers, quoted text, names, negation, modality, certainty, causal and
-temporal relations, intent, politeness, question structure, paragraph
-structure, and meaning anchors. An unsafe chunk falls back to its original
-text; a failed final whole-selection validation returns the full original.
+`OfflineWritingService` uses the local Ollama loopback API with `gemma3:4b`. The prompt requests only the revised text and permits spelling, grammar, punctuation, vocabulary, clarity, redundancy, naturalness, and broader sentence restructuring when meaning is preserved. Already-correct text should be returned unchanged.
 
-`Ctrl+Alt+W` is removed. It is not registered as an alias. LanguageTool, its
-SAFE routing policy, private Java, lifecycle management, diagnostics, and
-installer payload are removed.
+The sanitizer rejects commentary, prompt leakage, Markdown/code wrappers, control characters, truncation, excessive expansion/deletion, and damaged structure. The semantic validator and normalizers protect:
 
-## Ollama and provisioning
+- numbers and their grammatical/semantic roles, currencies, amounts, dates, and times;
+- URLs, email addresses, phone numbers, identifiers, quoted values, and casing-sensitive names;
+- negation, modality, certainty, causal/temporal relations, question structure, reference, politeness, and intent;
+- paragraph, list, heading, quote, indentation, and blank-line structure.
 
-The application reuses an existing compatible Ollama installation and model.
-If the API is stopped, it starts `ollama serve` hidden and detached. Inference
-uses Ollama's local loopback API with deterministic generation options and does
-not force a CPU or GPU backend. Diagnostics classify CPU, full GPU, or partial
-GPU offload from Ollama's reported model and VRAM sizes; vendor/backend remain
-unknown when Ollama does not expose them.
+Validation is deliberately conservative. Rejected sections fall back to their source text, and a final reconstruction check can roll back individual changed sections. The controls reduce semantic risk but cannot prove equivalence.
 
-Provisioning is a separate accessible post-install process. Setup never waits
-for the Ollama installer or model download. The provisioner supports consent,
-cancel, retry, resumable installer download, streamed model-pull progress,
-existing-install reuse, and model verification. Failure does not corrupt the
-core installation, but revision remains unavailable until the model is ready.
+## Adaptive large-document processing
 
-## Lifecycle and installation
+The default maximum selection is 20,000 characters. Processing is sequential with a 700-character maximum section target. Boundaries are chosen in this order: paragraph, sentence, clause, then whitespace. If none exists before the target, the next whitespace is used, which avoids splitting protected URL/email/date/identifier tokens where practical.
 
-The installer is per-user and writes one quoted HKCU Run entry. Duplicate
-launches exit without disturbing the running instance. Settings, exit, and
-restart commands use the hidden control endpoint. Shutdown unregisters the
-hotkey and joins active revision workers for a bounded interval. Ollama is
-shared user software and is intentionally preserved by uninstall.
+Each Ollama request has an absolute 45-second deadline. A timed-out section gets one bounded retry; after the second timeout its original text is retained and later sections continue. An unsafe or malformed section is also retained. A slow section (about 75% of the deadline) reduces pending targets by half, down to approximately 300 characters. Provider/model unavailability stops processing because continuing cannot succeed.
 
-Inno Setup stops the application before removing its files and deletes the
-startup entry. The packaged application contains Python/PySide runtime files,
-the application icon, and third-party notices. It contains no model, Ollama,
-Java, LanguageTool, benchmark output, or test artifact.
+All sections are reassembled byte-contiguously around their revised content, preserving separators and structure. Progress is announced as `Revising section n of m`, followed by `Completed` or `Completed with some sections unchanged`. Performance is hardware-dependent; roughly 2,000 words may take several minutes on slower machines. Benchmark timing is evidence for a specific machine, not a universal guarantee.
 
-## Privacy and accessibility
+## Ollama provider
 
-Selected and revised text never enters production logs. Logs contain operation
-IDs, character counts, window/process metadata, timings, state transitions,
-provider/model status, and error categories.
+The provider discovers an existing Ollama executable, starts `ollama serve` hidden when the local API is unavailable, verifies the configured model, and calls the loopback generate endpoint with deterministic options. Ollama chooses CPU/GPU acceleration. Diagnostics report CPU, GPU, partial-GPU, or unknown from the runtime data Ollama exposes; vendor and backend may remain unknown.
 
-Settings and provisioning use labelled Qt widgets with accessible names,
-descriptions, status text, logical tab order, keyboard operation, and standard
-dialogs exposed through Windows UI Automation for NVDA.
+## Application-level Model Setup
+
+```mermaid
+flowchart LR
+    A[Install] --> B[Check Ollama]
+    B -->|missing| C[Download and install Ollama]
+    B -->|present| D[Start or connect to Ollama]
+    C --> D
+    D --> E[Check model list]
+    E -->|missing| F[Pull gemma3:4b]
+    E -->|present| G[Verify model list]
+    F --> G
+    G --> H[Minimal inference]
+    H --> I[Persist Ready]
+```
+
+The application-level `ProvisioningController` owns one worker and persists 64-bit-safe byte totals and percentages atomically in `%LOCALAPPDATA%\OfflineWritingReviser\provisioning\state.json`. Its phases are checking Ollama, installing Ollama, starting Ollama, checking model, downloading model, verifying model, testing inference, ready, failed, and cancelled.
+
+Closing or choosing Hide during active work hides the window without cancelling. The Start-menu setup shortcut sends a reconnect/focus message to the existing process; a provisioning mutex and controller guard prevent duplicate workers and duplicate model pulls. Interrupted Ollama/model downloads retain resumable data where available, and Retry resumes the missing stage. Ready, failure, progress, and retry state survive the window. While setup is active, the hotkey reports that setup is still in progress and directs the user to Model Setup.
+
+The Qt dialog supplies accessible labels, focus order, byte/percentage details, and polite announcements when the stage changes or progress advances materially. Ready is persisted only after model-list verification and a minimal inference succeeds.
+
+## Settings, diagnostics, and lifecycle
+
+Settings use labelled Qt widgets and persist per-user JSON atomically. They expose installed-model selection, the single hotkey binding (shipped as `Ctrl+Alt+P`), request timeout, maximum input length, log location, and reset. The hidden control window focuses an existing Settings window and routes exit/restart requests to the running instance.
+
+The Inno Setup installer is per-user, x64-compatible, and registers one quoted HKCU Run entry. Normal launches remain silent with no console, tray icon, or taskbar window. Duplicate application launches exit without spawning another worker. Restart performs bounded shutdown, unregisters the hotkey, joins workers, then launches one replacement process. Uninstall requests clean exit, removes app files/shortcuts/startup registration, and preserves shared Ollama, models, settings, and logs.
+
+Logs contain metadata only: operation IDs, counts, target process/window metadata, timings, state transitions, provider/model status, and failure categories. Selected and revised text are not logged by default.

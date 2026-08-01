@@ -11,7 +11,4 @@ dist/
 OfflineWritingReviser.spec
 *.egg-info/
 *.log
-vendor/
-benchmarks/results/languagetool/
-benchmarks/results/hybrid/
-benchmarks/results/production-hybrid/
+benchmarks/results/

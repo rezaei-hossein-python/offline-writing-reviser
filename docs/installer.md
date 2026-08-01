@@ -1,43 +1,23 @@
 # Installer and clean-state verification
 
-The Inno Setup installer is per-user, requires no elevation, supports paths
-with spaces, writes a single HKCU startup entry, launches the hidden
-application after setup, and starts the accessible model provisioner as an
-independent post-install action.
+The Inno Setup 6 installer is a per-user, x64-compatible bootstrap. It normally needs no elevation, supports paths with spaces, installs to `%LOCALAPPDATA%\Programs\Offline Writing Reviser`, writes one quoted `HKCU\Software\Microsoft\Windows\CurrentVersion\Run\OfflineWritingReviser` entry, starts the hidden application, and launches Model Setup as an independent post-install action.
 
-Bundled application content:
-
-- `OfflineWritingReviser.exe`;
-- PyInstaller's Python and PySide6 runtime files;
-- application icon;
-- third-party notices.
-
-Not bundled:
-
-- Ollama;
-- `gemma3:4b` or any other model;
-- Java;
-- LanguageTool;
-- benchmark results, tests, build caches, or temporary downloads.
-
-Build:
+Bundled content is the application executable, its Python/PySide6 runtime, icon, and third-party notices. Ollama, `gemma3:4b`, models, benchmarks, tests, Java, and LanguageTool are not bundled. The core installer never blocks on multi-gigabyte provisioning.
 
 ```powershell
 .\scripts\build-installer.ps1
 ```
 
-The script removes old `dist`, `build`, and temporary build output within the
-repository, runs the full test suite with a workspace-local pytest temp
-directory, builds a fresh windowed application, compiles the installer, and
-writes a SHA-256 checksum.
+The script safely cleans repository-local build outputs, runs the full tests, builds the windowed app, compiles `dist\installer\OfflineWritingReviser-Setup.exe`, and writes its `.sha256` sibling. See [development.md](development.md) for split build commands.
 
-Clean acceptance must verify:
+Clean-machine acceptance must verify:
 
-1. no application process, startup entry, or install directory;
-2. normal non-admin install completes without waiting for downloads;
-3. hidden startup creates no console, tray, or taskbar window;
-4. model-ready `Ctrl+Alt+P` works in real editors;
-5. model-not-ready state is reported through accessible setup/error UI;
-6. exit leaves no application-owned process;
-7. uninstall removes files, shortcuts, and the startup entry while preserving
-   shared Ollama and unrelated software.
+1. 64-bit Windows per-user installation without an administrator prompt under normal policy.
+2. Silent background startup: no console, tray, taskbar window, duplicate instance, or orphan worker.
+3. Model Setup reuse/install of Ollama, resumable `gemma3:4b` pull, hide/reopen/focus, persistent Ready, and no duplicate pull.
+4. Real `Ctrl+Alt+P` selection replacement in Notepad and Microsoft Word, including modifier release, clipboard restoration, unchanged output, failure fallback, and a long document.
+5. Settings, diagnostics, version, startup validation, restart, exit, and login startup.
+6. Uninstall removes application files, shortcuts, and startup registration while preserving shared Ollama/models and user settings/logs.
+7. Installer byte size and SHA-256 match the release notes. Record SmartScreen/signature status.
+
+The current installer is unsigned. Do not describe browser, GPU, performance, or assistive-technology coverage as verified unless that exact acceptance pass was performed.

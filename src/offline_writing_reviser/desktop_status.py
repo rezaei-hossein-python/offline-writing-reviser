@@ -106,7 +106,7 @@ def user_message_for_error(error: BaseException | str) -> UserMessage:
     if isinstance(error, OfflineWritingProviderUnavailable):
         return UserMessage(
             "Ollama unavailable",
-            "Run Set up AI revision from the Start menu to install or repair "
+            "Run Set up intelligent revision from the Start menu to install or repair "
             "the local AI engine.",
             ApplicationState.OLLAMA_UNAVAILABLE,
         )

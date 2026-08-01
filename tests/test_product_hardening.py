@@ -812,5 +812,5 @@ def test_version_command_reports_release_version(capsys):
         main(["--version"])
 
     assert exit_info.value.code == 0
-    assert __version__ == "0.4.0rc1"
-    assert "0.4.0rc1" in capsys.readouterr().out
+    assert __version__ == "0.4.0"
+    assert "0.4.0" in capsys.readouterr().out
