@@ -1,0 +1,26 @@
+{
+  "generated_at": "2026-08-08T06:33:21.566353+00:00",
+  "release": "v0.4.0",
+  "model": "gemma3:4b",
+  "input": "I recieved the adress yesterday.",
+  "cold": {
+    "first_token_seconds": 21.40022389998194,
+    "wall_seconds": 21.924753599974792,
+    "output": "I received the address yesterday.",
+    "load_duration_seconds": 12.4113358,
+    "prompt_eval_duration_seconds": 8.867339,
+    "generation_duration_seconds": 0.552324,
+    "prompt_token_count": 435,
+    "generation_token_count": 7
+  },
+  "warm": {
+    "first_token_seconds": 0.87037669995334,
+    "wall_seconds": 1.4555596999707632,
+    "output": "I received the address yesterday.",
+    "load_duration_seconds": 0.5759629,
+    "prompt_eval_duration_seconds": 0.267692999,
+    "generation_duration_seconds": 0.585178,
+    "prompt_token_count": 435,
+    "generation_token_count": 7
+  }
+}
