@@ -1,0 +1,2168 @@
+{
+  "generated_at": "2026-08-08T07:51:39.898868+00:00",
+  "architecture": "languagetool_then_single_lightweight_paraphrase_then_original_validation",
+  "prompt": "Rewrite the text in clear, natural, fluent English.\n\nImprove phrasing, vocabulary, clarity, conciseness, and sentence flow only where useful.\n\nPreserve the complete meaning, purpose, facts, names, organizations, numbers, dates, times, amounts, URLs, email addresses, identifiers, negation, modality, questions, commitments, and intent.\n\nDo not add information.\n\nIf the text is already natural and well written, return it unchanged.\n\nReturn only the final text.\n\nNo explanation. No commentary. No Markdown. No labels. No quotation wrapper. No reasoning.",
+  "settings": {
+    "temperature": 0.2,
+    "top_p": 0.9,
+    "repeat_penalty": 1.05,
+    "seed": 25,
+    "num_ctx": 4096,
+    "num_predict": 384,
+    "think": false,
+    "stream": true,
+    "keep_alive": "10m"
+  },
+  "corpus_path": "benchmarks\\phase25_paraphrasing_cases.json",
+  "case_count": 23,
+  "models": [
+    {
+      "details": {
+        "name": "gemma3:1b",
+        "digest": "8648f39daa8fbf5b18c7b4e6a8fb4990c692751d49917417b8842ca5758e7ffc",
+        "installed_size_bytes": 815319791,
+        "download_size_bytes": 815319791,
+        "parameter_count": "999.89M",
+        "quantization": "Q4_K_M",
+        "family": "gemma3"
+      },
+      "cold": {
+        "output": "The process of reviewing takes longer than necessary.",
+        "wall_ms": 8728.648400050588,
+        "first_token_ms": 8389.158500009216,
+        "total_duration_ms": 8721.4046,
+        "load_duration_ms": 6730.3286,
+        "prompt_eval_duration_ms": 1631.61,
+        "generation_duration_ms": 341.359,
+        "input_tokens": 152,
+        "output_tokens": 10,
+        "tokens_per_second": 29.294672177970995,
+        "done_reason": "stop",
+        "thinking": ""
+      },
+      "runtime": {
+        "loaded_size_bytes": 880541695,
+        "vram_bytes": 0,
+        "backend": "cpu",
+        "context_length": 4096,
+        "expires_at": "2026-08-08T01:03:35.7343295-07:00"
+      },
+      "summary": {
+        "warm_sentence_runs": 20,
+        "warm_sentence_median_ms": 4202.886500017485,
+        "warm_sentence_p95_ms": 5343.912909997744,
+        "warm_paragraph_runs": 3,
+        "warm_paragraph_median_ms": 6446.804100007284,
+        "warm_paragraph_p95_ms": 6911.726010002894,
+        "validator_accepted": 15,
+        "validator_rejected": 8,
+        "commentary_or_malformed": 0,
+        "timeouts": 0
+      },
+      "records": [
+        {
+          "id": "natural",
+          "category": "already_correct_natural",
+          "benefit": "unchanged",
+          "original_text": "The meeting starts at nine tomorrow morning.",
+          "languagetool_text": "The meeting starts at nine tomorrow morning.",
+          "candidate_output": "The meeting begins at nine tomorrow morning.",
+          "evaluation": {
+            "sanitized_output": "The meeting begins at nine tomorrow morning.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 3711.928299977444,
+            "first_token_ms": 3431.792499963194,
+            "total_duration_ms": 3699.9586,
+            "load_duration_ms": 1949.586,
+            "prompt_eval_duration_ms": 1447.88,
+            "generation_duration_ms": 279.995,
+            "input_tokens": 143,
+            "output_tokens": 9,
+            "tokens_per_second": 32.1434311326988,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "lt-clean-only",
+          "category": "languagetool_clean_no_paraphrase",
+          "benefit": "unchanged_after_languagetool",
+          "original_text": "I recieved the adress yesterday.",
+          "languagetool_text": "I received the address yesterday.",
+          "candidate_output": "I received the address yesterday.",
+          "evaluation": {
+            "sanitized_output": "I received the address yesterday.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 3697.0420999568887,
+            "first_token_ms": 3493.0121999932453,
+            "total_duration_ms": 3695.5562,
+            "load_duration_ms": 2050.3698,
+            "prompt_eval_duration_ms": 1424.738,
+            "generation_duration_ms": 204.063,
+            "input_tokens": 141,
+            "output_tokens": 7,
+            "tokens_per_second": 34.303131875940274,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "awkward",
+          "category": "awkward_grammatical",
+          "benefit": "paraphrase",
+          "original_text": "The way in which we carry out the review takes more time than it should take.",
+          "languagetool_text": "The way in which we carry out the review takes more time than it should take.",
+          "candidate_output": "The process of reviewing takes longer than necessary.",
+          "evaluation": {
+            "sanitized_output": "The process of reviewing takes longer than necessary.",
+            "validator_accepted": false,
+            "rejection_reason": "modality_not_preserved",
+            "semantic_reasons": [
+              "modality_not_preserved"
+            ],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 3578.035500016995,
+            "first_token_ms": 3267.9129000171088,
+            "total_duration_ms": 3576.5437,
+            "load_duration_ms": 1732.4715,
+            "prompt_eval_duration_ms": 1523.919,
+            "generation_duration_ms": 309.912,
+            "input_tokens": 152,
+            "output_tokens": 10,
+            "tokens_per_second": 32.26722424430161,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "esl",
+          "category": "common_esl",
+          "benefit": "paraphrase",
+          "original_text": "I am writing this email for informing you about the issue.",
+          "languagetool_text": "I am writing this email for informing you about the issue.",
+          "candidate_output": "I am writing this email for informing you about the issue.",
+          "evaluation": {
+            "sanitized_output": "I am writing this email for informing you about the issue.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 4051.4563000178896,
+            "first_token_ms": 3628.011900000274,
+            "total_duration_ms": 4031.8692,
+            "load_duration_ms": 2108.9813,
+            "prompt_eval_duration_ms": 1485.45,
+            "generation_duration_ms": 423.351,
+            "input_tokens": 147,
+            "output_tokens": 13,
+            "tokens_per_second": 30.707379928239217,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "vocabulary",
+          "category": "poor_vocabulary",
+          "benefit": "paraphrase",
+          "original_text": "The new process made a big improvement to the speed of our work.",
+          "languagetool_text": "The new process made a big improvement to the speed of our work.",
+          "candidate_output": "The new process improved the speed of our work.",
+          "evaluation": {
+            "sanitized_output": "The new process improved the speed of our work.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 3934.0230000088923,
+            "first_token_ms": 3583.7596000055782,
+            "total_duration_ms": 3932.8672,
+            "load_duration_ms": 2068.9325,
+            "prompt_eval_duration_ms": 1504.602,
+            "generation_duration_ms": 350.121,
+            "input_tokens": 149,
+            "output_tokens": 11,
+            "tokens_per_second": 31.417709877442373,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "redundant",
+          "category": "redundant_wording",
+          "benefit": "paraphrase",
+          "original_text": "At this point in time, we are currently reviewing each and every request individually.",
+          "languagetool_text": "At this point in time, we are currently reviewing each and every request individually.",
+          "candidate_output": "We are currently reviewing each and every request individually.",
+          "evaluation": {
+            "sanitized_output": "We are currently reviewing each and every request individually.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 3786.06780001428,
+            "first_token_ms": 3436.7608000175096,
+            "total_duration_ms": 3784.3992,
+            "load_duration_ms": 1903.3295,
+            "prompt_eval_duration_ms": 1520.785,
+            "generation_duration_ms": 349.221,
+            "input_tokens": 151,
+            "output_tokens": 11,
+            "tokens_per_second": 31.498678487261646,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "professional-email",
+          "category": "professional_email",
+          "benefit": "paraphrase",
+          "original_text": "I wanted to reach out to you in order to let you know that the proposal is ready for you to look at.",
+          "languagetool_text": "I wanted to reach out to you in order to let you know that the proposal is ready for you to look at.",
+          "candidate_output": "I wanted to let you know that the proposal is ready for you to look at.",
+          "evaluation": {
+            "sanitized_output": "I wanted to let you know that the proposal is ready for you to look at.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 4213.5123000480235,
+            "first_token_ms": 3632.372900028713,
+            "total_duration_ms": 4211.8937,
+            "load_duration_ms": 2019.7398,
+            "prompt_eval_duration_ms": 1599.59,
+            "generation_duration_ms": 580.944,
+            "input_tokens": 159,
+            "output_tokens": 18,
+            "tokens_per_second": 30.984053540444524,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "conversational",
+          "category": "conversational",
+          "benefit": "paraphrase",
+          "original_text": "The app is pretty good, but the setup part is kind of hard to get through.",
+          "languagetool_text": "The app is pretty good, but the setup part is kind of hard to get through.",
+          "candidate_output": "The app is pretty good, but the setup part is kind of difficult to navigate.",
+          "evaluation": {
+            "sanitized_output": "The app is pretty good, but the setup part is kind of difficult to navigate.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 4163.603199995123,
+            "first_token_ms": 3559.858499967959,
+            "total_duration_ms": 4161.6478,
+            "load_duration_ms": 2002.5791,
+            "prompt_eval_duration_ms": 1542.444,
+            "generation_duration_ms": 603.811,
+            "input_tokens": 153,
+            "output_tokens": 18,
+            "tokens_per_second": 29.81065267111729,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "restructure",
+          "category": "sentence_restructuring",
+          "benefit": "paraphrase",
+          "original_text": "Because the approval arrived late, which was unexpected, the team had to move the launch to next week.",
+          "languagetool_text": "Because the approval arrived late, which was unexpected, the team had to move the launch to next week.",
+          "candidate_output": "Because the approval arrived late, which was unexpected, the team had to move the launch to next week.",
+          "evaluation": {
+            "sanitized_output": "Because the approval arrived late, which was unexpected, the team had to move the launch to next week.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 4331.988700025249,
+            "first_token_ms": 3617.729599995073,
+            "total_duration_ms": 4330.5545,
+            "load_duration_ms": 2034.1802,
+            "prompt_eval_duration_ms": 1567.917,
+            "generation_duration_ms": 714.021,
+            "input_tokens": 156,
+            "output_tokens": 22,
+            "tokens_per_second": 30.81141871177459,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "concision",
+          "category": "concision",
+          "benefit": "paraphrase",
+          "original_text": "There are a number of different reasons why the update was delayed in its completion.",
+          "languagetool_text": "There are a number of different reasons why the update was delayed in its completion.",
+          "candidate_output": "There are a number of different reasons why the update was delayed in its completion.",
+          "evaluation": {
+            "sanitized_output": "There are a number of different reasons why the update was delayed in its completion.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 4192.260699986946,
+            "first_token_ms": 3642.36970001366,
+            "total_duration_ms": 4191.057,
+            "load_duration_ms": 2106.9761,
+            "prompt_eval_duration_ms": 1524.148,
+            "generation_duration_ms": 549.93,
+            "input_tokens": 151,
+            "output_tokens": 17,
+            "tokens_per_second": 30.91302529412835,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "name-org",
+          "category": "names_organizations",
+          "benefit": "conservative",
+          "original_text": "Priya Raman may send the revised accessibility report to Microsoft tomorrow.",
+          "languagetool_text": "Priya Raman may send the revised accessibility report to Microsoft tomorrow.",
+          "candidate_output": "Priya Raman should send the revised accessibility report to Microsoft tomorrow.",
+          "evaluation": {
+            "sanitized_output": "Priya Raman should send the revised accessibility report to Microsoft tomorrow.",
+            "validator_accepted": false,
+            "rejection_reason": "modality_not_preserved",
+            "semantic_reasons": [
+              "modality_not_preserved"
+            ],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 3909.504899987951,
+            "first_token_ms": 3474.972700001672,
+            "total_duration_ms": 3886.8434,
+            "load_duration_ms": 1957.7606,
+            "prompt_eval_duration_ms": 1481.575,
+            "generation_duration_ms": 434.446,
+            "input_tokens": 148,
+            "output_tokens": 14,
+            "tokens_per_second": 32.224948555171416,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "numbers",
+          "category": "numbers",
+          "benefit": "conservative",
+          "original_text": "Jordan approved 12 licenses for 18 employees across 3 offices.",
+          "languagetool_text": "Jordan approved 12 licenses for 18 employees across 3 offices.",
+          "candidate_output": "Jordan authorized 12 licenses to 18 employees across three offices.",
+          "evaluation": {
+            "sanitized_output": "Jordan authorized 12 licenses to 18 employees across three offices.",
+            "validator_accepted": false,
+            "rejection_reason": "numbers_not_preserved,names_not_preserved,intent_not_preserved,number_context_changed",
+            "semantic_reasons": [
+              "numbers_not_preserved",
+              "names_not_preserved",
+              "intent_not_preserved",
+              "number_context_changed"
+            ],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 3927.4846999906003,
+            "first_token_ms": 3411.318800004665,
+            "total_duration_ms": 3926.159,
+            "load_duration_ms": 1879.1525,
+            "prompt_eval_duration_ms": 1518.457,
+            "generation_duration_ms": 516.224,
+            "input_tokens": 151,
+            "output_tokens": 16,
+            "tokens_per_second": 30.99429704934292,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "date-time",
+          "category": "dates_times",
+          "benefit": "conservative",
+          "original_text": "The review is scheduled for September 15, 2026, at 9:30 AM.",
+          "languagetool_text": "The review is scheduled for September 15, 2026, at 9:30 AM.",
+          "candidate_output": "The review is scheduled for September 15, 2026, at 9:30 AM.",
+          "evaluation": {
+            "sanitized_output": "The review is scheduled for September 15, 2026, at 9:30 AM.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 4724.38400000101,
+            "first_token_ms": 3717.364499985706,
+            "total_duration_ms": 4704.1732,
+            "load_duration_ms": 2088.4847,
+            "prompt_eval_duration_ms": 1594.394,
+            "generation_duration_ms": 1006.738,
+            "input_tokens": 159,
+            "output_tokens": 25,
+            "tokens_per_second": 24.83267741954709,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "currency",
+          "category": "currency_amounts",
+          "benefit": "conservative",
+          "original_text": "The registration fee remains CAD 1,250.50, and the refund cannot exceed CAD 300.00.",
+          "languagetool_text": "The registration fee remains CAD 1,250.50, and the refund cannot exceed CAD 300.00.",
+          "candidate_output": "The registration fee is CAD 1,250.50, and refunds are capped at CAD 300.00.",
+          "evaluation": {
+            "sanitized_output": "The registration fee is CAD 1,250.50, and refunds are capped at CAD 300.00.",
+            "validator_accepted": false,
+            "rejection_reason": "negation_not_preserved,modality_not_preserved",
+            "semantic_reasons": [
+              "negation_not_preserved",
+              "modality_not_preserved"
+            ],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 5657.257300044876,
+            "first_token_ms": 4442.594800028019,
+            "total_duration_ms": 5655.4234,
+            "load_duration_ms": 2279.6209,
+            "prompt_eval_duration_ms": 2149.116,
+            "generation_duration_ms": 1214.462,
+            "input_tokens": 164,
+            "output_tokens": 30,
+            "tokens_per_second": 24.702296160769134,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "url-email",
+          "category": "urls_emails",
+          "benefit": "conservative",
+          "original_text": "Email ops@example.com or visit https://example.com/release-7.2 for the current instructions.",
+          "languagetool_text": "Email ops@example.com or visit https://example.com/release-7.2 for the current instructions.",
+          "candidate_output": "Email ops@example.com or visit https://example.com/release-7.2 for the current instructions.",
+          "evaluation": {
+            "sanitized_output": "Email ops@example.com or visit https://example.com/release-7.2 for the current instructions.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 5327.421099995263,
+            "first_token_ms": 4326.53780002147,
+            "total_duration_ms": 5308.6802,
+            "load_duration_ms": 2385.1296,
+            "prompt_eval_duration_ms": 1908.716,
+            "generation_duration_ms": 1000.79,
+            "input_tokens": 159,
+            "output_tokens": 25,
+            "tokens_per_second": 24.980265590183752,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "identifiers",
+          "category": "identifiers",
+          "benefit": "unchanged",
+          "original_text": "Do not deploy build API-42 before ticket OWR-2048 is closed.",
+          "languagetool_text": "Do not deploy build API-42 before ticket OWR-2048 is closed.",
+          "candidate_output": "Do not deploy build API-42 before ticket OWR-2048 is closed.",
+          "evaluation": {
+            "sanitized_output": "Do not deploy build API-42 before ticket OWR-2048 is closed.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 4970.08649999043,
+            "first_token_ms": 4146.372799994424,
+            "total_duration_ms": 4956.9168,
+            "load_duration_ms": 2296.7435,
+            "prompt_eval_duration_ms": 1824.222,
+            "generation_duration_ms": 823.441,
+            "input_tokens": 155,
+            "output_tokens": 21,
+            "tokens_per_second": 25.502737901076095,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "negation",
+          "category": "negation",
+          "benefit": "conservative",
+          "original_text": "The backup must not be deleted, and we never share it with external vendors.",
+          "languagetool_text": "The backup must not be deleted, and we never share it with external vendors.",
+          "candidate_output": "The backup must not be deleted, and we will never share it with external vendors.",
+          "evaluation": {
+            "sanitized_output": "The backup must not be deleted, and we will never share it with external vendors.",
+            "validator_accepted": false,
+            "rejection_reason": "modality_not_preserved",
+            "semantic_reasons": [
+              "modality_not_preserved"
+            ],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 4771.376400021836,
+            "first_token_ms": 4051.0476999916136,
+            "total_duration_ms": 4769.3453,
+            "load_duration_ms": 2236.4294,
+            "prompt_eval_duration_ms": 1800.005,
+            "generation_duration_ms": 720.245,
+            "input_tokens": 151,
+            "output_tokens": 18,
+            "tokens_per_second": 24.991495949295032,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "modality-commitment",
+          "category": "modality_commitment",
+          "benefit": "conservative",
+          "original_text": "Alex may approve the change, and I will deliver all three files by Friday.",
+          "languagetool_text": "Alex may approve the change, and I will deliver all three files by Friday.",
+          "candidate_output": "Alex will approve the change, and I will deliver all three files by Friday.",
+          "evaluation": {
+            "sanitized_output": "Alex will approve the change, and I will deliver all three files by Friday.",
+            "validator_accepted": false,
+            "rejection_reason": "modality_not_preserved",
+            "semantic_reasons": [
+              "modality_not_preserved"
+            ],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 4861.133500002325,
+            "first_token_ms": 4183.559100027196,
+            "total_duration_ms": 4847.7175,
+            "load_duration_ms": 2391.1322,
+            "prompt_eval_duration_ms": 1766.031,
+            "generation_duration_ms": 677.266,
+            "input_tokens": 151,
+            "output_tokens": 17,
+            "tokens_per_second": 25.10092046551872,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "question",
+          "category": "question",
+          "benefit": "conservative",
+          "original_text": "Could you send the signed agreement by Friday, or should I ask Elena to collect it?",
+          "languagetool_text": "Could you send the signed agreement by Friday, or should I ask Elena to collect it?",
+          "candidate_output": "Could you send it by Friday, or should I ask Elena to collect it?",
+          "evaluation": {
+            "sanitized_output": "Could you send it by Friday, or should I ask Elena to collect it?",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 4821.774900017772,
+            "first_token_ms": 4131.722700025421,
+            "total_duration_ms": 4819.3774,
+            "load_duration_ms": 2300.901,
+            "prompt_eval_duration_ms": 1813.998,
+            "generation_duration_ms": 690.005,
+            "input_tokens": 153,
+            "output_tokens": 17,
+            "tokens_per_second": 24.63750262679256,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "ambiguous",
+          "category": "ambiguous_conservative",
+          "benefit": "unchanged",
+          "original_text": "Morgan saw Alex with the revised draft near the bank.",
+          "languagetool_text": "Morgan saw Alex with the revised draft near the bank.",
+          "candidate_output": "Morgan saw Alex with the revised draft near the bank.",
+          "evaluation": {
+            "sanitized_output": "Morgan saw Alex with the revised draft near the bank.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 4598.067800048739,
+            "first_token_ms": 4126.655300031416,
+            "total_duration_ms": 4585.4608,
+            "load_duration_ms": 2366.0733,
+            "prompt_eval_duration_ms": 1736.106,
+            "generation_duration_ms": 471.398,
+            "input_tokens": 146,
+            "output_tokens": 12,
+            "tokens_per_second": 25.45619625030229,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "short-paragraph",
+          "category": "multi_sentence_paragraph",
+          "benefit": "paraphrase",
+          "original_text": "The current review process takes a long time and creates unnecessary work for the support team. Employees must open three separate screens before they can answer a simple request. A shorter checklist would make the work clearer and faster without removing the final security review.",
+          "languagetool_text": "The current review process takes a long time and creates unnecessary work for the support team. Employees must open three separate screens before they can answer a simple request. A shorter checklist would make the work clearer and faster without removing the final security review.",
+          "candidate_output": "The current review process is slow and creates excessive workload for the support team. Employees must open three separate screens to respond to simple requests. A shorter checklist would make the work clearer and faster, while maintaining the final security review.",
+          "evaluation": {
+            "sanitized_output": "The current review process is slow and creates excessive workload for the support team. Employees must open three separate screens to respond to simple requests. A shorter checklist would make the work clearer and faster, while maintaining the final security review.",
+            "validator_accepted": false,
+            "rejection_reason": "negation_not_preserved,modality_not_preserved,relations_not_preserved",
+            "semantic_reasons": [
+              "negation_not_preserved",
+              "modality_not_preserved",
+              "relations_not_preserved"
+            ],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 6446.804100007284,
+            "first_token_ms": 4527.709100046195,
+            "total_duration_ms": 6434.2369,
+            "load_duration_ms": 2315.7991,
+            "prompt_eval_duration_ms": 2184.941,
+            "generation_duration_ms": 1918.839,
+            "input_tokens": 183,
+            "output_tokens": 46,
+            "tokens_per_second": 23.972829403613332,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "professional-paragraph",
+          "category": "professional_paragraph",
+          "benefit": "paraphrase",
+          "original_text": "Thank you for sharing the first version of the plan. I think the overall direction is good, but some parts are difficult to follow and could be presented in a clearer way. Please focus especially on the explanation of the customer handoff, because new employees have said that this section is confusing.",
+          "languagetool_text": "Thank you for sharing the first version of the plan. I think the overall direction is good, but some parts are difficult to follow and could be presented in a clearer way. Please focus especially on the explanation of the customer handoff, because new employees have said that this section is confusing.",
+          "candidate_output": "Thank you for sharing the first version of the plan. Please focus on the explanation of the customer handoff, as new employees have stated it’s confusing.",
+          "evaluation": {
+            "sanitized_output": "Thank you for sharing the first version of the plan. Please focus on the explanation of the customer handoff, as new employees have stated it’s confusing.",
+            "validator_accepted": false,
+            "rejection_reason": "modality_not_preserved,relations_not_preserved,meaning_anchor_not_preserved",
+            "semantic_reasons": [
+              "modality_not_preserved",
+              "relations_not_preserved",
+              "meaning_anchor_not_preserved"
+            ],
+            "meaning_anchor_preserved": false
+          },
+          "telemetry": {
+            "wall_ms": 6000.668700027745,
+            "first_token_ms": 4691.347900021356,
+            "total_duration_ms": 5986.0448,
+            "load_duration_ms": 2413.4795,
+            "prompt_eval_duration_ms": 2248.418,
+            "generation_duration_ms": 1309.297,
+            "input_tokens": 193,
+            "output_tokens": 33,
+            "tokens_per_second": 25.204365396086605,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "several-paragraphs",
+          "category": "several_paragraphs",
+          "benefit": "paraphrase",
+          "original_text": "Hello Mina,\n\nThe report is ready for review, but the summary is longer than it needs to be. Please send your comments by Thursday.\n\nI will not publish build API-42 until you approve it. The release may move to Friday if the final security check takes longer than expected.\n\nRegards,\nCarlos",
+          "languagetool_text": "Hello Mina,\n\nThe report is ready for review, but the summary is longer than it needs to be. Please send your comments by Thursday.\n\nI will not publish build API-42 until you approve it. The release may move to Friday if the final security check takes longer than expected.\n\nRegards,\nCarlos",
+          "candidate_output": "Hello Mina,\n\nThe report is ready for review. Please send your comments by Thursday.\n\nI will not publish build API-42 until you approve it. The release may move to Friday if the final security check takes longer than expected.\n\nRegards,\nCarlos",
+          "evaluation": {
+            "sanitized_output": "Hello Mina,\n\nThe report is ready for review. Please send your comments by Thursday.\n\nI will not publish build API-42 until you approve it. The release may move to Friday if the final security check takes longer than expected.\n\nRegards,\nCarlos",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 6963.3840000024065,
+            "first_token_ms": 4738.184800022282,
+            "total_duration_ms": 6961.8674,
+            "load_duration_ms": 2370.0189,
+            "prompt_eval_duration_ms": 2357.229,
+            "generation_duration_ms": 2225.075,
+            "input_tokens": 200,
+            "output_tokens": 55,
+            "tokens_per_second": 24.71826792355314,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        }
+      ]
+    },
+    {
+      "details": {
+        "name": "qwen3:1.7b",
+        "digest": "8f68893c685c3ddff2aa3fffce2aa60a30bb2da65ca488b61fff134a4d1730e7",
+        "installed_size_bytes": 1359293444,
+        "download_size_bytes": 1359293444,
+        "parameter_count": "2.0B",
+        "quantization": "Q4_K_M",
+        "family": "qwen3"
+      },
+      "cold": {
+        "output": "The way in which we carry out the review takes more time than it should.",
+        "wall_ms": 8377.610000025015,
+        "first_token_ms": 7565.656399994623,
+        "total_duration_ms": 8365.9295,
+        "load_duration_ms": 5342.0916,
+        "prompt_eval_duration_ms": 2154.158,
+        "generation_duration_ms": 809.392,
+        "input_tokens": 156,
+        "output_tokens": 17,
+        "tokens_per_second": 21.00341985094985,
+        "done_reason": "stop",
+        "thinking": ""
+      },
+      "runtime": {
+        "loaded_size_bytes": 1882424605,
+        "vram_bytes": 0,
+        "backend": "cpu",
+        "context_length": 4096,
+        "expires_at": "2026-08-08T01:04:33.1563973-07:00"
+      },
+      "summary": {
+        "warm_sentence_runs": 20,
+        "warm_sentence_median_ms": 1775.862349983072,
+        "warm_sentence_p95_ms": 2379.27141499531,
+        "warm_paragraph_runs": 3,
+        "warm_paragraph_median_ms": 4460.244599962607,
+        "warm_paragraph_p95_ms": 4824.665759963682,
+        "validator_accepted": 22,
+        "validator_rejected": 1,
+        "commentary_or_malformed": 0,
+        "timeouts": 0
+      },
+      "records": [
+        {
+          "id": "natural",
+          "category": "already_correct_natural",
+          "benefit": "unchanged",
+          "original_text": "The meeting starts at nine tomorrow morning.",
+          "languagetool_text": "The meeting starts at nine tomorrow morning.",
+          "candidate_output": "The meeting starts at nine tomorrow morning.",
+          "evaluation": {
+            "sanitized_output": "The meeting starts at nine tomorrow morning.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 1230.311100021936,
+            "first_token_ms": 842.7967000170611,
+            "total_duration_ms": 1216.4564,
+            "load_duration_ms": 566.4024,
+            "prompt_eval_duration_ms": 247.541,
+            "generation_duration_ms": 387.312,
+            "input_tokens": 147,
+            "output_tokens": 9,
+            "tokens_per_second": 23.23708018341802,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "lt-clean-only",
+          "category": "languagetool_clean_no_paraphrase",
+          "benefit": "unchanged_after_languagetool",
+          "original_text": "I recieved the adress yesterday.",
+          "languagetool_text": "I received the address yesterday.",
+          "candidate_output": "I received the address yesterday.",
+          "evaluation": {
+            "sanitized_output": "I received the address yesterday.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 1149.476099992171,
+            "first_token_ms": 854.5700000249781,
+            "total_duration_ms": 1147.7154,
+            "load_duration_ms": 616.0942,
+            "prompt_eval_duration_ms": 221.562,
+            "generation_duration_ms": 294.744,
+            "input_tokens": 145,
+            "output_tokens": 7,
+            "tokens_per_second": 23.749423228293026,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "awkward",
+          "category": "awkward_grammatical",
+          "benefit": "paraphrase",
+          "original_text": "The way in which we carry out the review takes more time than it should take.",
+          "languagetool_text": "The way in which we carry out the review takes more time than it should take.",
+          "candidate_output": "The way in which we conduct the review takes more time than it should.",
+          "evaluation": {
+            "sanitized_output": "The way in which we conduct the review takes more time than it should.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 1730.7362999999896,
+            "first_token_ms": 1002.7833000058308,
+            "total_duration_ms": 1728.6582,
+            "load_duration_ms": 623.5393,
+            "prompt_eval_duration_ms": 360.818,
+            "generation_duration_ms": 727.679,
+            "input_tokens": 156,
+            "output_tokens": 16,
+            "tokens_per_second": 21.987717111528575,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "esl",
+          "category": "common_esl",
+          "benefit": "paraphrase",
+          "original_text": "I am writing this email for informing you about the issue.",
+          "languagetool_text": "I am writing this email for informing you about the issue.",
+          "candidate_output": "I am writing this email to inform you about the issue.",
+          "evaluation": {
+            "sanitized_output": "I am writing this email to inform you about the issue.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 1466.973099973984,
+            "first_token_ms": 881.8532999721356,
+            "total_duration_ms": 1465.3212,
+            "load_duration_ms": 567.244,
+            "prompt_eval_duration_ms": 298.656,
+            "generation_duration_ms": 584.909,
+            "input_tokens": 151,
+            "output_tokens": 13,
+            "tokens_per_second": 22.225679550152247,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "vocabulary",
+          "category": "poor_vocabulary",
+          "benefit": "paraphrase",
+          "original_text": "The new process made a big improvement to the speed of our work.",
+          "languagetool_text": "The new process made a big improvement to the speed of our work.",
+          "candidate_output": "The new process improved the speed of our work significantly.",
+          "evaluation": {
+            "sanitized_output": "The new process improved the speed of our work significantly.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 1486.0324999899603,
+            "first_token_ms": 956.1983000021428,
+            "total_duration_ms": 1468.7569,
+            "load_duration_ms": 587.0023,
+            "prompt_eval_duration_ms": 340.971,
+            "generation_duration_ms": 529.47,
+            "input_tokens": 153,
+            "output_tokens": 12,
+            "tokens_per_second": 22.664173607569833,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "redundant",
+          "category": "redundant_wording",
+          "benefit": "paraphrase",
+          "original_text": "At this point in time, we are currently reviewing each and every request individually.",
+          "languagetool_text": "At this point in time, we are currently reviewing each and every request individually.",
+          "candidate_output": "At this point in time, we are currently reviewing each and every request individually.",
+          "evaluation": {
+            "sanitized_output": "At this point in time, we are currently reviewing each and every request individually.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 1738.933700020425,
+            "first_token_ms": 963.6241000262089,
+            "total_duration_ms": 1736.6699,
+            "load_duration_ms": 596.9219,
+            "prompt_eval_duration_ms": 349.573,
+            "generation_duration_ms": 775.228,
+            "input_tokens": 155,
+            "output_tokens": 17,
+            "tokens_per_second": 21.929032491086495,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "professional-email",
+          "category": "professional_email",
+          "benefit": "paraphrase",
+          "original_text": "I wanted to reach out to you in order to let you know that the proposal is ready for you to look at.",
+          "languagetool_text": "I wanted to reach out to you in order to let you know that the proposal is ready for you to look at.",
+          "candidate_output": "I wanted to reach out to you in order to let you know that the proposal is ready for you to review.",
+          "evaluation": {
+            "sanitized_output": "I wanted to reach out to you in order to let you know that the proposal is ready for you to review.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 2220.822999952361,
+            "first_token_ms": 1089.7723999805748,
+            "total_duration_ms": 2219.3636,
+            "load_duration_ms": 574.7852,
+            "prompt_eval_duration_ms": 498.62,
+            "generation_duration_ms": 1130.703,
+            "input_tokens": 163,
+            "output_tokens": 24,
+            "tokens_per_second": 21.225733017423675,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "conversational",
+          "category": "conversational",
+          "benefit": "paraphrase",
+          "original_text": "The app is pretty good, but the setup part is kind of hard to get through.",
+          "languagetool_text": "The app is pretty good, but the setup part is kind of hard to get through.",
+          "candidate_output": "The app is pretty good, but the setup process is a bit challenging.",
+          "evaluation": {
+            "sanitized_output": "The app is pretty good, but the setup process is a bit challenging.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 1727.1350000519305,
+            "first_token_ms": 1001.363700022921,
+            "total_duration_ms": 1725.4521,
+            "load_duration_ms": 602.5068,
+            "prompt_eval_duration_ms": 385.07,
+            "generation_duration_ms": 725.365,
+            "input_tokens": 157,
+            "output_tokens": 16,
+            "tokens_per_second": 22.057860525390666,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "restructure",
+          "category": "sentence_restructuring",
+          "benefit": "paraphrase",
+          "original_text": "Because the approval arrived late, which was unexpected, the team had to move the launch to next week.",
+          "languagetool_text": "Because the approval arrived late, which was unexpected, the team had to move the launch to next week.",
+          "candidate_output": "Because the approval arrived late, which was unexpected, the team had to move the launch to next week.",
+          "evaluation": {
+            "sanitized_output": "Because the approval arrived late, which was unexpected, the team had to move the launch to next week.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 2060.1329000201076,
+            "first_token_ms": 1042.698500037659,
+            "total_duration_ms": 2038.4266,
+            "load_duration_ms": 611.6147,
+            "prompt_eval_duration_ms": 399.025,
+            "generation_duration_ms": 1017.403,
+            "input_tokens": 160,
+            "output_tokens": 22,
+            "tokens_per_second": 21.62368304398552,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "concision",
+          "category": "concision",
+          "benefit": "paraphrase",
+          "original_text": "There are a number of different reasons why the update was delayed in its completion.",
+          "languagetool_text": "There are a number of different reasons why the update was delayed in its completion.",
+          "candidate_output": "There are several reasons why the update was delayed in its completion.",
+          "evaluation": {
+            "sanitized_output": "There are several reasons why the update was delayed in its completion.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 1782.7084999880753,
+            "first_token_ms": 1136.4962999941781,
+            "total_duration_ms": 1780.603,
+            "load_duration_ms": 709.1939,
+            "prompt_eval_duration_ms": 407.487,
+            "generation_duration_ms": 646.016,
+            "input_tokens": 155,
+            "output_tokens": 14,
+            "tokens_per_second": 21.671289875173372,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "name-org",
+          "category": "names_organizations",
+          "benefit": "conservative",
+          "original_text": "Priya Raman may send the revised accessibility report to Microsoft tomorrow.",
+          "languagetool_text": "Priya Raman may send the revised accessibility report to Microsoft tomorrow.",
+          "candidate_output": "Priya Raman may send the revised accessibility report to Microsoft tomorrow.",
+          "evaluation": {
+            "sanitized_output": "Priya Raman may send the revised accessibility report to Microsoft tomorrow.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 1611.0002999776043,
+            "first_token_ms": 928.071899979841,
+            "total_duration_ms": 1608.9231,
+            "load_duration_ms": 569.6079,
+            "prompt_eval_duration_ms": 338.13,
+            "generation_duration_ms": 682.712,
+            "input_tokens": 153,
+            "output_tokens": 15,
+            "tokens_per_second": 21.971197225184266,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "numbers",
+          "category": "numbers",
+          "benefit": "conservative",
+          "original_text": "Jordan approved 12 licenses for 18 employees across 3 offices.",
+          "languagetool_text": "Jordan approved 12 licenses for 18 employees across 3 offices.",
+          "candidate_output": "Jordan approved 12 licenses for 18 employees across 3 offices.",
+          "evaluation": {
+            "sanitized_output": "Jordan approved 12 licenses for 18 employees across 3 offices.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 1769.0161999780685,
+            "first_token_ms": 963.5794999776408,
+            "total_duration_ms": 1767.2364,
+            "load_duration_ms": 593.9272,
+            "prompt_eval_duration_ms": 352.429,
+            "generation_duration_ms": 805.452,
+            "input_tokens": 155,
+            "output_tokens": 17,
+            "tokens_per_second": 21.106161509314028,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "date-time",
+          "category": "dates_times",
+          "benefit": "conservative",
+          "original_text": "The review is scheduled for September 15, 2026, at 9:30 AM.",
+          "languagetool_text": "The review is scheduled for September 15, 2026, at 9:30 AM.",
+          "candidate_output": "The review is scheduled for September 15, 2026, at 9:30 AM.",
+          "evaluation": {
+            "sanitized_output": "The review is scheduled for September 15, 2026, at 9:30 AM.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 2366.682399995625,
+            "first_token_ms": 1199.086399981752,
+            "total_duration_ms": 2340.0461,
+            "load_duration_ms": 728.0683,
+            "prompt_eval_duration_ms": 429.691,
+            "generation_duration_ms": 1167.266,
+            "input_tokens": 163,
+            "output_tokens": 25,
+            "tokens_per_second": 21.41756891745326,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "currency",
+          "category": "currency_amounts",
+          "benefit": "conservative",
+          "original_text": "The registration fee remains CAD 1,250.50, and the refund cannot exceed CAD 300.00.",
+          "languagetool_text": "The registration fee remains CAD 1,250.50, and the refund cannot exceed CAD 300.00.",
+          "candidate_output": "The registration fee remains at CAD 1,250.50, and the refund cannot exceed CAD 300.00.",
+          "evaluation": {
+            "sanitized_output": "The registration fee remains at CAD 1,250.50, and the refund cannot exceed CAD 300.00.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 2618.4626999893226,
+            "first_token_ms": 1166.0656000021845,
+            "total_duration_ms": 2606.4038,
+            "load_duration_ms": 668.3134,
+            "prompt_eval_duration_ms": 472.107,
+            "generation_duration_ms": 1452.299,
+            "input_tokens": 168,
+            "output_tokens": 31,
+            "tokens_per_second": 21.345466739287158,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "url-email",
+          "category": "urls_emails",
+          "benefit": "conservative",
+          "original_text": "Email ops@example.com or visit https://example.com/release-7.2 for the current instructions.",
+          "languagetool_text": "Email ops@example.com or visit https://example.com/release-7.2 for the current instructions.",
+          "candidate_output": "Email ops@example.com or visit https://example.com/release-7.2 for the current instructions.",
+          "evaluation": {
+            "sanitized_output": "Email ops@example.com or visit https://example.com/release-7.2 for the current instructions.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 1976.3445999706164,
+            "first_token_ms": 1011.8822999647819,
+            "total_duration_ms": 1974.5643,
+            "load_duration_ms": 630.8214,
+            "prompt_eval_duration_ms": 364.554,
+            "generation_duration_ms": 964.341,
+            "input_tokens": 159,
+            "output_tokens": 21,
+            "tokens_per_second": 21.776529256767056,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "identifiers",
+          "category": "identifiers",
+          "benefit": "unchanged",
+          "original_text": "Do not deploy build API-42 before ticket OWR-2048 is closed.",
+          "languagetool_text": "Do not deploy build API-42 before ticket OWR-2048 is closed.",
+          "candidate_output": "Do not deploy build API-42 until ticket OWR-2048 is closed.",
+          "evaluation": {
+            "sanitized_output": "Do not deploy build API-42 until ticket OWR-2048 is closed.",
+            "validator_accepted": false,
+            "rejection_reason": "relations_not_preserved,number_context_changed",
+            "semantic_reasons": [
+              "relations_not_preserved",
+              "number_context_changed"
+            ],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 1966.1157000227831,
+            "first_token_ms": 1012.4972000485286,
+            "total_duration_ms": 1951.8479,
+            "load_duration_ms": 615.5986,
+            "prompt_eval_duration_ms": 370.34,
+            "generation_duration_ms": 953.563,
+            "input_tokens": 159,
+            "output_tokens": 21,
+            "tokens_per_second": 22.022666567389887,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "negation",
+          "category": "negation",
+          "benefit": "conservative",
+          "original_text": "The backup must not be deleted, and we never share it with external vendors.",
+          "languagetool_text": "The backup must not be deleted, and we never share it with external vendors.",
+          "candidate_output": "The backup must not be deleted, and we never share it with external vendors.",
+          "evaluation": {
+            "sanitized_output": "The backup must not be deleted, and we never share it with external vendors.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 1793.7892999616452,
+            "first_token_ms": 979.5758000109345,
+            "total_duration_ms": 1791.6311,
+            "load_duration_ms": 627.3982,
+            "prompt_eval_duration_ms": 336.647,
+            "generation_duration_ms": 814.169,
+            "input_tokens": 155,
+            "output_tokens": 17,
+            "tokens_per_second": 20.880185809088776,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "modality-commitment",
+          "category": "modality_commitment",
+          "benefit": "conservative",
+          "original_text": "Alex may approve the change, and I will deliver all three files by Friday.",
+          "languagetool_text": "Alex may approve the change, and I will deliver all three files by Friday.",
+          "candidate_output": "Alex may approve the change, and I will deliver all three files by Friday.",
+          "evaluation": {
+            "sanitized_output": "Alex may approve the change, and I will deliver all three files by Friday.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 1827.9597999644466,
+            "first_token_ms": 1019.5386999985203,
+            "total_duration_ms": 1826.0613,
+            "load_duration_ms": 664.2149,
+            "prompt_eval_duration_ms": 341.276,
+            "generation_duration_ms": 808.141,
+            "input_tokens": 155,
+            "output_tokens": 17,
+            "tokens_per_second": 21.03593308593426,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "question",
+          "category": "question",
+          "benefit": "conservative",
+          "original_text": "Could you send the signed agreement by Friday, or should I ask Elena to collect it?",
+          "languagetool_text": "Could you send the signed agreement by Friday, or should I ask Elena to collect it?",
+          "candidate_output": "Could you send the signed agreement by Friday, or should I ask Elena to collect it?",
+          "evaluation": {
+            "sanitized_output": "Could you send the signed agreement by Friday, or should I ask Elena to collect it?",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 1876.9434999558143,
+            "first_token_ms": 1004.9254999612458,
+            "total_duration_ms": 1875.5127,
+            "load_duration_ms": 570.122,
+            "prompt_eval_duration_ms": 422.369,
+            "generation_duration_ms": 871.969,
+            "input_tokens": 157,
+            "output_tokens": 19,
+            "tokens_per_second": 21.789765461845544,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "ambiguous",
+          "category": "ambiguous_conservative",
+          "benefit": "unchanged",
+          "original_text": "Morgan saw Alex with the revised draft near the bank.",
+          "languagetool_text": "Morgan saw Alex with the revised draft near the bank.",
+          "candidate_output": "Morgan saw Alex with the revised draft near the bank.",
+          "evaluation": {
+            "sanitized_output": "Morgan saw Alex with the revised draft near the bank.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 1486.5379999973811,
+            "first_token_ms": 908.5824000067078,
+            "total_duration_ms": 1474.7307,
+            "load_duration_ms": 589.4937,
+            "prompt_eval_duration_ms": 295.834,
+            "generation_duration_ms": 577.821,
+            "input_tokens": 151,
+            "output_tokens": 13,
+            "tokens_per_second": 22.498316952827953,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "short-paragraph",
+          "category": "multi_sentence_paragraph",
+          "benefit": "paraphrase",
+          "original_text": "The current review process takes a long time and creates unnecessary work for the support team. Employees must open three separate screens before they can answer a simple request. A shorter checklist would make the work clearer and faster without removing the final security review.",
+          "languagetool_text": "The current review process takes a long time and creates unnecessary work for the support team. Employees must open three separate screens before they can answer a simple request. A shorter checklist would make the work clearer and faster without removing the final security review.",
+          "candidate_output": "The current review process takes a long time and creates unnecessary work for the support team. Employees must open three separate screens before they can answer a simple request. A shorter checklist would make the work clearer and faster without removing the final security review.",
+          "evaluation": {
+            "sanitized_output": "The current review process takes a long time and creates unnecessary work for the support team. Employees must open three separate screens before they can answer a simple request. A shorter checklist would make the work clearer and faster without removing the final security review.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 3702.8004999738187,
+            "first_token_ms": 1356.1116000055335,
+            "total_duration_ms": 3700.7616,
+            "load_duration_ms": 572.356,
+            "prompt_eval_duration_ms": 764.863,
+            "generation_duration_ms": 2346.691,
+            "input_tokens": 187,
+            "output_tokens": 49,
+            "tokens_per_second": 20.88046530199332,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "professional-paragraph",
+          "category": "professional_paragraph",
+          "benefit": "paraphrase",
+          "original_text": "Thank you for sharing the first version of the plan. I think the overall direction is good, but some parts are difficult to follow and could be presented in a clearer way. Please focus especially on the explanation of the customer handoff, because new employees have said that this section is confusing.",
+          "languagetool_text": "Thank you for sharing the first version of the plan. I think the overall direction is good, but some parts are difficult to follow and could be presented in a clearer way. Please focus especially on the explanation of the customer handoff, because new employees have said that this section is confusing.",
+          "candidate_output": "Thank you for sharing the first version of the plan. I think the overall direction is good, but some parts are difficult to follow and could be presented in a clearer way. Please focus especially on the explanation of the customer handoff, because new employees have said that this section is confusing.",
+          "evaluation": {
+            "sanitized_output": "Thank you for sharing the first version of the plan. I think the overall direction is good, but some parts are difficult to follow and could be presented in a clearer way. Please focus especially on the explanation of the customer handoff, because new employees have said that this section is confusing.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 4460.244599962607,
+            "first_token_ms": 1496.8753999564797,
+            "total_duration_ms": 4458.7217,
+            "load_duration_ms": 468.7157,
+            "prompt_eval_duration_ms": 1013.66,
+            "generation_duration_ms": 2962.951,
+            "input_tokens": 197,
+            "output_tokens": 59,
+            "tokens_per_second": 19.912580397043353,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "several-paragraphs",
+          "category": "several_paragraphs",
+          "benefit": "paraphrase",
+          "original_text": "Hello Mina,\n\nThe report is ready for review, but the summary is longer than it needs to be. Please send your comments by Thursday.\n\nI will not publish build API-42 until you approve it. The release may move to Friday if the final security check takes longer than expected.\n\nRegards,\nCarlos",
+          "languagetool_text": "Hello Mina,\n\nThe report is ready for review, but the summary is longer than it needs to be. Please send your comments by Thursday.\n\nI will not publish build API-42 until you approve it. The release may move to Friday if the final security check takes longer than expected.\n\nRegards,\nCarlos",
+          "candidate_output": "Hello Mina,  \n\nThe report is ready for review, but the summary is longer than it needs to be. Please send your comments by Thursday.  \n\nI will not publish build API-42 until you approve it. The release may move to Friday if the final security check takes longer than expected.  \n\nRegards,  \nCarlos",
+          "evaluation": {
+            "sanitized_output": "Hello Mina,  \n\nThe report is ready for review, but the summary is longer than it needs to be. Please send your comments by Thursday.  \n\nI will not publish build API-42 until you approve it. The release may move to Friday if the final security check takes longer than expected.  \n\nRegards,  \nCarlos",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 4865.156999963801,
+            "first_token_ms": 1555.001300002914,
+            "total_duration_ms": 4863.2388,
+            "load_duration_ms": 578.4586,
+            "prompt_eval_duration_ms": 947.94,
+            "generation_duration_ms": 3310.081,
+            "input_tokens": 201,
+            "output_tokens": 67,
+            "tokens_per_second": 20.24119651452638,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        }
+      ]
+    },
+    {
+      "details": {
+        "name": "llama3.2:1b",
+        "digest": "baf6a787fdffd633537aa2eb51cfd54cb93ff08e28040095462bb63daf552878",
+        "installed_size_bytes": 1321098329,
+        "download_size_bytes": 1321098329,
+        "parameter_count": "1.2B",
+        "quantization": "Q8_0",
+        "family": "llama"
+      },
+      "cold": {
+        "output": "We spend too much time on this review process.",
+        "wall_ms": 11081.055400019977,
+        "first_token_ms": 10401.086000027135,
+        "total_duration_ms": 11068.0037,
+        "load_duration_ms": 7664.801,
+        "prompt_eval_duration_ms": 2653.283,
+        "generation_duration_ms": 713.941,
+        "input_tokens": 160,
+        "output_tokens": 11,
+        "tokens_per_second": 15.407435628434282,
+        "done_reason": "stop",
+        "thinking": ""
+      },
+      "runtime": {
+        "loaded_size_bytes": 1519292251,
+        "vram_bytes": 0,
+        "backend": "cpu",
+        "context_length": 4096,
+        "expires_at": "2026-08-08T01:05:47.8478223-07:00"
+      },
+      "summary": {
+        "warm_sentence_runs": 20,
+        "warm_sentence_median_ms": 1732.0110000146087,
+        "warm_sentence_p95_ms": 2488.3926700014854,
+        "warm_paragraph_runs": 3,
+        "warm_paragraph_median_ms": 5033.40620000381,
+        "warm_paragraph_p95_ms": 16194.759710010838,
+        "validator_accepted": 5,
+        "validator_rejected": 18,
+        "commentary_or_malformed": 0,
+        "timeouts": 0
+      },
+      "records": [
+        {
+          "id": "natural",
+          "category": "already_correct_natural",
+          "benefit": "unchanged",
+          "original_text": "The meeting starts at nine tomorrow morning.",
+          "languagetool_text": "The meeting starts at nine tomorrow morning.",
+          "candidate_output": "The meeting will take place tomorrow morning at nine o'clock.",
+          "evaluation": {
+            "sanitized_output": "The meeting will take place tomorrow morning at nine o'clock.",
+            "validator_accepted": false,
+            "rejection_reason": "modality_not_preserved",
+            "semantic_reasons": [
+              "modality_not_preserved"
+            ],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 1567.356200015638,
+            "first_token_ms": 935.9813000191934,
+            "total_duration_ms": 1536.8245,
+            "load_duration_ms": 720.4159,
+            "prompt_eval_duration_ms": 172.595,
+            "generation_duration_ms": 631.353,
+            "input_tokens": 151,
+            "output_tokens": 13,
+            "tokens_per_second": 20.590699656135317,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "lt-clean-only",
+          "category": "languagetool_clean_no_paraphrase",
+          "benefit": "unchanged_after_languagetool",
+          "original_text": "I recieved the adress yesterday.",
+          "languagetool_text": "I received the address yesterday.",
+          "candidate_output": "I received the address yesterday.",
+          "evaluation": {
+            "sanitized_output": "I received the address yesterday.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 1216.1965999985114,
+            "first_token_ms": 912.4466000357643,
+            "total_duration_ms": 1203.1696,
+            "load_duration_ms": 731.5055,
+            "prompt_eval_duration_ms": 154.38,
+            "generation_duration_ms": 303.51,
+            "input_tokens": 149,
+            "output_tokens": 7,
+            "tokens_per_second": 23.063490494547132,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "awkward",
+          "category": "awkward_grammatical",
+          "benefit": "paraphrase",
+          "original_text": "The way in which we carry out the review takes more time than it should take.",
+          "languagetool_text": "The way in which we carry out the review takes more time than it should take.",
+          "candidate_output": "We spend too much time on this review process.",
+          "evaluation": {
+            "sanitized_output": "We spend too much time on this review process.",
+            "validator_accepted": false,
+            "rejection_reason": "modality_not_preserved,reference_not_preserved,meaning_anchor_not_preserved",
+            "semantic_reasons": [
+              "modality_not_preserved",
+              "reference_not_preserved",
+              "meaning_anchor_not_preserved"
+            ],
+            "meaning_anchor_preserved": false
+          },
+          "telemetry": {
+            "wall_ms": 1630.6663999566808,
+            "first_token_ms": 1121.102700009942,
+            "total_duration_ms": 1609.6552,
+            "load_duration_ms": 811.935,
+            "prompt_eval_duration_ms": 279.644,
+            "generation_duration_ms": 509.228,
+            "input_tokens": 160,
+            "output_tokens": 11,
+            "tokens_per_second": 21.60132592866064,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "esl",
+          "category": "common_esl",
+          "benefit": "paraphrase",
+          "original_text": "I am writing this email for informing you about the issue.",
+          "languagetool_text": "I am writing this email for informing you about the issue.",
+          "candidate_output": "Here is a rewritten version:\n\nI am writing to bring to your attention an issue that has arisen.",
+          "evaluation": {
+            "sanitized_output": "Here is a rewritten version:\n\nI am writing to bring to your attention an issue that has arisen.",
+            "validator_accepted": false,
+            "rejection_reason": "reference_not_preserved",
+            "semantic_reasons": [
+              "reference_not_preserved"
+            ],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 2038.5120999999344,
+            "first_token_ms": 1103.359599946998,
+            "total_duration_ms": 2036.5632,
+            "load_duration_ms": 876.5845,
+            "prompt_eval_duration_ms": 210.674,
+            "generation_duration_ms": 934.702,
+            "input_tokens": 155,
+            "output_tokens": 21,
+            "tokens_per_second": 22.467053670581638,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "vocabulary",
+          "category": "poor_vocabulary",
+          "benefit": "paraphrase",
+          "original_text": "The new process made a big improvement to the speed of our work.",
+          "languagetool_text": "The new process made a big improvement to the speed of our work.",
+          "candidate_output": "Our new process has significantly enhanced our productivity and efficiency.",
+          "evaluation": {
+            "sanitized_output": "Our new process has significantly enhanced our productivity and efficiency.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 1573.8335000351071,
+            "first_token_ms": 985.9545000363141,
+            "total_duration_ms": 1571.1645,
+            "load_duration_ms": 739.4947,
+            "prompt_eval_duration_ms": 235.389,
+            "generation_duration_ms": 587.571,
+            "input_tokens": 157,
+            "output_tokens": 12,
+            "tokens_per_second": 20.42306376591084,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "redundant",
+          "category": "redundant_wording",
+          "benefit": "paraphrase",
+          "original_text": "At this point in time, we are currently reviewing each and every request individually.",
+          "languagetool_text": "At this point in time, we are currently reviewing each and every request individually.",
+          "candidate_output": "We are currently reviewing each and every request individually.",
+          "evaluation": {
+            "sanitized_output": "We are currently reviewing each and every request individually.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 1597.3477000370622,
+            "first_token_ms": 1091.6300000390038,
+            "total_duration_ms": 1573.2511,
+            "load_duration_ms": 795.3677,
+            "prompt_eval_duration_ms": 262.829,
+            "generation_duration_ms": 505.272,
+            "input_tokens": 159,
+            "output_tokens": 11,
+            "tokens_per_second": 21.770452350417205,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "professional-email",
+          "category": "professional_email",
+          "benefit": "paraphrase",
+          "original_text": "I wanted to reach out to you in order to let you know that the proposal is ready for you to look at.",
+          "languagetool_text": "I wanted to reach out to you in order to let you know that the proposal is ready for you to look at.",
+          "candidate_output": "Here's a rewritten version with improved phrasing and clarity:\n\n\"I am pleased to inform you that the proposal is now available for review.\"",
+          "evaluation": {
+            "sanitized_output": "Here's a rewritten version with improved phrasing and clarity:\n\n\"I am pleased to inform you that the proposal is now available for review.\"",
+            "validator_accepted": false,
+            "rejection_reason": "quotes_not_preserved,meaning_anchor_not_preserved",
+            "semantic_reasons": [
+              "quotes_not_preserved",
+              "meaning_anchor_not_preserved"
+            ],
+            "meaning_anchor_preserved": false
+          },
+          "telemetry": {
+            "wall_ms": 2506.18939998094,
+            "first_token_ms": 1190.0891999830492,
+            "total_duration_ms": 2484.4473,
+            "load_duration_ms": 796.4075,
+            "prompt_eval_duration_ms": 359.768,
+            "generation_duration_ms": 1315.783,
+            "input_tokens": 167,
+            "output_tokens": 28,
+            "tokens_per_second": 21.280104698115117,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "conversational",
+          "category": "conversational",
+          "benefit": "paraphrase",
+          "original_text": "The app is pretty good, but the setup part is kind of hard to get through.",
+          "languagetool_text": "The app is pretty good, but the setup part is kind of hard to get through.",
+          "candidate_output": "The app is quite good, but the setup process can be a bit tricky to navigate.",
+          "evaluation": {
+            "sanitized_output": "The app is quite good, but the setup process can be a bit tricky to navigate.",
+            "validator_accepted": false,
+            "rejection_reason": "modality_not_preserved",
+            "semantic_reasons": [
+              "modality_not_preserved"
+            ],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 1909.3057999853045,
+            "first_token_ms": 1062.891600013245,
+            "total_duration_ms": 1897.5045,
+            "load_duration_ms": 755.3072,
+            "prompt_eval_duration_ms": 282.319,
+            "generation_duration_ms": 846.312,
+            "input_tokens": 161,
+            "output_tokens": 19,
+            "tokens_per_second": 22.450349280170904,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "restructure",
+          "category": "sentence_restructuring",
+          "benefit": "paraphrase",
+          "original_text": "Because the approval arrived late, which was unexpected, the team had to move the launch to next week.",
+          "languagetool_text": "Because the approval arrived late, which was unexpected, the team had to move the launch to next week.",
+          "candidate_output": "The team had to reschedule the launch due to the approval arriving late.",
+          "evaluation": {
+            "sanitized_output": "The team had to reschedule the launch due to the approval arriving late.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 1902.6434000115842,
+            "first_token_ms": 1145.1793999876827,
+            "total_duration_ms": 1900.8367,
+            "load_duration_ms": 796.4491,
+            "prompt_eval_duration_ms": 335.54,
+            "generation_duration_ms": 756.881,
+            "input_tokens": 164,
+            "output_tokens": 16,
+            "tokens_per_second": 21.13938650857929,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "concision",
+          "category": "concision",
+          "benefit": "paraphrase",
+          "original_text": "There are a number of different reasons why the update was delayed in its completion.",
+          "languagetool_text": "There are a number of different reasons why the update was delayed in its completion.",
+          "candidate_output": "The update has been delayed due to various reasons, including technical issues and unforeseen complexities.",
+          "evaluation": {
+            "sanitized_output": "The update has been delayed due to various reasons, including technical issues and unforeseen complexities.",
+            "validator_accepted": false,
+            "rejection_reason": "relations_not_preserved",
+            "semantic_reasons": [
+              "relations_not_preserved"
+            ],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 1891.9555999455042,
+            "first_token_ms": 1047.0875999890268,
+            "total_duration_ms": 1889.6829,
+            "load_duration_ms": 769.5505,
+            "prompt_eval_duration_ms": 265.242,
+            "generation_duration_ms": 844.69,
+            "input_tokens": 159,
+            "output_tokens": 19,
+            "tokens_per_second": 22.493459138855673,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "name-org",
+          "category": "names_organizations",
+          "benefit": "conservative",
+          "original_text": "Priya Raman may send the revised accessibility report to Microsoft tomorrow.",
+          "languagetool_text": "Priya Raman may send the revised accessibility report to Microsoft tomorrow.",
+          "candidate_output": "Priya Raman will send her revised accessibility report to Microsoft tomorrow.",
+          "evaluation": {
+            "sanitized_output": "Priya Raman will send her revised accessibility report to Microsoft tomorrow.",
+            "validator_accepted": false,
+            "rejection_reason": "modality_not_preserved",
+            "semantic_reasons": [
+              "modality_not_preserved"
+            ],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 1642.9343999479897,
+            "first_token_ms": 980.0188999506645,
+            "total_duration_ms": 1641.0752,
+            "load_duration_ms": 729.1083,
+            "prompt_eval_duration_ms": 239.172,
+            "generation_duration_ms": 662.54,
+            "input_tokens": 157,
+            "output_tokens": 15,
+            "tokens_per_second": 22.640142481963352,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "numbers",
+          "category": "numbers",
+          "benefit": "conservative",
+          "original_text": "Jordan approved 12 licenses for 18 employees across 3 offices.",
+          "languagetool_text": "Jordan approved 12 licenses for 18 employees across 3 offices.",
+          "candidate_output": "Jordan approved 12 licenses for 18 employees across 3 offices.",
+          "evaluation": {
+            "sanitized_output": "Jordan approved 12 licenses for 18 employees across 3 offices.",
+            "validator_accepted": true,
+            "rejection_reason": null,
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 1693.4642000123858,
+            "first_token_ms": 1022.6956999977119,
+            "total_duration_ms": 1691.3592,
+            "load_duration_ms": 771.3119,
+            "prompt_eval_duration_ms": 238.206,
+            "generation_duration_ms": 670.671,
+            "input_tokens": 157,
+            "output_tokens": 15,
+            "tokens_per_second": 22.365660659250214,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "date-time",
+          "category": "dates_times",
+          "benefit": "conservative",
+          "original_text": "The review is scheduled for September 15, 2026, at 9:30 AM.",
+          "languagetool_text": "The review is scheduled for September 15, 2026, at 9:30 AM.",
+          "candidate_output": "September 15, 2026, 9:30 AM",
+          "evaluation": {
+            "sanitized_output": "September 15, 2026, 9:30 AM",
+            "validator_accepted": false,
+            "rejection_reason": "times_not_preserved,meaning_anchor_not_preserved",
+            "semantic_reasons": [
+              "times_not_preserved",
+              "meaning_anchor_not_preserved"
+            ],
+            "meaning_anchor_preserved": false
+          },
+          "telemetry": {
+            "wall_ms": 1770.5578000168316,
+            "first_token_ms": 1124.8864000081085,
+            "total_duration_ms": 1768.9763,
+            "load_duration_ms": 782.2405,
+            "prompt_eval_duration_ms": 330.497,
+            "generation_duration_ms": 645.699,
+            "input_tokens": 163,
+            "output_tokens": 14,
+            "tokens_per_second": 21.681929196111504,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "currency",
+          "category": "currency_amounts",
+          "benefit": "conservative",
+          "original_text": "The registration fee remains CAD 1,250.50, and the refund cannot exceed CAD 300.00.",
+          "languagetool_text": "The registration fee remains CAD 1,250.50, and the refund cannot exceed CAD 300.00.",
+          "candidate_output": "The registration fee is CAD 1,250.50, and a refund of no more than CAD 300.00 is allowed.",
+          "evaluation": {
+            "sanitized_output": "The registration fee is CAD 1,250.50, and a refund of no more than CAD 300.00 is allowed.",
+            "validator_accepted": false,
+            "rejection_reason": "negation_not_preserved,modality_not_preserved,number_context_changed,reference_not_preserved",
+            "semantic_reasons": [
+              "negation_not_preserved",
+              "modality_not_preserved",
+              "number_context_changed",
+              "reference_not_preserved"
+            ],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 2487.4560000025667,
+            "first_token_ms": 1106.0107999946922,
+            "total_duration_ms": 2485.3286,
+            "load_duration_ms": 735.4886,
+            "prompt_eval_duration_ms": 362.215,
+            "generation_duration_ms": 1380.753,
+            "input_tokens": 166,
+            "output_tokens": 28,
+            "tokens_per_second": 20.27878990666687,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "url-email",
+          "category": "urls_emails",
+          "benefit": "conservative",
+          "original_text": "Email ops@example.com or visit https://example.com/release-7.2 for the current instructions.",
+          "languagetool_text": "Email ops@example.com or visit https://example.com/release-7.2 for the current instructions.",
+          "candidate_output": "Email: \nOps:\nVisit: \nRelease 7.2:",
+          "evaluation": {
+            "sanitized_output": "Email: \nops:\nvisit: \nrelease 7.2:",
+            "validator_accepted": false,
+            "rejection_reason": "urls_not_preserved,emails_not_preserved,identifiers_not_preserved,number_context_changed,meaning_anchor_not_preserved",
+            "semantic_reasons": [
+              "urls_not_preserved",
+              "emails_not_preserved",
+              "identifiers_not_preserved",
+              "number_context_changed",
+              "meaning_anchor_not_preserved"
+            ],
+            "meaning_anchor_preserved": false
+          },
+          "telemetry": {
+            "wall_ms": 1862.0740000042133,
+            "first_token_ms": 1162.5562999979593,
+            "total_duration_ms": 1848.5109,
+            "load_duration_ms": 800.3208,
+            "prompt_eval_duration_ms": 339.491,
+            "generation_duration_ms": 698.785,
+            "input_tokens": 163,
+            "output_tokens": 15,
+            "tokens_per_second": 21.465829976316034,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "identifiers",
+          "category": "identifiers",
+          "benefit": "unchanged",
+          "original_text": "Do not deploy build API-42 before ticket OWR-2048 is closed.",
+          "languagetool_text": "Do not deploy build API-42 before ticket OWR-2048 is closed.",
+          "candidate_output": "Do not deploy build 42.0.4 before ticket OWR-2048 is closed.",
+          "evaluation": {
+            "sanitized_output": "Do not deploy build 42.0.4 before ticket OWR-2048 is closed.",
+            "validator_accepted": false,
+            "rejection_reason": "numbers_not_preserved,identifiers_not_preserved,number_context_changed",
+            "semantic_reasons": [
+              "numbers_not_preserved",
+              "identifiers_not_preserved",
+              "number_context_changed"
+            ],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 2151.8400000059046,
+            "first_token_ms": 1164.747399976477,
+            "total_duration_ms": 2150.4325,
+            "load_duration_ms": 884.2964,
+            "prompt_eval_duration_ms": 268.964,
+            "generation_duration_ms": 986.731,
+            "input_tokens": 160,
+            "output_tokens": 21,
+            "tokens_per_second": 21.28239611403716,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "negation",
+          "category": "negation",
+          "benefit": "conservative",
+          "original_text": "The backup must not be deleted, and we never share it with external vendors.",
+          "languagetool_text": "The backup must not be deleted, and we never share it with external vendors.",
+          "candidate_output": "We protect our backups and ensure they remain secure and confidential. We do not share them with external vendors or any third parties.",
+          "evaluation": {
+            "sanitized_output": "We protect our backups and ensure they remain secure and confidential. We do not share them with external vendors or any third parties.",
+            "validator_accepted": false,
+            "rejection_reason": "negation_not_preserved,modality_not_preserved",
+            "semantic_reasons": [
+              "negation_not_preserved",
+              "modality_not_preserved"
+            ],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 2350.405699980911,
+            "first_token_ms": 1124.237500014715,
+            "total_duration_ms": 2348.5384,
+            "load_duration_ms": 837.6592,
+            "prompt_eval_duration_ms": 275.143,
+            "generation_duration_ms": 1226.197,
+            "input_tokens": 159,
+            "output_tokens": 26,
+            "tokens_per_second": 21.203770682851125,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "modality-commitment",
+          "category": "modality_commitment",
+          "benefit": "conservative",
+          "original_text": "Alex may approve the change, and I will deliver all three files by Friday.",
+          "languagetool_text": "Alex may approve the change, and I will deliver all three files by Friday.",
+          "candidate_output": "I can deliver all three files by Friday.",
+          "evaluation": {
+            "sanitized_output": "I can deliver all three files by Friday.",
+            "validator_accepted": false,
+            "rejection_reason": "names_not_preserved,modality_not_preserved,intent_not_preserved,meaning_anchor_not_preserved",
+            "semantic_reasons": [
+              "names_not_preserved",
+              "modality_not_preserved",
+              "intent_not_preserved",
+              "meaning_anchor_not_preserved"
+            ],
+            "meaning_anchor_preserved": false
+          },
+          "telemetry": {
+            "wall_ms": 1618.600099987816,
+            "first_token_ms": 1178.115800023079,
+            "total_duration_ms": 1605.2179,
+            "load_duration_ms": 887.1176,
+            "prompt_eval_duration_ms": 263.797,
+            "generation_duration_ms": 441.651,
+            "input_tokens": 159,
+            "output_tokens": 10,
+            "tokens_per_second": 22.642312595239225,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "question",
+          "category": "question",
+          "benefit": "conservative",
+          "original_text": "Could you send the signed agreement by Friday, or should I ask Elena to collect it?",
+          "languagetool_text": "Could you send the signed agreement by Friday, or should I ask Elena to collect it?",
+          "candidate_output": "I can't help you with that.",
+          "evaluation": {
+            "sanitized_output": null,
+            "validator_accepted": false,
+            "rejection_reason": "obvious_truncation",
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": false
+          },
+          "telemetry": {
+            "wall_ms": 1466.1145000136457,
+            "first_token_ms": 1067.9355000029318,
+            "total_duration_ms": 1464.6118,
+            "load_duration_ms": 737.8024,
+            "prompt_eval_duration_ms": 318.8,
+            "generation_duration_ms": 398.473,
+            "input_tokens": 161,
+            "output_tokens": 9,
+            "tokens_per_second": 22.586222905943437,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "ambiguous",
+          "category": "ambiguous_conservative",
+          "benefit": "unchanged",
+          "original_text": "Morgan saw Alex with the revised draft near the bank.",
+          "languagetool_text": "Morgan saw Alex with the revised draft near the bank.",
+          "candidate_output": "Morgan was seen with Alex near the bank.",
+          "evaluation": {
+            "sanitized_output": "Morgan was seen with Alex near the bank.",
+            "validator_accepted": false,
+            "rejection_reason": "names_not_preserved",
+            "semantic_reasons": [
+              "names_not_preserved"
+            ],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 1576.6664000111632,
+            "first_token_ms": 1020.6273999647237,
+            "total_duration_ms": 1575.1658,
+            "load_duration_ms": 744.8985,
+            "prompt_eval_duration_ms": 262.98,
+            "generation_duration_ms": 555.844,
+            "input_tokens": 155,
+            "output_tokens": 11,
+            "tokens_per_second": 19.789725174689302,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "short-paragraph",
+          "category": "multi_sentence_paragraph",
+          "benefit": "paraphrase",
+          "original_text": "The current review process takes a long time and creates unnecessary work for the support team. Employees must open three separate screens before they can answer a simple request. A shorter checklist would make the work clearer and faster without removing the final security review.",
+          "languagetool_text": "The current review process takes a long time and creates unnecessary work for the support team. Employees must open three separate screens before they can answer a simple request. A shorter checklist would make the work clearer and faster without removing the final security review.",
+          "candidate_output": "The current review process is taking too long and is causing unnecessary workload for the support team. To answer a simple request, employees need to open three separate screens, which is a cumbersome process that adds extra time and effort. A shorter checklist would make the work clearer and faster without compromising the final security review.",
+          "evaluation": {
+            "sanitized_output": "The current review process is taking too long and is causing unnecessary workload for the support team. To answer a simple request, Employees need to open three separate screens, which is a cumbersome process that adds extra time and effort. A shorter checklist would make the work clearer and faster without compromising the final security review.",
+            "validator_accepted": false,
+            "rejection_reason": "names_not_preserved,modality_not_preserved,relations_not_preserved",
+            "semantic_reasons": [
+              "names_not_preserved",
+              "modality_not_preserved",
+              "relations_not_preserved"
+            ],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 4560.153200000059,
+            "first_token_ms": 1456.3037999905646,
+            "total_duration_ms": 4558.3743,
+            "load_duration_ms": 665.9983,
+            "prompt_eval_duration_ms": 779.806,
+            "generation_duration_ms": 3103.474,
+            "input_tokens": 191,
+            "output_tokens": 62,
+            "tokens_per_second": 19.977612185570106,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "professional-paragraph",
+          "category": "professional_paragraph",
+          "benefit": "paraphrase",
+          "original_text": "Thank you for sharing the first version of the plan. I think the overall direction is good, but some parts are difficult to follow and could be presented in a clearer way. Please focus especially on the explanation of the customer handoff, because new employees have said that this section is confusing.",
+          "languagetool_text": "Thank you for sharing the first version of the plan. I think the overall direction is good, but some parts are difficult to follow and could be presented in a clearer way. Please focus especially on the explanation of the customer handoff, because new employees have said that this section is confusing.",
+          "candidate_output": "Here's a rewritten version of the plan:\n\n**Customer Handoff Plan**\n\nThe purpose of this plan is to outline the steps and procedures for transferring ownership and responsibility of customer relationships with existing customers.\n\n**Key Components**\n\n*   The handoff process will involve:\n    *   Reviewing customer interactions and feedback\n    *   Identifying key customer concerns and issues\n    *   Developing a plan to address these concerns and issues\n    *   Communicating the plan to the customer and stakeholders\n    *   Ensuring a smooth transition of ownership and responsibility\n\n**Handoff Process**\n\n1.  Review customer interactions and feedback to identify key customer concerns and issues.\n2.  Develop a plan to address these concerns and issues, including any necessary changes to products or services.\n3.  Communicate the plan to the customer and stakeholders, including any relevant details and timelines.\n4.  Ensure a smooth transition of ownership and responsibility, including:\n    *   Handing over customer data and information\n    *   Transferring customer support resources and expertise\n    *   Coordinating with internal teams to ensure a seamless handover\n\n**Key Considerations**\n\n*   The handoff process should be tailored to the specific needs and requirements of each customer.\n*   The plan should include clear timelines and milestones to ensure a smooth transition.\n*   The handoff process should be documented and tracked to ensure accountability and visibility.\n\nBy following this plan, organizations can ensure that customer relationships are transferred in a timely and effective manner, minimizing disruption to customers and stakeholders.",
+          "evaluation": {
+            "sanitized_output": null,
+            "validator_accepted": false,
+            "rejection_reason": "excessive_expansion",
+            "semantic_reasons": [],
+            "meaning_anchor_preserved": false
+          },
+          "telemetry": {
+            "wall_ms": 17434.91010001162,
+            "first_token_ms": 1572.39699998172,
+            "total_duration_ms": 17420.5259,
+            "load_duration_ms": 627.759,
+            "prompt_eval_duration_ms": 919.619,
+            "generation_duration_ms": 15861.884,
+            "input_tokens": 201,
+            "output_tokens": 313,
+            "tokens_per_second": 19.732838797711544,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        },
+        {
+          "id": "several-paragraphs",
+          "category": "several_paragraphs",
+          "benefit": "paraphrase",
+          "original_text": "Hello Mina,\n\nThe report is ready for review, but the summary is longer than it needs to be. Please send your comments by Thursday.\n\nI will not publish build API-42 until you approve it. The release may move to Friday if the final security check takes longer than expected.\n\nRegards,\nCarlos",
+          "languagetool_text": "Hello Mina,\n\nThe report is ready for review, but the summary is longer than it needs to be. Please send your comments by Thursday.\n\nI will not publish build API-42 until you approve it. The release may move to Friday if the final security check takes longer than expected.\n\nRegards,\nCarlos",
+          "candidate_output": "Here is the rewritten text:\n\nHello Carlos,\n\nThe report is ready for review, but the summary needs to be condensed. Please let me know by Thursday if this is acceptable.\n\nI will not publish build API-42 until you approve it. The release may be delayed to Friday if the final security check takes longer than expected.\n\nRegards,\nMina",
+          "evaluation": {
+            "sanitized_output": "Here is the rewritten text:\n\nHello Carlos,\n\nThe report is ready for review, but the summary needs to be condensed. Please let me know by Thursday if this is acceptable.\n\nI will not publish build API-42 until you approve it. The release may be delayed to Friday if the final security check takes longer than expected.\n\nRegards,\nMina",
+            "validator_accepted": false,
+            "rejection_reason": "names_not_preserved",
+            "semantic_reasons": [
+              "names_not_preserved"
+            ],
+            "meaning_anchor_preserved": true
+          },
+          "telemetry": {
+            "wall_ms": 5033.40620000381,
+            "first_token_ms": 1728.7138000247069,
+            "total_duration_ms": 5031.4328,
+            "load_duration_ms": 859.0267,
+            "prompt_eval_duration_ms": 843.837,
+            "generation_duration_ms": 3304.478,
+            "input_tokens": 204,
+            "output_tokens": 70,
+            "tokens_per_second": 21.183376012792337,
+            "done_reason": "stop",
+            "thinking": ""
+          }
+        }
+      ]
+    }
+  ]
+}

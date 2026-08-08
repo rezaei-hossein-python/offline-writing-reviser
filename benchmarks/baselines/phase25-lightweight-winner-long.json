@@ -1,0 +1,203 @@
+{
+  "generated_at": "2026-08-08T07:58:01.446528+00:00",
+  "model": {
+    "name": "qwen3:1.7b",
+    "digest": "8f68893c685c3ddff2aa3fffce2aa60a30bb2da65ca488b61fff134a4d1730e7",
+    "installed_size_bytes": 1359293444,
+    "download_size_bytes": 1359293444,
+    "parameter_count": "2.0B",
+    "quantization": "Q4_K_M",
+    "family": "qwen3"
+  },
+  "runtime": {
+    "loaded_size_bytes": 1882424605,
+    "vram_bytes": 0,
+    "backend": "cpu",
+    "context_length": 4096,
+    "expires_at": "2026-08-08T01:08:01.4428521-07:00"
+  },
+  "word_count": 474,
+  "chunk_policy": "one structure-preserving request per source paragraph",
+  "chunk_count": 6,
+  "model_request_count": 6,
+  "total_model_duration_ms": 48299.858000013046,
+  "accepted_paraphrases": 3,
+  "validator_rejections": 3,
+  "timeouts": 0,
+  "structure_preserved": true,
+  "records": [
+    {
+      "section": 1,
+      "original_text": "Hello Priya, I am writing this email for informing you about the quarterly planning issue. The operations team have reviewed the draft, and they discussed about the schedule with Microsoft yesterday. We recieved three updated documents, but the final adress for the Vancouver workshop is still missing. Please do not send build API-42 to clients before September 15, 2026, because Jordan Lee may need to approve it first. The registration fee remains CAD 1,250.50 for 12 participants, and the meeting starts at 9:30 AM.",
+      "languagetool_text": "Hello Priya, I am writing this email for informing you about the quarterly planning issue. The operations team have reviewed the draft, and they discussed the schedule with Microsoft yesterday. We received three updated documents, but the final address for the Vancouver workshop is still missing. Please do not send build API-42 to clients before September 15, 2026, because Jordan Lee may need to approve it first. The registration fee remains CAD 1,250.50 for 12 participants, and the meeting starts at 9:30 AM.",
+      "candidate_output": "Hello Priya, I am writing this email to inform you about the quarterly planning issue. The operations team has reviewed the draft and discussed the schedule with Microsoft yesterday. We received three updated documents, but the final address for the Vancouver workshop is still missing. Please do not send the build API-42 to clients before September 15, 2026, as Jordan Lee may need to approve it first. The registration fee remains CAD 1,250.50 for 12 participants, and the meeting starts at 9:30 AM.",
+      "evaluation": {
+        "sanitized_output": "Hello Priya, I am writing this email to inform you about the quarterly planning issue. The operations team has reviewed the draft and discussed the schedule with Microsoft yesterday. We received three updated documents, but the final address for the Vancouver workshop is still missing. Please do not send the build API-42 to clients before September 15, 2026, as Jordan Lee may need to approve it first. The registration fee remains CAD 1,250.50 for 12 participants, and the meeting starts at 9:30 AM.",
+        "validator_accepted": false,
+        "rejection_reason": "relations_not_preserved,number_context_changed",
+        "semantic_reasons": [
+          "relations_not_preserved",
+          "number_context_changed"
+        ],
+        "meaning_anchor_preserved": true
+      },
+      "telemetry": {
+        "wall_ms": 15469.03239999665,
+        "first_token_ms": 10030.211499950383,
+        "total_duration_ms": 15453.7365,
+        "load_duration_ms": 7014.2313,
+        "prompt_eval_duration_ms": 2807.462,
+        "generation_duration_ms": 5461.979,
+        "input_tokens": 257,
+        "output_tokens": 118,
+        "tokens_per_second": 21.603891190354265,
+        "done_reason": "stop",
+        "thinking": ""
+      },
+      "used_languagetool_fallback": true
+    },
+    {
+      "section": 2,
+      "original_text": "The current process is very slow in nature and it creates a large amount of unnecessary extra work for the support team. We need to make an improvement to the process so employees can complete requests in a faster and more clear way. According to me, the second option is more better because it removes duplicate steps and gives staff a simple checklist. However, we must not remove the final security review, and we cannot change ticket OWR-2048 until Legal confirms the requirement.",
+      "languagetool_text": "The current process is very slow in nature, and it creates a large amount of unnecessary extra work for the support team. We need to make an improvement to the process, so employees can complete requests in a faster and more clear way. In my opinion, the second option is better because it removes duplicate steps and gives staff a simple checklist. However, we must not remove the final security review, and we cannot change ticket OWR-2048 until Legal confirms the requirement.",
+      "candidate_output": "The current process is very slow and creates a large amount of unnecessary work for the support team. We need to make an improvement to the process so that employees can complete requests more quickly and clearly. In my opinion, the second option is better because it removes duplicate steps and provides staff with a simple checklist. However, we must not remove the final security review, and we cannot change ticket OWR-2048 until Legal confirms the requirement.",
+      "evaluation": {
+        "sanitized_output": "The current process is very slow and creates a large amount of unnecessary work for the support team. We need to make an improvement to the process so that employees can complete requests more quickly and clearly. In my opinion, the second option is better because it removes duplicate steps and provides staff with a simple checklist. However, we must not remove the final security review, and we cannot change ticket OWR-2048 until Legal confirms the requirement.",
+        "validator_accepted": true,
+        "rejection_reason": null,
+        "semantic_reasons": [],
+        "meaning_anchor_preserved": true
+      },
+      "telemetry": {
+        "wall_ms": 5950.94650000101,
+        "first_token_ms": 1656.2015999807045,
+        "total_duration_ms": 5932.843,
+        "load_duration_ms": 348.0707,
+        "prompt_eval_duration_ms": 1245.736,
+        "generation_duration_ms": 4294.644,
+        "input_tokens": 236,
+        "output_tokens": 91,
+        "tokens_per_second": 21.189183550487538,
+        "done_reason": "stop",
+        "thinking": ""
+      },
+      "used_languagetool_fallback": false
+    },
+    {
+      "section": 3,
+      "original_text": "Could you please send me the informations that Ana Torres shared after Tuesday's meeting? You can email the files to ops@example.com or place them at https://example.com/release-7.2. The first attachment contains 18 pages, the second contains 7 pages, and the third contains the signed quotation. Do not rename customer identifier ACCT-00917 or invoice INV-2026-044. If any amount, date, name, URL, email address, or identifier is uncertain, please ask me before making a change.",
+      "languagetool_text": "Could you please send me the information that Ana Torres shared after Tuesday's meeting? You can email the files to ops@example.com or place them at https://example.com/release-7.2. The first attachment contains 18 pages, the second contains 7 pages, and the third contains the signed quotation. Do not rename customer identifier ACCT-00917 or invoice INV-2026-044. If any amount, date, name, URL, email address, or identifier is uncertain, please ask me before making a change.",
+      "candidate_output": "Please send me the information that Ana Torres shared after Tuesday's meeting. You can email the files to ops@example.com or place them at https://example.com/release-7.2. The first attachment contains 18 pages, the second contains 7 pages, and the third contains the signed quotation. Do not rename customer identifier ACCT-00917 or invoice INV-2026-044. If any amount, date, name, URL, email address, or identifier is uncertain, please ask me before making a change.",
+      "evaluation": {
+        "sanitized_output": "Please send me the information that Ana Torres shared after Tuesday's meeting. You can email the files to ops@example.com or place them at https://example.com/release-7.2. The first attachment contains 18 pages, the second contains 7 pages, and the third contains the signed quotation. Do not rename customer identifier ACCT-00917 or invoice INV-2026-044. If any amount, date, name, URL, email address, or identifier is uncertain, please ask me before making a change.",
+        "validator_accepted": false,
+        "rejection_reason": "modality_not_preserved",
+        "semantic_reasons": [
+          "modality_not_preserved"
+        ],
+        "meaning_anchor_preserved": true
+      },
+      "telemetry": {
+        "wall_ms": 7597.191600012593,
+        "first_token_ms": 2100.9753000107594,
+        "total_duration_ms": 7583.3556,
+        "load_duration_ms": 600.1102,
+        "prompt_eval_duration_ms": 1450.39,
+        "generation_duration_ms": 5496.261,
+        "input_tokens": 254,
+        "output_tokens": 114,
+        "tokens_per_second": 20.741373089815056,
+        "done_reason": "stop",
+        "thinking": ""
+      },
+      "used_languagetool_fallback": true
+    },
+    {
+      "section": 4,
+      "original_text": "For the next step, I made a decision to repeat the test again on Friday. Samir Patel will run the Windows checks, Mina Chen will review the macOS results, and I will summarize the findings. The test may finish by 4:00 PM, but it could continue until 6:30 PM if the network is unstable. We will not claim that the change is ready unless every required scenario passes. Did the Toronto office confirm that it can participate remotely?",
+      "languagetool_text": "For the next step, I made a decision to repeat the test again on Friday. Samir Patel will run the Windows checks, Mina Chen will review the macOS results, and I will summarize the findings. The test may finish by 4:00 PM, but it could continue until 6:30 PM if the network is unstable. We will not claim that the change is ready unless every required scenario passes. Did the Toronto office confirm that it can participate remotely?",
+      "candidate_output": "For the next step, I decided to repeat the test again on Friday. Samir Patel will run the Windows checks, Mina Chen will review the macOS results, and I will summarize the findings. The test may finish by 4:00 PM, but it could continue until 6:30 PM if the network is unstable. We will not claim that the change is ready unless every required scenario passes. Did the Toronto office confirm that it can participate remotely?",
+      "evaluation": {
+        "sanitized_output": "For the next step, I decided to repeat the test again on Friday. Samir Patel will run the Windows checks, Mina Chen will review the macOS results, and I will summarize the findings. The test may finish by 4:00 PM, but it could continue until 6:30 PM if the network is unstable. We will not claim that the change is ready unless every required scenario passes. Did the Toronto office confirm that it can participate remotely?",
+        "validator_accepted": true,
+        "rejection_reason": null,
+        "semantic_reasons": [],
+        "meaning_anchor_preserved": true
+      },
+      "telemetry": {
+        "wall_ms": 6494.303399987984,
+        "first_token_ms": 1807.696699979715,
+        "total_duration_ms": 6480.0854,
+        "load_duration_ms": 489.7984,
+        "prompt_eval_duration_ms": 1265.878,
+        "generation_duration_ms": 4686.534,
+        "input_tokens": 236,
+        "output_tokens": 96,
+        "tokens_per_second": 20.48422138834371,
+        "done_reason": "stop",
+        "thinking": ""
+      },
+      "used_languagetool_fallback": false
+    },
+    {
+      "section": 5,
+      "original_text": "The training section also need attention. There is five short lessons, and each lesson contain examples that are useful for new employees. We want to reduce the total duration from 90 minutes to 60 minutes without removing the privacy notice or the emergency procedure. Elena Garcia should review lesson TRN-105, and Northwind Health must approve the final wording. The pilot could begin on October 3, 2026, at 10:15 AM, but it will not begin earlier. Participants should send questions to training@example.org rather than contacting customers directly.",
+      "languagetool_text": "The training section also need attention. There are five short lessons, and each lesson contain examples that are useful for new employees. We want to reduce the total duration from 90 minutes to 60 minutes without removing the privacy notice or the emergency procedure. Elena Garcia should review lesson TRN-105, and Northwind Health must approve the final wording. The pilot could begin on October 3, 2026, at 10:15 AM, but it will not begin earlier. Participants should send questions to training@example.org rather than contacting customers directly.",
+      "candidate_output": "The training section also requires attention. There are five short lessons, each containing examples that are useful for new employees. We want to reduce the total duration from 90 minutes to 60 minutes without removing the privacy notice or the emergency procedure. Elena Garcia should review lesson TRN-105, and Northwind Health must approve the final wording. The pilot could begin on October 3, 2026, at 10:15 AM, but it will not begin earlier. Participants should send questions to training@example.org rather than contacting customers directly.",
+      "evaluation": {
+        "sanitized_output": "The training section also requires attention. There are five short lessons, each containing examples that are useful for new employees. We want to reduce the total duration from 90 minutes to 60 minutes without removing the privacy notice or the emergency procedure. Elena Garcia should review lesson TRN-105, and Northwind Health must approve the final wording. The pilot could begin on October 3, 2026, at 10:15 AM, but it will not begin earlier. Participants should send questions to training@example.org rather than contacting customers directly.",
+        "validator_accepted": true,
+        "rejection_reason": null,
+        "semantic_reasons": [],
+        "meaning_anchor_preserved": true
+      },
+      "telemetry": {
+        "wall_ms": 8059.900899999775,
+        "first_token_ms": 1979.7786999843083,
+        "total_duration_ms": 8057.3281,
+        "load_duration_ms": 418.0181,
+        "prompt_eval_duration_ms": 1513.094,
+        "generation_duration_ms": 6080.109,
+        "input_tokens": 258,
+        "output_tokens": 118,
+        "tokens_per_second": 19.407546805493123,
+        "done_reason": "stop",
+        "thinking": ""
+      },
+      "used_languagetool_fallback": false
+    },
+    {
+      "section": 6,
+      "original_text": "Please return back your comments by August 12, 2026. I would be grateful if you could focus on clarity, natural English, and sentence flow while preserving every fact and commitment. The final note should remain professional and concise, but it should not add new promises or change who is responsible for each action. Once we have your approval, we will prepare the final package and notify the project team. Regards, Carlos",
+      "languagetool_text": "Please return back your comments by August 12, 2026. I would be grateful if you could focus on clarity, natural English, and sentence flow while preserving every fact and commitment. The final note should remain professional and concise, but it should not add new promises or change who is responsible for each action. Once we have your approval, we will prepare the final package and notify the project team. Regards, Carlos",
+      "candidate_output": "Please return your comments by August 12, 2026. I would be grateful if you could focus on clarity, natural English, and sentence flow while preserving every fact and commitment. Once we have your approval, we will prepare the final package and notify the project team. Regards, Carlos",
+      "evaluation": {
+        "sanitized_output": "Please return your comments by August 12, 2026. I would be grateful if you could focus on clarity, natural English, and sentence flow while preserving every fact and commitment. Once we have your approval, we will prepare the final package and notify the project team. Regards, Carlos",
+        "validator_accepted": false,
+        "rejection_reason": "negation_not_preserved,modality_not_preserved,intent_not_preserved,reference_not_preserved",
+        "semantic_reasons": [
+          "negation_not_preserved",
+          "modality_not_preserved",
+          "intent_not_preserved",
+          "reference_not_preserved"
+        ],
+        "meaning_anchor_preserved": true
+      },
+      "telemetry": {
+        "wall_ms": 4704.267600027379,
+        "first_token_ms": 1671.461999998428,
+        "total_duration_ms": 4702.3349,
+        "load_duration_ms": 402.0152,
+        "prompt_eval_duration_ms": 1227.449,
+        "generation_duration_ms": 3030.693,
+        "input_tokens": 226,
+        "output_tokens": 62,
+        "tokens_per_second": 20.457367341396832,
+        "done_reason": "stop",
+        "thinking": ""
+      },
+      "used_languagetool_fallback": true
+    }
+  ],
+  "final_text": "Hello Priya, I am writing this email for informing you about the quarterly planning issue. The operations team have reviewed the draft, and they discussed the schedule with Microsoft yesterday. We received three updated documents, but the final address for the Vancouver workshop is still missing. Please do not send build API-42 to clients before September 15, 2026, because Jordan Lee may need to approve it first. The registration fee remains CAD 1,250.50 for 12 participants, and the meeting starts at 9:30 AM.\n\nThe current process is very slow and creates a large amount of unnecessary work for the support team. We need to make an improvement to the process so that employees can complete requests more quickly and clearly. In my opinion, the second option is better because it removes duplicate steps and provides staff with a simple checklist. However, we must not remove the final security review, and we cannot change ticket OWR-2048 until Legal confirms the requirement.\n\nCould you please send me the information that Ana Torres shared after Tuesday's meeting? You can email the files to ops@example.com or place them at https://example.com/release-7.2. The first attachment contains 18 pages, the second contains 7 pages, and the third contains the signed quotation. Do not rename customer identifier ACCT-00917 or invoice INV-2026-044. If any amount, date, name, URL, email address, or identifier is uncertain, please ask me before making a change.\n\nFor the next step, I decided to repeat the test again on Friday. Samir Patel will run the Windows checks, Mina Chen will review the macOS results, and I will summarize the findings. The test may finish by 4:00 PM, but it could continue until 6:30 PM if the network is unstable. We will not claim that the change is ready unless every required scenario passes. Did the Toronto office confirm that it can participate remotely?\n\nThe training section also requires attention. There are five short lessons, each containing examples that are useful for new employees. We want to reduce the total duration from 90 minutes to 60 minutes without removing the privacy notice or the emergency procedure. Elena Garcia should review lesson TRN-105, and Northwind Health must approve the final wording. The pilot could begin on October 3, 2026, at 10:15 AM, but it will not begin earlier. Participants should send questions to training@example.org rather than contacting customers directly.\n\nPlease return back your comments by August 12, 2026. I would be grateful if you could focus on clarity, natural English, and sentence flow while preserving every fact and commitment. The final note should remain professional and concise, but it should not add new promises or change who is responsible for each action. Once we have your approval, we will prepare the final package and notify the project team. Regards, Carlos"
+}
