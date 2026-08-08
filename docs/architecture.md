@@ -1,10 +1,9 @@
 # Architecture (Phase 25 experimental branch)
 
 Offline Writing Reviser retains one canonical action: Intelligent Revision on
-`Ctrl+Alt+P`. Checkpoint 2 adds one bounded LanguageTool mechanical-correction
-service and its private runtime. It does not add a hotkey, mode, router, or
-second output path. The hotkey still uses the v0.4.0 model revision service
-until the sequential pipeline is integrated in Checkpoint 4.
+`Ctrl+Alt+P`. Checkpoint 4 uses one bounded LanguageTool mechanical-correction
+service followed by optional focused `qwen3:1.7b` paraphrasing. It does not add
+a hotkey, mode, router, retry, or competing output path.
 
 ## Deterministic LanguageTool stage
 
@@ -38,18 +37,20 @@ flowchart LR
     B --> C[Capture foreground/focus target]
     C --> D[Wait for modifiers to release]
     D --> E[Copy selection and restore clipboard]
-    E --> F[Adaptive section plan]
-    F --> G[Ollama / gemma3:4b]
-    G --> H[Output sanitizer]
-    H --> I[Semantic validation]
-    I -->|unsafe or timed out| J[Keep original section]
-    I -->|accepted| K[Use revised section]
-    J --> L[Reconstruct full document]
-    K --> L
-    L --> M[Restore and verify target]
-    M --> N[Paste complete result]
-    N --> O[Restore current clipboard snapshot]
-    O --> P[Ready]
+    E --> F[Paragraph-first section plan]
+    F --> G[One LanguageTool pass]
+    G --> H{Small deterministic fast path}
+    H -->|skip| K[Use safe LT correction]
+    H -->|paraphrase| I[Ollama / qwen3:1.7b]
+    I --> J[Sanitize and validate against original]
+    J -->|unsafe, failed, or no useful change| K
+    J -->|accepted| L[Use safe paraphrase]
+    K --> M[Reconstruct full document]
+    L --> M
+    M --> N[Restore and verify target]
+    N --> O[Paste complete result]
+    O --> P[Restore current clipboard snapshot]
+    P --> Q[Ready]
 ```
 
 The hidden windowed process acquires a per-session mutex, initializes metadata-only logging and a Qt event dispatcher, exposes a hidden Win32 control endpoint, then registers one Windows global hotkey. The hotkey callback captures the foreground and focused window handles synchronously. A single guarded worker prevents duplicate invocations, waits for Ctrl, Alt, and P to be physically released, and begins the clipboard state machine.
@@ -60,7 +61,13 @@ No replacement occurs until the entire result has been reconstructed. Focus chan
 
 ## Revision engine and safety
 
-`OfflineWritingService` uses the local Ollama loopback API with `gemma3:4b`. The prompt requests only the revised text and permits spelling, grammar, punctuation, vocabulary, clarity, redundancy, naturalness, and broader sentence restructuring when meaning is preserved. Already-correct text should be returned unchanged.
+`SequentialWritingService` retains original, LanguageTool-corrected,
+paraphrased, and final text in memory. It runs LanguageTool exactly once per
+section, invokes `qwen3:1.7b` only when a small deterministic fast path does not
+settle the result, and validates Qwen output against the original selection.
+The prompt limits Qwen to natural wording, fluency, vocabulary, clarity,
+concision, and flow; LanguageTool owns mechanical correctness. Already-natural
+text remains unchanged.
 
 The sanitizer rejects commentary, prompt leakage, Markdown/code wrappers, control characters, truncation, excessive expansion/deletion, and damaged structure. The semantic validator and normalizers protect:
 
@@ -69,19 +76,38 @@ The sanitizer rejects commentary, prompt leakage, Markdown/code wrappers, contro
 - negation, modality, certainty, causal/temporal relations, question structure, reference, politeness, and intent;
 - paragraph, list, heading, quote, indentation, and blank-line structure.
 
-Validation is deliberately conservative. Rejected sections fall back to their source text, and a final reconstruction check can roll back individual changed sections. The controls reduce semantic risk but cannot prove equivalence.
+Validation is deliberately conservative. Rejected Qwen sections fall back to
+their safe LanguageTool correction, not blindly to their source text. A valid
+deterministic correction is therefore retained when Qwen times out, is missing,
+returns malformed output, or fails semantic validation. The controls reduce
+semantic risk but cannot prove equivalence.
 
 ## Adaptive large-document processing
 
-The default maximum selection is 20,000 characters. Processing is sequential with a 700-character maximum section target. Boundaries are chosen in this order: paragraph, sentence, clause, then whitespace. If none exists before the target, the next whitespace is used, which avoids splitting protected URL/email/date/identifier tokens where practical.
+The default maximum selection is 20,000 characters. Paragraphs are independent
+sections with a 1,000-character target; oversized paragraphs split at sentence,
+clause, then whitespace boundaries. This avoids splitting protected URL,
+email, date, and identifier tokens where practical.
 
-Each Ollama request has an absolute 45-second deadline. A timed-out section gets one bounded retry; after the second timeout its original text is retained and later sections continue. An unsafe or malformed section is also retained. A slow section (about 75% of the deadline) reduces pending targets by half, down to approximately 300 characters. Provider/model unavailability stops processing because continuing cannot succeed.
+Each Qwen request has an absolute 45-second deadline and no retry. A timeout,
+provider failure, malformed output, unsafe output, or no useful change uses the
+safe LanguageTool section and continues. LanguageTool failure is explicit and
+leaves the original selection intact.
 
-All sections are reassembled byte-contiguously around their revised content, preserving separators and structure. Progress is announced as `Revising section n of m`, followed by `Completed` or `Completed with some sections unchanged`. Performance is hardware-dependent; roughly 2,000 words may take several minutes on slower machines. Benchmark timing is evidence for a specific machine, not a universal guarantee.
+All sections are reassembled byte-contiguously around their revised content,
+preserving separators and structure. Fast LanguageTool-only corrections avoid
+model progress chatter. Model work announces `Revising text` or
+`Revising section n of m`, followed by the applicable corrected, revised, or
+fallback completion status. Performance evidence is hardware-specific.
 
 ## Ollama provider
 
-The provider discovers an existing Ollama executable, starts `ollama serve` hidden when the local API is unavailable, verifies the configured model, and calls the loopback generate endpoint with deterministic options. Ollama chooses CPU/GPU acceleration. Diagnostics report CPU, GPU, partial-GPU, or unknown from the runtime data Ollama exposes; vendor and backend may remain unknown.
+The provider discovers an existing Ollama executable, starts `ollama serve`
+hidden when the local API is unavailable, verifies `qwen3:1.7b`, and streams one
+loopback chat response into memory before validation. Production options are a
+4,096-token context, 384-token output limit, temperature 0.2, top-p 0.9,
+repeat penalty 1.05, thinking disabled, and ten-minute keep-alive. Ollama
+chooses CPU/GPU acceleration.
 
 ## Application-level Model Setup
 

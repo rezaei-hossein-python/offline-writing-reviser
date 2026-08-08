@@ -2,7 +2,11 @@
 
 ## Environment
 
-Use 64-bit Windows and Python 3.11 or newer. Ollama and `gemma3:4b` are needed for live inference and cross-machine acceptance, but unit tests use fakes and do not download a model. The pinned private LanguageTool and Java archives are prepared separately and never use system Java.
+Use 64-bit Windows and Python 3.11 or newer. Ollama and `qwen3:1.7b` are needed
+for Checkpoint 4 live inference and acceptance; `gemma3:4b` remains installed
+until the later migration checkpoint. Unit tests use fakes and do not download
+a model. The pinned private LanguageTool and Java archives are prepared
+separately and never use system Java.
 
 ```powershell
 git clone <repository-url>
@@ -29,7 +33,8 @@ python -m offline_writing_reviser --provision-model
 python -m offline_writing_reviser
 ```
 
-Model Setup is the supported way to install/reuse Ollama and provision `gemma3:4b`; developers should not need manual model commands for the product workflow.
+Checkpoint 5 will update Model Setup and perform the verified migration from
+`gemma3:4b`. Do not remove the old model while validating Checkpoint 4.
 
 ## Project structure
 
@@ -68,6 +73,14 @@ runtime and does not invoke Ollama:
 
 ```powershell
 python benchmarks\run_languagetool_checkpoint2.py
+```
+
+The Checkpoint 4 production-service benchmark uses only the synthetic Phase 25
+corpus and records the LanguageTool fast path, Qwen path, chunking comparison,
+474-word result, and memory evidence:
+
+```powershell
+python benchmarks\run_checkpoint4_production_pipeline.py
 ```
 
 ## Build and artifacts

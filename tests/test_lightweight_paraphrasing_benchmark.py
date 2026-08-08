@@ -117,5 +117,5 @@ def test_tracked_results_retain_required_pipeline_evidence():
             assert "rejection_reason" in record["evaluation"]
 
 
-def test_checkpoint_does_not_change_production_model():
-    assert OfflineWritingConfig().model == "gemma3:4b"
+def test_checkpoint4_switches_production_model_to_evaluated_winner():
+    assert OfflineWritingConfig().model == "qwen3:1.7b"

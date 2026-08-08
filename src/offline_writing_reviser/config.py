@@ -15,11 +15,11 @@ DEFAULT_SETTINGS_FILE = APP_DATA_DIR / "settings.json"
 class OfflineWritingConfig:
     enabled: bool = True
     provider: str = "ollama_cli"
-    model: str = "gemma3:4b"
+    model: str = "qwen3:1.7b"
     hotkey: str = "Ctrl+Alt+P"
     timeout_seconds: float = 45.0
     max_characters: int = 20_000
-    chunk_characters: int = 700
+    chunk_characters: int = 1000
     ollama_executable: str = "ollama"
     log_file: Path = DEFAULT_LOG_FILE
 

@@ -6,6 +6,7 @@ from typing import Callable
 
 from offline_writing_reviser.core.errors import (
     OfflineWritingCancelled,
+    OfflineWritingCorrectionUnavailable,
     OfflineWritingInputError,
 )
 from offline_writing_reviser.providers.base import (
@@ -42,6 +43,14 @@ def user_message_for_error(error: BaseException | str) -> UserMessage:
             "Cancelled",
             "The revision was cancelled and the selected text was not changed.",
             ApplicationState.READY,
+        )
+    if isinstance(error, OfflineWritingCorrectionUnavailable):
+        return UserMessage(
+            "Grammar correction unavailable",
+            "The private grammar service could not start. Restart Offline "
+            "Writing Reviser and try Ctrl+Alt+P again. If the problem "
+            "continues, reinstall the application.",
+            ApplicationState.ERROR,
         )
     if error == "no_selection":
         return UserMessage(

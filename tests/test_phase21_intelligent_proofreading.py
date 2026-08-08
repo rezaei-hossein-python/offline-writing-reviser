@@ -648,7 +648,7 @@ def test_model_pull_reports_streamed_progress_and_verifies_installation(
 
         def api_models(self, timeout_seconds):
             self.model_checks += 1
-            return [] if self.model_checks == 1 else ["gemma3:4b"]
+            return [] if self.model_checks == 1 else ["qwen3:1.7b"]
 
     class Response:
         def __enter__(self):

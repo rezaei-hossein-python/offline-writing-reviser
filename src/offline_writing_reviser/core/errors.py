@@ -17,6 +17,10 @@ class OfflineWritingCancelled(OfflineWritingError):
     pass
 
 
+class OfflineWritingCorrectionUnavailable(OfflineWritingError):
+    pass
+
+
 class OfflineWritingMalformedOutput(OfflineWritingError):
     def __init__(
         self,

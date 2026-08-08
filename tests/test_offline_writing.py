@@ -97,14 +97,16 @@ class ChunkResponseProvider(OfflineWritingProvider):
 
 
 def test_revision_prompt_contract_allows_broad_meaning_preserving_revision():
-    assert "You are an expert English editor" in REVISION_INSTRUCTION
-    assert "paraphrase as much as necessary" in REVISION_INSTRUCTION
-    assert "A larger rewrite is acceptable" in REVISION_INSTRUCTION
-    assert "Do not limit the revision to minimal or local edits" in REVISION_INSTRUCTION
-    assert "names, numbers, dates, times, amounts" in REVISION_INSTRUCTION
-    assert "negation, modality, commitments, questions" in REVISION_INSTRUCTION
-    assert "Return only the final revised text" in REVISION_INSTRUCTION
-    assert "Markdown fences" in REVISION_INSTRUCTION
+    assert "clear, natural, fluent English" in REVISION_INSTRUCTION
+    assert "only where useful" in REVISION_INSTRUCTION
+    assert "names, organizations, numbers, dates, times, amounts" in REVISION_INSTRUCTION
+    assert "negation, modality, questions, commitments" in REVISION_INSTRUCTION
+    assert "vague qualifiers and generic nouns" in REVISION_INSTRUCTION
+    assert "If the text is already natural" in REVISION_INSTRUCTION
+    assert "Return only the final text" in REVISION_INSTRUCTION
+    assert "No Markdown" in REVISION_INSTRUCTION
+    assert "No reasoning" in REVISION_INSTRUCTION
+    assert "correct spelling" not in REVISION_INSTRUCTION.casefold()
     assert "Preserve every line break" not in REVISION_INSTRUCTION
 
 
@@ -583,10 +585,10 @@ def test_configuration_defaults():
 
     assert config.enabled is True
     assert config.provider == "ollama_cli"
-    assert config.model == "gemma3:4b"
+    assert config.model == "qwen3:1.7b"
     assert config.hotkey == "Ctrl+Alt+P"
     assert config.max_characters == 20_000
-    assert config.chunk_characters == 700
+    assert config.chunk_characters == 1000
 
 
 class FakeCapture:
@@ -1385,10 +1387,12 @@ def test_ollama_cli_request(monkeypatch):
     assert payload["think"] is False
     assert payload["keep_alive"] == "10m"
     assert payload["options"] == {
-        "temperature": 0,
-        "seed": 0,
-        "num_ctx": 8192,
-        "num_predict": 4096,
+        "temperature": 0.2,
+        "top_p": 0.9,
+        "repeat_penalty": 1.05,
+        "seed": 25,
+        "num_ctx": 4096,
+        "num_predict": 384,
     }
     assert payload["messages"] == [
         {"role": "system", "content": "Fix."},
