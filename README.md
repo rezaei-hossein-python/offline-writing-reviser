@@ -78,6 +78,7 @@ Known limitations include the unsigned installer (Windows SmartScreen or antivir
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -e ".[dev,build]"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\prepare-languagetool-runtime.ps1
 python -m offline_writing_reviser --validate-startup
 python -m pytest -p no:cacheprovider --basetemp .pytest-temp\full
 python -m compileall -q src tests

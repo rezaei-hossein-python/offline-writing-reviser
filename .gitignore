@@ -8,6 +8,8 @@ __pycache__/
 .conda/
 build/
 dist/
+.runtime-download/
+vendor/
 OfflineWritingReviser.spec
 *.egg-info/
 *.log

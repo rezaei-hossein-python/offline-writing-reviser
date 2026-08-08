@@ -714,6 +714,15 @@ def test_application_wires_hidden_control_to_clean_shutdown(
         def stop(self):
             lifecycle.append("runtime_stopped")
 
+    class FakeLanguageToolRuntime:
+        logger = None
+
+        def start_in_background(self):
+            lifecycle.append("languagetool_started")
+
+        def stop(self):
+            lifecycle.append("languagetool_stopped")
+
     class FakeInstance:
         def acquire(self):
             return True
@@ -762,18 +771,40 @@ def test_application_wires_hidden_control_to_clean_shutdown(
         stop_event=stop_event,
         instance=FakeInstance(),
         control_server_factory=FakeControlServer,
+        language_tool_runtime=FakeLanguageToolRuntime(),
     )
 
     assert app.run() == 0
     assert lifecycle == [
+        "languagetool_started",
         "background_started",
         "control_started",
         "background_run",
         "control_stopped",
         "background_stopped",
         "runtime_stopped",
+        "languagetool_stopped",
         "instance_released",
     ]
+
+
+def test_exit_command_waits_for_complete_process_shutdown(monkeypatch):
+    import offline_writing_reviser.application as application
+
+    waited = []
+    monkeypatch.setattr(application.sys, "platform", "win32")
+    monkeypatch.setattr(application, "send_control_command", lambda _command: True)
+    monkeypatch.setattr(
+        application, "wait_for_control_server_stop", lambda: waited.append("window")
+    )
+    monkeypatch.setattr(
+        application,
+        "wait_for_single_instance_stop",
+        lambda name: waited.append(name),
+    )
+
+    assert application.execute_control_command(ControlCommand.EXIT) == 0
+    assert waited == ["window", application.MUTEX_NAME]
 
 
 def test_packaged_restart_resets_pyinstaller_environment(monkeypatch):

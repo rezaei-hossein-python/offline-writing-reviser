@@ -1,6 +1,34 @@
-# Architecture (v0.4.0)
+# Architecture (Phase 25 experimental branch)
 
-Offline Writing Reviser has one production revision engine and one canonical action: Intelligent Revision on `Ctrl+Alt+P`. There is no separate proofreading/paraphrase service, LanguageTool or private Java runtime.
+Offline Writing Reviser retains one canonical action: Intelligent Revision on
+`Ctrl+Alt+P`. Checkpoint 2 adds one bounded LanguageTool mechanical-correction
+service and its private runtime. It does not add a hotkey, mode, router, or
+second output path. The hotkey still uses the v0.4.0 model revision service
+until the sequential pipeline is integrated in Checkpoint 4.
+
+## Deterministic LanguageTool stage
+
+`LanguageToolCorrectionService.correct(text)` performs exactly one explicit
+`en-US` `/v2/check` request. It normalizes LanguageTool's UTF-16 offsets,
+rejects malformed, overlapping, conflicting, non-mechanical, or unsafe edits,
+and applies the remaining edits once in reverse-offset order. Deterministic
+guards preserve numbers, dates, times, amounts, URLs, email addresses,
+identifiers, quoted content, detectable names, negation, and modality. The
+result retains original/corrected text, applied and skipped edit records, rule
+and category identifiers, duration, runtime status, and structured failure
+information.
+
+There is no rule-routing policy, recursive check, LanguageTool/model choice,
+or separate proofreading/paraphrasing service. Style suggestions are excluded;
+the stage is limited to spelling, grammar, punctuation, capitalization, and
+other mechanical corrections.
+
+The application owns one reusable loopback server on a dynamic private port.
+It launches only bundled Eclipse Temurin `javaw.exe` with no console and only
+the bundled LanguageTool 6.6 server. Startup and requests are bounded, the
+single application instance prevents duplicate owners, and shutdown terminates
+only the recorded child process. The application prewarms the server in a
+background thread and irreversibly disables restart after shutdown begins.
 
 ## End-to-end revision flow
 
@@ -81,6 +109,6 @@ The Qt dialog supplies accessible labels, focus order, byte/percentage details, 
 
 Settings use labelled Qt widgets and persist per-user JSON atomically. They expose installed-model selection, the single hotkey binding (shipped as `Ctrl+Alt+P`), request timeout, maximum input length, log location, and reset. The hidden control window focuses an existing Settings window and routes exit/restart requests to the running instance.
 
-The Inno Setup installer is per-user, x64-compatible, and registers one quoted HKCU Run entry. Normal launches remain silent with no console, tray icon, or taskbar window. Duplicate application launches exit without spawning another worker. Restart performs bounded shutdown, unregisters the hotkey, joins workers, then launches one replacement process. Uninstall requests clean exit, removes app files/shortcuts/startup registration, and preserves shared Ollama, models, settings, and logs.
+The Inno Setup installer is per-user, x64-compatible, and registers one quoted HKCU Run entry. Normal launches remain silent with no console, tray icon, or taskbar window. Duplicate application launches exit without spawning another worker. Restart performs bounded shutdown, unregisters the hotkey, joins workers, stops the application-owned LanguageTool child, then launches one replacement process. Uninstall requests clean exit and removes the private Java/LanguageTool files with the application directory, along with app files, shortcuts, and startup registration. It preserves shared Ollama, models, settings, and logs.
 
 Logs contain metadata only: operation IDs, counts, target process/window metadata, timings, state transitions, provider/model status, and failure categories. Selected and revised text are not logged by default.

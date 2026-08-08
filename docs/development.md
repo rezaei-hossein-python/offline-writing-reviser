@@ -2,7 +2,7 @@
 
 ## Environment
 
-Use 64-bit Windows and Python 3.11 or newer. Ollama and `gemma3:4b` are needed for live inference and cross-machine acceptance, but unit tests use fakes and do not download a model.
+Use 64-bit Windows and Python 3.11 or newer. Ollama and `gemma3:4b` are needed for live inference and cross-machine acceptance, but unit tests use fakes and do not download a model. The pinned private LanguageTool and Java archives are prepared separately and never use system Java.
 
 ```powershell
 git clone <repository-url>
@@ -11,6 +11,13 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -e ".[dev,build]"
+```
+
+Prepare the checksum-pinned private runtime once before live LanguageTool tests
+or packaging:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\prepare-languagetool-runtime.ps1
 ```
 
 Run from source:
@@ -27,6 +34,7 @@ Model Setup is the supported way to install/reuse Ollama and provision `gemma3:4
 ## Project structure
 
 - `src/offline_writing_reviser/core`: revision service, prompt, chunking, sanitizer, and models.
+- `src/offline_writing_reviser/correction`: bounded LanguageTool correction and private runtime ownership.
 - `src/offline_writing_reviser/proofreading/semantic.py`: retained internal semantic-validation implementation; it is not a separate production mode.
 - `src/offline_writing_reviser/providers`: local Ollama provider.
 - `src/offline_writing_reviser/windows`: hotkey, focus, clipboard, control endpoint, and single-instance integration.
@@ -55,9 +63,16 @@ python benchmarks\run_revision_benchmark.py --long-text
 
 Treat measured timings as machine-specific evidence, not guarantees.
 
+The independent mechanical-correction benchmark uses the prepared private
+runtime and does not invoke Ollama:
+
+```powershell
+python benchmarks\run_languagetool_checkpoint2.py
+```
+
 ## Build and artifacts
 
-Install Inno Setup 6, then run:
+Install Inno Setup 6, prepare the private runtime, then run:
 
 ```powershell
 .\scripts\build.ps1

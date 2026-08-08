@@ -11,6 +11,10 @@ from dataclasses import replace
 from pathlib import Path
 
 from offline_writing_reviser.config import OfflineWritingConfig
+from offline_writing_reviser.correction.languagetool import (
+    LanguageToolRuntime,
+    shared_languagetool_runtime,
+)
 from offline_writing_reviser.desktop_status import (
     ApplicationState,
     UserMessage,
@@ -36,7 +40,10 @@ from offline_writing_reviser.windows.controller import (
     OfflineWritingRuntime,
     start_offline_writing_runtime,
 )
-from offline_writing_reviser.windows.single_instance import WindowsSingleInstance
+from offline_writing_reviser.windows.single_instance import (
+    WindowsSingleInstance,
+    wait_for_single_instance_stop,
+)
 
 
 APP_NAME = "Offline Writing Reviser"
@@ -237,6 +244,7 @@ class OfflineWritingReviserApplication:
         wait_interval_seconds: float = 0.2,
         settings_store: SettingsStore | None = None,
         control_server_factory=WindowsControlServer,
+        language_tool_runtime: LanguageToolRuntime | None = None,
     ):
         self.settings_store = settings_store or SettingsStore()
         self.config = config or self.settings_store.load()
@@ -248,6 +256,9 @@ class OfflineWritingReviserApplication:
         self.background: BackgroundCoordinator | None = None
         self.control_server: WindowsControlServer | None = None
         self.restart_requested = False
+        self.language_tool_runtime = (
+            language_tool_runtime or shared_languagetool_runtime()
+        )
 
     def run(self) -> int:
         if sys.platform != "win32":
@@ -276,6 +287,8 @@ class OfflineWritingReviserApplication:
             )
         exit_code = 0
         try:
+            self.language_tool_runtime.logger = logger
+            self.language_tool_runtime.start_in_background()
             self.runtime = start_offline_writing_runtime(self.config, logger=logger)
             if not self.runtime.has_registered_hotkeys and not getattr(
                 self.runtime, "controller", None
@@ -323,6 +336,7 @@ class OfflineWritingReviserApplication:
             if self.runtime is not None:
                 self.runtime.stop()
                 logger.info("Hotkey runtime stopped")
+            self.language_tool_runtime.stop()
             logger.info("Application shutdown")
             self.instance.release()
 
@@ -352,6 +366,7 @@ def execute_control_command(command: ControlCommand) -> int:
     if send_control_command(command):
         if command is ControlCommand.EXIT:
             wait_for_control_server_stop()
+            wait_for_single_instance_stop(MUTEX_NAME)
         return 0
     if command is ControlCommand.EXIT:
         _console_print(f"{APP_NAME} is not running.")

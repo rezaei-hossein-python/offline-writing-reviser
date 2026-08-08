@@ -50,6 +50,11 @@ Filename: "{app}\{#AppExeName}"; Parameters: "--provision-model"; Description: "
 [UninstallRun]
 Filename: "{app}\{#AppExeName}"; Parameters: "--exit"; RunOnceId: "StopBackgroundApplication"; Flags: runhidden waituntilterminated skipifdoesntexist
 
+[UninstallDelete]
+; The application owns this dedicated install directory. Remove any late-unlocked
+; private runtime or PyInstaller files after the background process has stopped.
+Type: filesandordirs; Name: "{app}"
+
 [Code]
 // Core setup never downloads OllamaSetup.exe or waits for a model download.
 // Model setup runs only after setup has completed and remains retryable from
