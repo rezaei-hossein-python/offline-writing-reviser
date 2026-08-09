@@ -3,8 +3,7 @@
 ## Environment
 
 Use 64-bit Windows and Python 3.11 or newer. Ollama and `qwen3:1.7b` are needed
-for Checkpoint 4 live inference and acceptance; `gemma3:4b` remains installed
-until the later migration checkpoint. Unit tests use fakes and do not download
+for live inference and acceptance. Unit tests use fakes and do not download
 a model. The pinned private LanguageTool and Java archives are prepared
 separately and never use system Java.
 
@@ -33,8 +32,9 @@ python -m offline_writing_reviser --provision-model
 python -m offline_writing_reviser
 ```
 
-Checkpoint 5 will update Model Setup and perform the verified migration from
-`gemma3:4b`. Do not remove the old model while validating Checkpoint 4.
+Model Setup performs the verified migration from the former production model.
+Do not remove that exact rollback model manually before Qwen inference,
+end-to-end semantic checks, and installed application acceptance succeed.
 
 ## Project structure
 
@@ -104,7 +104,7 @@ Generate/verify the checksum with `Get-FileHash .\dist\installer\OfflineWritingR
 
 ## Logging and diagnostics
 
-Source and installed builds use `%LOCALAPPDATA%\OfflineWritingReviser\logs\writing-reviser.log` unless `OWR_LOG_FILE` overrides it. Never add selected or revised content to logs. `--diagnostics`, `--diagnostics-json`, and optional `--gemma-test` report configuration, Ollama/API/model state, hardware memory, acceleration evidence, and a minimal health test.
+Source and installed builds use `%LOCALAPPDATA%\OfflineWritingReviser\logs\writing-reviser.log` unless `OWR_LOG_FILE` overrides it. Never add selected or revised content to logs. `--diagnostics`, `--diagnostics-json`, and optional `--model-test` report configuration, Ollama/API/model state, hardware memory, acceleration evidence, and the production model health test.
 
 ## Version and release workflow
 

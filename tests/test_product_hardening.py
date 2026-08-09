@@ -89,11 +89,14 @@ class DiagnosticProvider:
             "backend": None,
         }
 
+    def verify_minimal_inference(self, timeout_seconds):
+        return None
+
     def is_available(self):
         return True
 
     def revise(self, text, instruction, timeout_seconds):
-        return "She works in the finance department."
+        return "The meeting was productive, and we discussed several important topics."
 
 
 def test_diagnostics_formats_unknown_backend_and_device(tmp_path):
@@ -114,7 +117,7 @@ def test_diagnostics_formats_unknown_backend_and_device(tmp_path):
 def test_diagnostics_health_output_reports_success(tmp_path):
     report, healthy = collect_diagnostics(
         OfflineWritingConfig(log_file=tmp_path / "app.log"),
-        include_gemma_test=True,
+        include_model_test=True,
         provider=DiagnosticProvider(),
     )
 
@@ -892,5 +895,5 @@ def test_version_command_reports_release_version(capsys):
         main(["--version"])
 
     assert exit_info.value.code == 0
-    assert __version__ == "0.4.0"
-    assert "0.4.0" in capsys.readouterr().out
+    assert __version__ == "0.5.0b1"
+    assert "0.5.0b1" in capsys.readouterr().out

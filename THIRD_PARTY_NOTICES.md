@@ -35,11 +35,11 @@ Ollama is licensed under the MIT License.
 Source and license information:
 https://github.com/ollama/ollama
 
-## Gemma 3
+## Qwen 3
 
-The `gemma3:4b` model is not bundled. With user consent, it is downloaded by
-the locally installed Ollama runtime. Gemma is subject to the Gemma Terms of
-Use and Prohibited Use Policy presented by its distributor.
+The `qwen3:1.7b` model is not bundled. With user consent, it is downloaded by
+the locally installed Ollama runtime. The model metadata distributed through
+Ollama identifies Qwen 3 as licensed under the Apache License 2.0.
 
-Terms:
-https://ai.google.dev/gemma/terms
+Source and license information:
+https://github.com/QwenLM/Qwen3 and https://www.apache.org/licenses/LICENSE-2.0

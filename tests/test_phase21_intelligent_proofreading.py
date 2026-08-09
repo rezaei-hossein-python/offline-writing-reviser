@@ -340,9 +340,10 @@ class Model:
         self.installed = installed
         self.pulled = 0
         self.verified = 0
+        self.end_to_end_verified = 0
 
-    def model_installed(self):
-        return self.installed
+    def model_installed(self, model=None):
+        return self.installed if model in (None, "qwen3:1.7b") else False
 
     def pull_model(self, progress, **kwargs):
         self.pulled += 1
@@ -351,6 +352,15 @@ class Model:
 
     def verify_inference(self, timeout_seconds):
         self.verified += 1
+
+    def verify_end_to_end(self):
+        self.end_to_end_verified += 1
+
+    def model_size(self, model):
+        return None
+
+    def remove_previous_official_model(self, model):
+        raise AssertionError("No previous model is installed in this fixture")
 
 
 def test_ai_provisioner_reuses_existing_ollama_and_model(tmp_path):
@@ -362,6 +372,7 @@ def test_ai_provisioner_reuses_existing_ollama_and_model(tmp_path):
     provisioner.provision(lambda *values: updates.append(values))
     assert model.pulled == 0
     assert model.verified == 1
+    assert model.end_to_end_verified == 1
     assert updates[-1] == ("Intelligent revision is ready", 1, 1)
 
 
@@ -373,6 +384,7 @@ def test_ai_provisioner_retries_only_missing_model(tmp_path):
     provisioner.provision(lambda *_values: None)
     assert model.pulled == 1
     assert model.verified == 1
+    assert model.end_to_end_verified == 1
 
 
 def test_provisioning_is_not_complete_before_model_and_inference_verification(
@@ -384,8 +396,9 @@ def test_provisioning_is_not_complete_before_model_and_inference_verification(
         OfflineWritingConfig(), model_provisioner=model, cache_directory=tmp_path
     ).provision(lambda *values: updates.append(values))
 
-    assert updates[-2:] == [
+    assert updates[-3:] == [
         ("Testing minimal inference", None, None),
+        ("Testing complete revision", None, None),
         ("Intelligent revision is ready", 1, 1),
     ]
     assert model.installed is True
@@ -434,9 +447,9 @@ def test_clean_state_installs_ollama_then_pulls_and_verifies(tmp_path):
             super().__init__(installed=False)
             self.provider = CleanProvider()
 
-        def model_installed(self):
+        def model_installed(self, model=None):
             events.append("model_list")
-            return self.installed
+            return self.installed if model in (None, "qwen3:1.7b") else False
 
         def pull_model(self, progress, **kwargs):
             events.append("pull_model")
@@ -445,6 +458,10 @@ def test_clean_state_installs_ollama_then_pulls_and_verifies(tmp_path):
         def verify_inference(self, timeout_seconds):
             events.append("inference")
             super().verify_inference(timeout_seconds)
+
+        def verify_end_to_end(self):
+            events.append("end_to_end")
+            super().verify_end_to_end()
 
     class CleanProvisioner(AIProvisioner):
         def download_ollama(self, progress, **kwargs):
@@ -469,6 +486,8 @@ def test_clean_state_installs_ollama_then_pulls_and_verifies(tmp_path):
         "pull_model",
         "model_list",
         "inference",
+        "end_to_end",
+        "model_list",
     ]
 
 
@@ -961,7 +980,7 @@ def test_setup_window_hides_without_cancelling_and_reopens_same_job(
     }
 
     class BlockingProvisioner:
-        def __init__(self, config):
+        def __init__(self, config, **_kwargs):
             self.config = config
 
         def provision(self, progress, *, cancelled, **_kwargs):

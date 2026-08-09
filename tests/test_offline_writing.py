@@ -1448,6 +1448,50 @@ def test_ollama_minimal_inference_must_complete(monkeypatch):
         provider.verify_minimal_inference()
 
 
+def test_ollama_model_size_uses_exact_installed_name(monkeypatch):
+    import offline_writing_reviser.providers.ollama as ollama_cli
+
+    provider = ollama_cli.OllamaCliOfflineWritingProvider(model="qwen3:1.7b")
+    monkeypatch.setattr(
+        provider,
+        "_request_json",
+        lambda *_args, **_kwargs: {
+            "models": [
+                {"name": "qwen3:1.7b-extra", "size": 999},
+                {"name": "qwen3:1.7b", "size": 1_423_000_000},
+            ]
+        },
+    )
+
+    assert provider.api_model_size() == 1_423_000_000
+
+
+def test_ollama_model_removal_uses_supported_delete_operation(monkeypatch):
+    import offline_writing_reviser.providers.ollama as ollama_cli
+
+    captured = {}
+    provider = ollama_cli.OllamaCliOfflineWritingProvider(model="qwen3:1.7b")
+
+    def request_json(path, payload, timeout_seconds, **kwargs):
+        captured.update(
+            path=path,
+            payload=payload,
+            timeout_seconds=timeout_seconds,
+            kwargs=kwargs,
+        )
+        return {}
+
+    monkeypatch.setattr(provider, "_request_json", request_json)
+    provider.remove_model("gemma3:4b", timeout_seconds=45)
+
+    assert captured == {
+        "path": "/api/delete",
+        "payload": {"model": "gemma3:4b"},
+        "timeout_seconds": 45,
+        "kwargs": {"method": "DELETE", "allow_empty": True},
+    }
+
+
 def test_ollama_model_missing_fails_locally(monkeypatch):
     import offline_writing_reviser.providers.ollama as ollama_cli
 

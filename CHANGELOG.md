@@ -2,6 +2,19 @@
 
 All notable changes supported by repository history are recorded here.
 
+## [0.5.0b1] - Unreleased
+
+### Changed
+
+- Made bundled LanguageTool 6.6 on private Eclipse Temurin Java the deterministic first correction stage, followed by optional `qwen3:1.7b` paraphrasing.
+- Made `qwen3:1.7b` the production default and added verified migration from the former `gemma3:4b` default. The old model is removed only after Qwen inference and end-to-end semantic checks succeed; failures retain the prior working configuration and expose Retry.
+- Reduced simple spelling, punctuation, casing, and natural single-rule grammar corrections to the LanguageTool fast path while preserving one `Ctrl+Alt+P` action.
+
+### Safety
+
+- Validate optional Qwen output against the original source and fall back to the safe LanguageTool result when sanitization or semantic checks reject it.
+- Preserve unrelated Ollama models during provisioning and migration.
+
 ## [0.4.0] - 2026-08-01
 
 ### Added

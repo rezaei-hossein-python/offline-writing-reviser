@@ -72,7 +72,22 @@ function Expand-SingleRootArchive {
 
 $JavaReady = Test-Path -LiteralPath (Join-Path $JavaTarget "bin\javaw.exe") -PathType Leaf
 $LanguageToolReady = Test-Path -LiteralPath (Join-Path $LanguageToolTarget "languagetool-server.jar") -PathType Leaf
+
+function Remove-LanguageToolDevelopmentArtifacts {
+    $DevelopmentArtifacts = @(
+        (Join-Path $LanguageToolTarget "testrules.bat"),
+        (Join-Path $LanguageToolTarget "testrules.sh"),
+        (Join-Path $LanguageToolTarget "libs\languagetool-core-tests.jar")
+    )
+    foreach ($Artifact in $DevelopmentArtifacts) {
+        if (Test-Path -LiteralPath $Artifact) {
+            Remove-Item -LiteralPath $Artifact -Force
+        }
+    }
+}
+
 if ($JavaReady -and $LanguageToolReady -and -not $Force) {
+    Remove-LanguageToolDevelopmentArtifacts
     Write-Host "Private Java and LanguageTool runtimes are already prepared."
     exit 0
 }
@@ -91,6 +106,7 @@ $LanguageToolArchive = Get-VerifiedArchive `
 
 Expand-SingleRootArchive -Archive $JavaArchive -Target $JavaTarget -StageName "java-stage"
 Expand-SingleRootArchive -Archive $LanguageToolArchive -Target $LanguageToolTarget -StageName "languagetool-stage"
+Remove-LanguageToolDevelopmentArtifacts
 
 $Required = @(
     (Join-Path $JavaTarget "bin\javaw.exe"),

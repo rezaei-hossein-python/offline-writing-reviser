@@ -9,13 +9,14 @@ from offline_writing_reviser.paths import app_data_dir
 APP_DATA_DIR = app_data_dir()
 DEFAULT_LOG_FILE = APP_DATA_DIR / "logs" / "writing-reviser.log"
 DEFAULT_SETTINGS_FILE = APP_DATA_DIR / "settings.json"
+DEFAULT_MODEL = "qwen3:1.7b"
 
 
 @dataclass(frozen=True)
 class OfflineWritingConfig:
     enabled: bool = True
     provider: str = "ollama_cli"
-    model: str = "qwen3:1.7b"
+    model: str = DEFAULT_MODEL
     hotkey: str = "Ctrl+Alt+P"
     timeout_seconds: float = 45.0
     max_characters: int = 20_000

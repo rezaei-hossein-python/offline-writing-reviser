@@ -37,6 +37,8 @@ class ProvisioningSnapshot:
     active: bool = False
     ready: bool = False
     process_id: int | None = None
+    removed_model: str | None = None
+    recovered_bytes: int | None = None
     updated_at: float = 0.0
 
 
@@ -97,6 +99,12 @@ def _snapshot_from_payload(payload: dict[str, Any]) -> ProvisioningSnapshot:
         active=bool(payload.get("active", False)),
         ready=bool(payload.get("ready", False)),
         process_id=_optional_int(payload.get("process_id")),
+        removed_model=(
+            str(payload["removed_model"])
+            if payload.get("removed_model") is not None
+            else None
+        ),
+        recovered_bytes=_optional_int(payload.get("recovered_bytes")),
         updated_at=float(payload.get("updated_at", 0.0)),
     )
 

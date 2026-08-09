@@ -23,7 +23,7 @@ def main(argv: list[str] | None = None) -> int:
         help="Emit diagnostics as JSON instead of a human-readable report.",
     )
     parser.add_argument(
-        "--gemma-test",
+        "--model-test",
         action="store_true",
         help="Include a small local intelligent-revision health test.",
     )
@@ -44,8 +44,8 @@ def main(argv: list[str] | None = None) -> int:
     controls.add_argument("--restart", action="store_true")
     controls.add_argument("--provision-model", action="store_true")
     args = parser.parse_args(argv)
-    if args.gemma_test and not (args.diagnostics or args.diagnostics_json):
-        parser.error("--gemma-test requires --diagnostics or --diagnostics-json")
+    if args.model_test and not (args.diagnostics or args.diagnostics_json):
+        parser.error("--model-test requires --diagnostics or --diagnostics-json")
     if bool(args.production_acceptance_request) != bool(
         args.production_acceptance_response
     ):
@@ -74,7 +74,7 @@ def main(argv: list[str] | None = None) -> int:
         )
 
         report, healthy = collect_diagnostics(
-            include_gemma_test=args.gemma_test
+            include_model_test=args.model_test
         )
         if sys.stdout is not None:
             print(

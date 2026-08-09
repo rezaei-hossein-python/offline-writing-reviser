@@ -1,7 +1,7 @@
-# Architecture (Phase 25 experimental branch)
+# Architecture
 
 Offline Writing Reviser retains one canonical action: Intelligent Revision on
-`Ctrl+Alt+P`. Checkpoint 4 uses one bounded LanguageTool mechanical-correction
+`Ctrl+Alt+P`. The production beta uses one bounded LanguageTool mechanical-correction
 service followed by optional focused `qwen3:1.7b` paraphrasing. It does not add
 a hotkey, mode, router, retry, or competing output path.
 
@@ -118,18 +118,23 @@ flowchart LR
     B -->|present| D[Start or connect to Ollama]
     C --> D
     D --> E[Check model list]
-    E -->|missing| F[Pull gemma3:4b]
+    E -->|missing| F[Pull qwen3:1.7b]
     E -->|present| G[Verify model list]
     F --> G
     G --> H[Minimal inference]
-    H --> I[Persist Ready]
+    H --> I[LanguageTool + Qwen semantic test]
+    I --> J[Persist qwen3:1.7b default]
+    J --> K{Former official model present?}
+    K -->|yes| L[Remove exact gemma3:4b]
+    K -->|no| M[Persist Ready]
+    L --> M
 ```
 
 The application-level `ProvisioningController` owns one worker and persists 64-bit-safe byte totals and percentages atomically in `%LOCALAPPDATA%\OfflineWritingReviser\provisioning\state.json`. Its phases are checking Ollama, installing Ollama, starting Ollama, checking model, downloading model, verifying model, testing inference, ready, failed, and cancelled.
 
 Closing or choosing Hide during active work hides the window without cancelling. The Start-menu setup shortcut sends a reconnect/focus message to the existing process; a provisioning mutex and controller guard prevent duplicate workers and duplicate model pulls. Interrupted Ollama/model downloads retain resumable data where available, and Retry resumes the missing stage. Ready, failure, progress, and retry state survive the window. While setup is active, the hotkey reports that setup is still in progress and directs the user to Model Setup.
 
-The Qt dialog supplies accessible labels, focus order, byte/percentage details, and polite announcements when the stage changes or progress advances materially. Ready is persisted only after model-list verification and a minimal inference succeeds.
+The Qt dialog supplies accessible labels, focus order, byte/percentage details, and polite announcements when the stage changes or progress advances materially. Ready is persisted only after model-list verification, minimal inference, and the end-to-end semantic revision test succeed. Migration failure retains the former model and working configuration and exposes Retry; unrelated models are untouched.
 
 ## Settings, diagnostics, and lifecycle
 

@@ -6,7 +6,7 @@
 | Selection copies but is not replaced | Target focus changed, paste failed, or complete output was unchanged/rejected | Keep the source window active until completion. Check the log failure code; retry in Notepad to isolate an unsupported editor. |
 | Model output rejected; original preserved | A protected fact, identifier, meaning anchor, or structure changed | This is the safe fallback. Revise a smaller selection or edit manually; do not disable review for sensitive text. |
 | Revision timeout | A request exceeded the configured absolute deadline | Retry after the first model load, raise the timeout in Settings, or use a smaller selection. A section receives one retry before preservation. |
-| Model missing / AI model not ready | `gemma3:4b` is absent or verification failed | Open **Set up intelligent revision** from the Start menu and finish through Ready. |
+| Model missing / AI model not ready | `qwen3:1.7b` is absent or verification failed | Open **Set up intelligent revision** from the Start menu and finish through Ready. |
 | Setup still downloading | The model is several gigabytes | Reopen Model Setup to view persistent byte/percentage progress and wait. Do not launch a separate pull. |
 | Setup window disappeared | Active setup was hidden | Reopen the Start-menu setup shortcut; it focuses the existing job. |
 | Ollama unavailable | Ollama is missing, stopped, or its loopback API failed | Run Model Setup to install/start/repair it, then use Diagnostics. |
@@ -27,7 +27,7 @@ $app = "$env:LOCALAPPDATA\Programs\Offline Writing Reviser\OfflineWritingReviser
 & $app --validate-startup
 & $app --diagnostics
 & $app --diagnostics-json
-& $app --diagnostics --gemma-test
+& $app --diagnostics --model-test
 & $app --settings
 & $app --provision-model
 & $app --restart

@@ -267,6 +267,12 @@ def test_packaging_contains_private_runtime_without_removed_hybrid_engine():
     assert "vendor\\java" in build
     assert "vendor\\languagetool" in build
     assert "bin\\javaw.exe" in build
+    preparation = (
+        root / "scripts" / "prepare-languagetool-runtime.ps1"
+    ).read_text(encoding="utf-8")
+    assert "testrules.bat" in preparation
+    assert "testrules.sh" in preparation
+    assert "languagetool-core-tests.jar" in preparation
     assert "gemma3:4b" not in build
     assert ".gguf" not in build.casefold()
     assert "runtime\\java" not in installer

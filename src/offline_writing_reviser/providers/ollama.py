@@ -230,6 +230,28 @@ class OllamaCliOfflineWritingProvider(OfflineWritingProvider):
             key=str.casefold,
         )
 
+    def api_model_size(
+        self, model: str | None = None, timeout_seconds: float = 5.0
+    ) -> int | None:
+        model = model or self._model
+        response = self._request_json("/api/tags", None, timeout_seconds)
+        for item in response.get("models", []):
+            if isinstance(item, dict) and item.get("name") == model:
+                size = item.get("size")
+                return size if isinstance(size, int) and size >= 0 else None
+        return None
+
+    def remove_model(self, model: str, timeout_seconds: float = 120.0) -> None:
+        if not model or model != model.strip():
+            raise OfflineWritingProviderError("Refusing invalid model removal")
+        self._request_json(
+            "/api/delete",
+            {"model": model},
+            timeout_seconds,
+            method="DELETE",
+            allow_empty=True,
+        )
+
     def verify_minimal_inference(self, timeout_seconds: float = 120.0) -> None:
         """Load the configured model and prove that it can produce a response."""
         response = self._request_json(
@@ -389,6 +411,9 @@ class OllamaCliOfflineWritingProvider(OfflineWritingProvider):
         path: str,
         payload: dict[str, Any] | None,
         timeout_seconds: float,
+        *,
+        method: str | None = None,
+        allow_empty: bool = False,
     ) -> dict[str, Any]:
         request = urllib.request.Request(
             f"{OLLAMA_API_URL}{path}",
@@ -398,13 +423,14 @@ class OllamaCliOfflineWritingProvider(OfflineWritingProvider):
                 else json.dumps(payload).encode("utf-8")
             ),
             headers={"Content-Type": "application/json"},
-            method="GET" if payload is None else "POST",
+            method=method or ("GET" if payload is None else "POST"),
         )
         try:
             with urllib.request.urlopen(
                 request, timeout=timeout_seconds
             ) as response:
-                parsed = json.loads(response.read().decode("utf-8"))
+                raw = response.read()
+                parsed = {} if allow_empty and not raw else json.loads(raw.decode("utf-8"))
         except (TimeoutError, subprocess.TimeoutExpired) as exc:
             raise OfflineWritingProviderTimeout(
                 "Ollama local API timed out"

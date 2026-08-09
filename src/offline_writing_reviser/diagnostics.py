@@ -7,20 +7,20 @@ import time
 from typing import Any
 
 from offline_writing_reviser.config import OfflineWritingConfig
-from offline_writing_reviser.core.service import OfflineWritingService
 from offline_writing_reviser.paths import executable_path
 from offline_writing_reviser.providers.base import OfflineWritingProviderError
 from offline_writing_reviser.providers.ollama import (
     OllamaCliOfflineWritingProvider,
 )
 from offline_writing_reviser.settings import SettingsStore
+from offline_writing_reviser.provisioning import ModelProvisioner
 from offline_writing_reviser.version import __version__
 
 
 def collect_diagnostics(
     config: OfflineWritingConfig | None = None,
     *,
-    include_gemma_test: bool = False,
+    include_model_test: bool = False,
     provider: OllamaCliOfflineWritingProvider | None = None,
 ) -> tuple[dict[str, Any], bool]:
     store = SettingsStore()
@@ -65,7 +65,7 @@ def collect_diagnostics(
         },
         "hardware": _memory_status(),
         "revision": {
-            "health_test_requested": include_gemma_test,
+            "health_test_requested": include_model_test,
             "health_test_passed": None,
             "latency_seconds": None,
         },
@@ -101,15 +101,13 @@ def collect_diagnostics(
         report["ollama"]["error"] = f"{exc.__class__.__name__}: {exc}"
         healthy = False
 
-    if include_gemma_test and report["ollama"]["required_model_installed"]:
+    if include_model_test and report["ollama"]["required_model_installed"]:
         started = time.perf_counter()
         try:
-            result = OfflineWritingService(
-                provider=provider, config=config
-            ).revise("She work in the finance department.")
-            passed = result.revised_text == (
-                "She works in the finance department."
-            )
+            provisioner = ModelProvisioner(config, provider=provider)
+            provisioner.verify_inference(timeout_seconds=120.0)
+            provisioner.verify_end_to_end()
+            passed = True
             report["revision"]["health_test_passed"] = passed
             report["revision"]["latency_seconds"] = (
                 time.perf_counter() - started

@@ -5,7 +5,7 @@ The Inno Setup 6 installer is a per-user, x64-compatible bootstrap. It normally 
 Bundled content is the application executable, its Python/PySide6 runtime,
 icon, third-party notices, Eclipse Temurin 17.0.20+8 x64 JRE, and LanguageTool
 6.6 standalone distribution. The private Java and LanguageTool files are under
-the application directory and require no user setup. Ollama, `gemma3:4b`, AI
+the application directory and require no user setup. Ollama, `qwen3:1.7b`, AI
 models, benchmarks, and tests are not bundled. The core installer never blocks
 on multi-gigabyte model provisioning.
 
@@ -20,7 +20,7 @@ Clean-machine acceptance must verify:
 1. 64-bit Windows per-user installation without an administrator prompt under normal policy.
 2. Silent background startup: no console, tray, taskbar window, duplicate
    instance, duplicate LanguageTool server, or orphan worker/Java process.
-3. Model Setup reuse/install of Ollama, resumable `gemma3:4b` pull, hide/reopen/focus, persistent Ready, and no duplicate pull.
+3. Model Setup reuse/install of Ollama, resumable `qwen3:1.7b` pull, minimal inference and end-to-end verification, hide/reopen/focus, persistent Ready, and no duplicate pull. An upgrade removes only the exact former `gemma3:4b` model and only after Qwen verification succeeds.
 4. Real `Ctrl+Alt+P` selection replacement in Notepad and Microsoft Word, including modifier release, clipboard restoration, unchanged output, failure fallback, and a long document.
 5. Settings, diagnostics, version, startup validation, restart, exit, and login startup.
 6. Uninstall stops the application-owned `javaw.exe`, removes private Java and
