@@ -23,10 +23,12 @@ from offline_writing_reviser.providers.base import (
 OLLAMA_API_URL = "http://127.0.0.1:11434"
 PROOFREADING_KEEP_ALIVE = "10m"
 PROOFREADING_GENERATION_OPTIONS = {
-    "temperature": 0,
-    "seed": 0,
-    "num_ctx": 8192,
-    "num_predict": 4096,
+    "temperature": 0.2,
+    "top_p": 0.9,
+    "repeat_penalty": 1.05,
+    "seed": 25,
+    "num_ctx": 4096,
+    "num_predict": 384,
 }
 
 
@@ -194,6 +196,7 @@ class OllamaCliOfflineWritingProvider(OfflineWritingProvider):
             raise OfflineWritingProviderError("Local revision response was invalid")
         telemetry = {
             "wall_seconds": wall_seconds,
+            "first_token_seconds": response.get("_first_token_wall_seconds"),
             "total_duration_seconds": _nanoseconds(response, "total_duration"),
             "load_duration_seconds": _nanoseconds(response, "load_duration"),
             "prompt_eval_duration_seconds": _nanoseconds(
@@ -225,6 +228,28 @@ class OllamaCliOfflineWritingProvider(OfflineWritingProvider):
                 if isinstance(item, dict) and item.get("name")
             },
             key=str.casefold,
+        )
+
+    def api_model_size(
+        self, model: str | None = None, timeout_seconds: float = 5.0
+    ) -> int | None:
+        model = model or self._model
+        response = self._request_json("/api/tags", None, timeout_seconds)
+        for item in response.get("models", []):
+            if isinstance(item, dict) and item.get("name") == model:
+                size = item.get("size")
+                return size if isinstance(size, int) and size >= 0 else None
+        return None
+
+    def remove_model(self, model: str, timeout_seconds: float = 120.0) -> None:
+        if not model or model != model.strip():
+            raise OfflineWritingProviderError("Refusing invalid model removal")
+        self._request_json(
+            "/api/delete",
+            {"model": model},
+            timeout_seconds,
+            method="DELETE",
+            allow_empty=True,
         )
 
     def verify_minimal_inference(self, timeout_seconds: float = 120.0) -> None:
@@ -304,9 +329,11 @@ class OllamaCliOfflineWritingProvider(OfflineWritingProvider):
             headers={"Content-Type": "application/json"},
             method="POST",
         )
+        stream_started = time.perf_counter()
         deadline = time.monotonic() + timeout_seconds
         pieces: list[str] = []
         final: dict[str, Any] = {}
+        first_token_seconds: float | None = None
         try:
             with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
                 with self._response_lock:
@@ -340,12 +367,15 @@ class OllamaCliOfflineWritingProvider(OfflineWritingProvider):
                         else None
                     )
                     if isinstance(content, str):
+                        if content and first_token_seconds is None:
+                            first_token_seconds = time.perf_counter() - stream_started
                         pieces.append(content)
                     final = item
                     if item.get("done") is True:
                         break
             parsed = dict(final)
             parsed["message"] = {"content": "".join(pieces)}
+            parsed["_first_token_wall_seconds"] = first_token_seconds
         except urllib.error.HTTPError as exc:
             if exc.code == 404:
                 raise OfflineWritingModelMissing(
@@ -381,6 +411,9 @@ class OllamaCliOfflineWritingProvider(OfflineWritingProvider):
         path: str,
         payload: dict[str, Any] | None,
         timeout_seconds: float,
+        *,
+        method: str | None = None,
+        allow_empty: bool = False,
     ) -> dict[str, Any]:
         request = urllib.request.Request(
             f"{OLLAMA_API_URL}{path}",
@@ -390,13 +423,14 @@ class OllamaCliOfflineWritingProvider(OfflineWritingProvider):
                 else json.dumps(payload).encode("utf-8")
             ),
             headers={"Content-Type": "application/json"},
-            method="GET" if payload is None else "POST",
+            method=method or ("GET" if payload is None else "POST"),
         )
         try:
             with urllib.request.urlopen(
                 request, timeout=timeout_seconds
             ) as response:
-                parsed = json.loads(response.read().decode("utf-8"))
+                raw = response.read()
+                parsed = {} if allow_empty and not raw else json.loads(raw.decode("utf-8"))
         except (TimeoutError, subprocess.TimeoutExpired) as exc:
             raise OfflineWritingProviderTimeout(
                 "Ollama local API timed out"

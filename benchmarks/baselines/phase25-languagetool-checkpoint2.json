@@ -1,0 +1,348 @@
+{
+  "generated_at": "2026-08-08T07:08:33.104938+00:00",
+  "architecture": "single_pass_languagetool_correction",
+  "language": "en-US",
+  "languagetool_version": "6.6",
+  "java_version": "17.0.20+8",
+  "runtime_sizes": {
+    "java_bytes": 130895115,
+    "languagetool_bytes": 405072177,
+    "combined_bytes": 535967292
+  },
+  "performance": {
+    "first_startup_ms": 6135.278299974743,
+    "server_ready_ms": 1787.6700999913737,
+    "first_correction_ms": 160.4799999622628,
+    "warm_sentence_median_ms": 42.627049988368526,
+    "warm_sentence_p95_ms": 58.85279999347404,
+    "warm_sentence_max_ms": 65.97559998044744,
+    "warm_paragraph_median_ms": 80.25020000059158,
+    "warm_paragraph_p95_ms": 95.30499996617436,
+    "shutdown_ms": 49.35939999995753
+  },
+  "quality": {
+    "required_mechanical_case_count": 6,
+    "required_mechanical_reach": 4,
+    "useful_mechanical_reach": 5,
+    "acceptable_case_count": 10,
+    "case_count": 12,
+    "incorrect_edit_count": 0,
+    "incorrect_edit_rate": 0.0,
+    "protected_preservation_count": 12,
+    "protected_preservation_rate": 1.0
+  },
+  "process": {
+    "javaw_before": {
+      "count": 0,
+      "processes": []
+    },
+    "javaw_while_running": {
+      "count": 1,
+      "processes": [
+        {
+          "Id": 24316,
+          "ProcessName": "javaw",
+          "WorkingSet64": 478334976,
+          "PrivateMemorySize64": 521297920,
+          "MainWindowHandle": 0,
+          "Path": "D:\\Projects\\offline-writing-reviser\\vendor\\java\\bin\\javaw.exe"
+        }
+      ]
+    },
+    "server_memory": {
+      "count": 1,
+      "processes": [
+        {
+          "Id": 24316,
+          "ProcessName": "javaw",
+          "WorkingSet64": 497328128,
+          "PrivateMemorySize64": 537231360,
+          "MainWindowHandle": 0,
+          "Path": "D:\\Projects\\offline-writing-reviser\\vendor\\java\\bin\\javaw.exe"
+        }
+      ]
+    },
+    "javaw_after_shutdown": {
+      "count": 0,
+      "processes": []
+    },
+    "owned_pid": 24316,
+    "zero_visible_windows": true,
+    "owned_process_stopped": true
+  },
+  "records": [
+    {
+      "id": "spelling",
+      "kind": "mechanical",
+      "input": "I recieved the adress yesterday.",
+      "output": "I received the address yesterday.",
+      "latency_ms": 160.4799999622628,
+      "acceptable": true,
+      "safe": true,
+      "changed": true,
+      "protected_preserved": true,
+      "applied_edits": [
+        {
+          "offset": 2,
+          "length": 8,
+          "original": "recieved",
+          "replacement": "received",
+          "rule_id": "MORFOLOGIK_RULE_EN_US",
+          "category": "TYPOS",
+          "issue_type": "misspelling",
+          "message": "Possible spelling mistake found.",
+          "reason": null
+        },
+        {
+          "offset": 15,
+          "length": 6,
+          "original": "adress",
+          "replacement": "address",
+          "rule_id": "MORFOLOGIK_RULE_EN_US",
+          "category": "TYPOS",
+          "issue_type": "misspelling",
+          "message": "Possible spelling mistake found.",
+          "reason": null
+        }
+      ],
+      "skipped_edits": [],
+      "failure": null
+    },
+    {
+      "id": "grammar",
+      "kind": "mechanical",
+      "input": "He go to work every day.",
+      "output": "He goes to work every day.",
+      "latency_ms": 64.46650001453236,
+      "acceptable": true,
+      "safe": true,
+      "changed": true,
+      "protected_preserved": true,
+      "applied_edits": [
+        {
+          "offset": 3,
+          "length": 2,
+          "original": "go",
+          "replacement": "goes",
+          "rule_id": "HE_VERB_AGR",
+          "category": "GRAMMAR",
+          "issue_type": "grammar",
+          "message": "The pronoun ‘He’ is usually used with a third-person or a past tense verb.",
+          "reason": null
+        }
+      ],
+      "skipped_edits": [],
+      "failure": null
+    },
+    {
+      "id": "punctuation",
+      "kind": "mechanical",
+      "input": "After lunch we reviewed the contract however we did not approve it.",
+      "output": "After lunch, we reviewed the contract however we did not approve it.",
+      "latency_ms": 74.43049998255447,
+      "acceptable": false,
+      "safe": true,
+      "changed": true,
+      "protected_preserved": true,
+      "applied_edits": [
+        {
+          "offset": 6,
+          "length": 5,
+          "original": "lunch",
+          "replacement": "lunch,",
+          "rule_id": "MISSING_COMMA_AFTER_INTRODUCTORY_PHRASE",
+          "category": "PUNCTUATION",
+          "issue_type": "uncategorized",
+          "message": "A comma is probably missing here.",
+          "reason": null
+        }
+      ],
+      "skipped_edits": [],
+      "failure": null
+    },
+    {
+      "id": "agreement",
+      "kind": "mechanical",
+      "input": "The list of changes are attached.",
+      "output": "The list of changes is attached.",
+      "latency_ms": 61.60340004134923,
+      "acceptable": true,
+      "safe": true,
+      "changed": true,
+      "protected_preserved": true,
+      "applied_edits": [
+        {
+          "offset": 20,
+          "length": 3,
+          "original": "are",
+          "replacement": "is",
+          "rule_id": "AGREEMENT_SENT_START",
+          "category": "GRAMMAR",
+          "issue_type": "grammar",
+          "message": "Possible agreement error.",
+          "reason": null
+        }
+      ],
+      "skipped_edits": [],
+      "failure": null
+    },
+    {
+      "id": "article",
+      "kind": "mechanical",
+      "input": "She is engineer at our Vancouver office.",
+      "output": "She is engineer at our Vancouver office.",
+      "latency_ms": 63.080100051593035,
+      "acceptable": false,
+      "safe": true,
+      "changed": false,
+      "protected_preserved": true,
+      "applied_edits": [],
+      "skipped_edits": [
+        {
+          "offset": 7,
+          "length": 8,
+          "original": "engineer",
+          "replacement": "engineered",
+          "rule_id": "BEEN_PART_AGREEMENT",
+          "category": "GRAMMAR",
+          "issue_type": "grammar",
+          "message": "Consider using either the past participle “engineered” or the present participle “engineering” here.",
+          "reason": "demonstrated_unsafe_rule"
+        }
+      ],
+      "failure": null
+    },
+    {
+      "id": "esl-discuss",
+      "kind": "mechanical",
+      "input": "We discussed about the project.",
+      "output": "We discussed the project.",
+      "latency_ms": 62.00199999148026,
+      "acceptable": true,
+      "safe": true,
+      "changed": true,
+      "protected_preserved": true,
+      "applied_edits": [
+        {
+          "offset": 3,
+          "length": 19,
+          "original": "discussed about the",
+          "replacement": "discussed the",
+          "rule_id": "MENTION_ABOUT",
+          "category": "COLLOCATIONS",
+          "issue_type": "grammar",
+          "message": "Did you mean simply “discussed the”? You do not need the word “about” here.",
+          "reason": null
+        }
+      ],
+      "skipped_edits": [],
+      "failure": null
+    },
+    {
+      "id": "esl-inform",
+      "kind": "mechanical_optional",
+      "input": "I am writing this email for informing you about the issue.",
+      "output": "I am writing this email for informing you about the issue.",
+      "latency_ms": 42.09659999469295,
+      "acceptable": true,
+      "safe": true,
+      "changed": false,
+      "protected_preserved": true,
+      "applied_edits": [],
+      "skipped_edits": [],
+      "failure": null
+    },
+    {
+      "id": "correct",
+      "kind": "preserve",
+      "input": "The meeting starts at nine tomorrow morning.",
+      "output": "The meeting starts at nine tomorrow morning.",
+      "latency_ms": 42.52610000548884,
+      "acceptable": true,
+      "safe": true,
+      "changed": false,
+      "protected_preserved": true,
+      "applied_edits": [],
+      "skipped_edits": [],
+      "failure": null
+    },
+    {
+      "id": "name-organization",
+      "kind": "protected",
+      "input": "Priya Raman may send the report to Microsoft tomorrow.",
+      "output": "Priya Raman may send the report to Microsoft tomorrow.",
+      "latency_ms": 235.88789999485016,
+      "acceptable": true,
+      "safe": true,
+      "changed": false,
+      "protected_preserved": true,
+      "applied_edits": [],
+      "skipped_edits": [
+        {
+          "offset": 6,
+          "length": 5,
+          "original": "Raman",
+          "replacement": "Roman",
+          "rule_id": "MORFOLOGIK_RULE_EN_US",
+          "category": "TYPOS",
+          "issue_type": "misspelling",
+          "message": "Possible spelling mistake found.",
+          "reason": "protected_tokens_changed:names"
+        }
+      ],
+      "failure": null
+    },
+    {
+      "id": "date-time",
+      "kind": "protected",
+      "input": "The review is on September 15, 2026, at 9:30 AM.",
+      "output": "The review is on September 15, 2026, at 9:30 AM.",
+      "latency_ms": 43.275400006677955,
+      "acceptable": true,
+      "safe": true,
+      "changed": false,
+      "protected_preserved": true,
+      "applied_edits": [],
+      "skipped_edits": [],
+      "failure": null
+    },
+    {
+      "id": "numbers-money",
+      "kind": "protected",
+      "input": "Jordan approved 12 licenses for CAD 1,250.50.",
+      "output": "Jordan approved 12 licenses for CAD 1,250.50.",
+      "latency_ms": 48.93109999829903,
+      "acceptable": true,
+      "safe": true,
+      "changed": false,
+      "protected_preserved": true,
+      "applied_edits": [],
+      "skipped_edits": [],
+      "failure": null
+    },
+    {
+      "id": "url-email-identifier-negation",
+      "kind": "protected",
+      "input": "Do not email ops@example.com or deploy API-42; review https://example.com/release-7.2.",
+      "output": "Do not email ops@example.com or deploy API-42; review https://example.com/release-7.2.",
+      "latency_ms": 33.450799994170666,
+      "acceptable": true,
+      "safe": true,
+      "changed": false,
+      "protected_preserved": true,
+      "applied_edits": [],
+      "skipped_edits": [],
+      "failure": null
+    }
+  ],
+  "paragraph": {
+    "input": "I recieved the adress yesterday. He go to work every day. We discussed about the project. The meeting starts at nine tomorrow morning. Priya Raman may approve 12 licenses for CAD 1,250.50 on September 15, 2026, at 9:30 AM. Do not email ops@example.com or change API-42; see https://example.com/release-7.2.",
+    "samples_ms": [
+      95.30499996617436,
+      79.07690003048629,
+      81.43369999015704,
+      65.40580000728369,
+      80.25020000059158
+    ]
+  }
+}

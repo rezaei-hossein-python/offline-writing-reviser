@@ -225,9 +225,10 @@ def test_installer_uses_one_quoted_canonical_windowless_entry_point():
         '"Start Offline Writing Reviser"; Flags: nowait runhidden'
     ) in installer
     assert 'Filename: "{app}\\{#AppExeName}"; Parameters: "--exit"' in installer
+    assert 'Type: filesandordirs; Name: "{app}"' in installer
     assert "--windowed" in build
-    assert 'bin\\javaw.exe' not in build
-    assert "LanguageTool" not in build
+    assert 'bin\\javaw.exe' in build
+    assert "LanguageTool" in build
     assert ".cmd" not in installer
     assert ".bat" not in installer
     assert ".ps1" not in installer

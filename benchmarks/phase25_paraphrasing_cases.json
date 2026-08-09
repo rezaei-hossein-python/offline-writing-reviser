@@ -1,0 +1,27 @@
+{
+  "cases": [
+    {"id":"natural","category":"already_correct_natural","input":"The meeting starts at nine tomorrow morning.","benefit":"unchanged"},
+    {"id":"lt-clean-only","category":"languagetool_clean_no_paraphrase","input":"I recieved the adress yesterday.","benefit":"unchanged_after_languagetool"},
+    {"id":"awkward","category":"awkward_grammatical","input":"The way in which we carry out the review takes more time than it should take.","benefit":"paraphrase"},
+    {"id":"esl","category":"common_esl","input":"I am writing this email for informing you about the issue.","benefit":"paraphrase"},
+    {"id":"vocabulary","category":"poor_vocabulary","input":"The new process made a big improvement to the speed of our work.","benefit":"paraphrase"},
+    {"id":"redundant","category":"redundant_wording","input":"At this point in time, we are currently reviewing each and every request individually.","benefit":"paraphrase"},
+    {"id":"professional-email","category":"professional_email","input":"I wanted to reach out to you in order to let you know that the proposal is ready for you to look at.","benefit":"paraphrase"},
+    {"id":"conversational","category":"conversational","input":"The app is pretty good, but the setup part is kind of hard to get through.","benefit":"paraphrase"},
+    {"id":"restructure","category":"sentence_restructuring","input":"Because the approval arrived late, which was unexpected, the team had to move the launch to next week.","benefit":"paraphrase"},
+    {"id":"concision","category":"concision","input":"There are a number of different reasons why the update was delayed in its completion.","benefit":"paraphrase"},
+    {"id":"name-org","category":"names_organizations","input":"Priya Raman may send the revised accessibility report to Microsoft tomorrow.","benefit":"conservative"},
+    {"id":"numbers","category":"numbers","input":"Jordan approved 12 licenses for 18 employees across 3 offices.","benefit":"conservative"},
+    {"id":"date-time","category":"dates_times","input":"The review is scheduled for September 15, 2026, at 9:30 AM.","benefit":"conservative"},
+    {"id":"currency","category":"currency_amounts","input":"The registration fee remains CAD 1,250.50, and the refund cannot exceed CAD 300.00.","benefit":"conservative"},
+    {"id":"url-email","category":"urls_emails","input":"Email ops@example.com or visit https://example.com/release-7.2 for the current instructions.","benefit":"conservative"},
+    {"id":"identifiers","category":"identifiers","input":"Do not deploy build API-42 before ticket OWR-2048 is closed.","benefit":"unchanged"},
+    {"id":"negation","category":"negation","input":"The backup must not be deleted, and we never share it with external vendors.","benefit":"conservative"},
+    {"id":"modality-commitment","category":"modality_commitment","input":"Alex may approve the change, and I will deliver all three files by Friday.","benefit":"conservative"},
+    {"id":"question","category":"question","input":"Could you send the signed agreement by Friday, or should I ask Elena to collect it?","benefit":"conservative"},
+    {"id":"ambiguous","category":"ambiguous_conservative","input":"Morgan saw Alex with the revised draft near the bank.","benefit":"unchanged"},
+    {"id":"short-paragraph","category":"multi_sentence_paragraph","input":"The current review process takes a long time and creates unnecessary work for the support team. Employees must open three separate screens before they can answer a simple request. A shorter checklist would make the work clearer and faster without removing the final security review.","benefit":"paraphrase"},
+    {"id":"professional-paragraph","category":"professional_paragraph","input":"Thank you for sharing the first version of the plan. I think the overall direction is good, but some parts are difficult to follow and could be presented in a clearer way. Please focus especially on the explanation of the customer handoff, because new employees have said that this section is confusing.","benefit":"paraphrase"},
+    {"id":"several-paragraphs","category":"several_paragraphs","input":"Hello Mina,\n\nThe report is ready for review, but the summary is longer than it needs to be. Please send your comments by Thursday.\n\nI will not publish build API-42 until you approve it. The release may move to Friday if the final security check takes longer than expected.\n\nRegards,\nCarlos","benefit":"paraphrase"}
+  ]
+}

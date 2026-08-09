@@ -1,0 +1,1310 @@
+{
+  "generated_at": "2026-08-08T18:24:56.625372+00:00",
+  "model": "qwen3:1.7b",
+  "pid": 10732,
+  "configuration": {
+    "chunk_characters": 1000,
+    "strategy": "approximately_1000_character_paragraphs"
+  },
+  "app_only_memory": {
+    "working_set_bytes": 28172288,
+    "private_bytes": 18993152
+  },
+  "languagetool_warmup_ms": 6571.246200008318,
+  "languagetool_memory": {
+    "working_set_bytes": 486596608,
+    "private_bytes": 527552512,
+    "pid": 20268
+  },
+  "cold": {
+    "id": "cold-awkward",
+    "input": "The meeting was very good and we discussed many important things.",
+    "languagetool_text": "The meeting was very good and we discussed many important things.",
+    "paraphrased_text": "The meeting was very good and we discussed many important topics.",
+    "output": "The meeting was very good and we discussed many important topics.",
+    "wall_ms": 7338.800599973183,
+    "metadata": {
+      "section_count": 1,
+      "languagetool_duration_ms": 105.93340004561469,
+      "languagetool_applied_edit_count": 0,
+      "languagetool_skipped_edit_count": 0,
+      "qwen_invoked": true,
+      "qwen_call_count": 1,
+      "qwen_duration_ms": 7231.012100004591,
+      "qwen_first_token_ms": [
+        6675.350100034848
+      ],
+      "qwen_accepted_sections": 1,
+      "qwen_rejected_sections": 0,
+      "fallback_sections": 0,
+      "validation_duration_ms": 1.5422999858856201,
+      "result_category": "paraphrased",
+      "completion_status": "Revised"
+    }
+  },
+  "fast_path": {
+    "records": [
+      {
+        "id": "spelling-1",
+        "input": "I recieved the adress yesterday.",
+        "languagetool_text": "I received the address yesterday.",
+        "paraphrased_text": "I received the address yesterday.",
+        "output": "I received the address yesterday.",
+        "wall_ms": 150.0952999922447,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 149.9943999806419,
+          "languagetool_applied_edit_count": 2,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": false,
+          "qwen_call_count": 0,
+          "qwen_duration_ms": 0,
+          "qwen_first_token_ms": [],
+          "qwen_accepted_sections": 0,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0,
+          "result_category": "languagetool_only",
+          "completion_status": "Corrected"
+        }
+      },
+      {
+        "id": "grammar-1",
+        "input": "He go to work every day.",
+        "languagetool_text": "He goes to work every day.",
+        "paraphrased_text": "He goes to work every day.",
+        "output": "He goes to work every day.",
+        "wall_ms": 73.25320004019886,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 73.1610999791883,
+          "languagetool_applied_edit_count": 1,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": false,
+          "qwen_call_count": 0,
+          "qwen_duration_ms": 0,
+          "qwen_first_token_ms": [],
+          "qwen_accepted_sections": 0,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0,
+          "result_category": "languagetool_only",
+          "completion_status": "Corrected"
+        }
+      },
+      {
+        "id": "esl-mechanical-1",
+        "input": "We discussed about the project.",
+        "languagetool_text": "We discussed the project.",
+        "paraphrased_text": "We discussed the project.",
+        "output": "We discussed the project.",
+        "wall_ms": 40.6387000111863,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 40.552299993578345,
+          "languagetool_applied_edit_count": 1,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": false,
+          "qwen_call_count": 0,
+          "qwen_duration_ms": 0,
+          "qwen_first_token_ms": [],
+          "qwen_accepted_sections": 0,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0,
+          "result_category": "languagetool_only",
+          "completion_status": "Corrected"
+        }
+      },
+      {
+        "id": "spelling-2",
+        "input": "I recieved the adress yesterday.",
+        "languagetool_text": "I received the address yesterday.",
+        "paraphrased_text": "I received the address yesterday.",
+        "output": "I received the address yesterday.",
+        "wall_ms": 70.99229999585077,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 70.88929996825755,
+          "languagetool_applied_edit_count": 2,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": false,
+          "qwen_call_count": 0,
+          "qwen_duration_ms": 0,
+          "qwen_first_token_ms": [],
+          "qwen_accepted_sections": 0,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0,
+          "result_category": "languagetool_only",
+          "completion_status": "Corrected"
+        }
+      },
+      {
+        "id": "grammar-2",
+        "input": "He go to work every day.",
+        "languagetool_text": "He goes to work every day.",
+        "paraphrased_text": "He goes to work every day.",
+        "output": "He goes to work every day.",
+        "wall_ms": 47.67910001100972,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 47.59239999111742,
+          "languagetool_applied_edit_count": 1,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": false,
+          "qwen_call_count": 0,
+          "qwen_duration_ms": 0,
+          "qwen_first_token_ms": [],
+          "qwen_accepted_sections": 0,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0,
+          "result_category": "languagetool_only",
+          "completion_status": "Corrected"
+        }
+      },
+      {
+        "id": "esl-mechanical-2",
+        "input": "We discussed about the project.",
+        "languagetool_text": "We discussed the project.",
+        "paraphrased_text": "We discussed the project.",
+        "output": "We discussed the project.",
+        "wall_ms": 61.06029998045415,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 60.958600020967424,
+          "languagetool_applied_edit_count": 1,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": false,
+          "qwen_call_count": 0,
+          "qwen_duration_ms": 0,
+          "qwen_first_token_ms": [],
+          "qwen_accepted_sections": 0,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0,
+          "result_category": "languagetool_only",
+          "completion_status": "Corrected"
+        }
+      },
+      {
+        "id": "spelling-3",
+        "input": "I recieved the adress yesterday.",
+        "languagetool_text": "I received the address yesterday.",
+        "paraphrased_text": "I received the address yesterday.",
+        "output": "I received the address yesterday.",
+        "wall_ms": 45.66150001483038,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 45.54550000466406,
+          "languagetool_applied_edit_count": 2,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": false,
+          "qwen_call_count": 0,
+          "qwen_duration_ms": 0,
+          "qwen_first_token_ms": [],
+          "qwen_accepted_sections": 0,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0,
+          "result_category": "languagetool_only",
+          "completion_status": "Corrected"
+        }
+      },
+      {
+        "id": "grammar-3",
+        "input": "He go to work every day.",
+        "languagetool_text": "He goes to work every day.",
+        "paraphrased_text": "He goes to work every day.",
+        "output": "He goes to work every day.",
+        "wall_ms": 74.17959999293089,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 74.07070003682747,
+          "languagetool_applied_edit_count": 1,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": false,
+          "qwen_call_count": 0,
+          "qwen_duration_ms": 0,
+          "qwen_first_token_ms": [],
+          "qwen_accepted_sections": 0,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0,
+          "result_category": "languagetool_only",
+          "completion_status": "Corrected"
+        }
+      },
+      {
+        "id": "esl-mechanical-3",
+        "input": "We discussed about the project.",
+        "languagetool_text": "We discussed the project.",
+        "paraphrased_text": "We discussed the project.",
+        "output": "We discussed the project.",
+        "wall_ms": 45.558699988760054,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 45.454700011759996,
+          "languagetool_applied_edit_count": 1,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": false,
+          "qwen_call_count": 0,
+          "qwen_duration_ms": 0,
+          "qwen_first_token_ms": [],
+          "qwen_accepted_sections": 0,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0,
+          "result_category": "languagetool_only",
+          "completion_status": "Corrected"
+        }
+      },
+      {
+        "id": "spelling-4",
+        "input": "I recieved the adress yesterday.",
+        "languagetool_text": "I received the address yesterday.",
+        "paraphrased_text": "I received the address yesterday.",
+        "output": "I received the address yesterday.",
+        "wall_ms": 39.09530001692474,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 38.94380002748221,
+          "languagetool_applied_edit_count": 2,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": false,
+          "qwen_call_count": 0,
+          "qwen_duration_ms": 0,
+          "qwen_first_token_ms": [],
+          "qwen_accepted_sections": 0,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0,
+          "result_category": "languagetool_only",
+          "completion_status": "Corrected"
+        }
+      },
+      {
+        "id": "grammar-4",
+        "input": "He go to work every day.",
+        "languagetool_text": "He goes to work every day.",
+        "paraphrased_text": "He goes to work every day.",
+        "output": "He goes to work every day.",
+        "wall_ms": 52.32600000454113,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 52.22670000512153,
+          "languagetool_applied_edit_count": 1,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": false,
+          "qwen_call_count": 0,
+          "qwen_duration_ms": 0,
+          "qwen_first_token_ms": [],
+          "qwen_accepted_sections": 0,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0,
+          "result_category": "languagetool_only",
+          "completion_status": "Corrected"
+        }
+      },
+      {
+        "id": "esl-mechanical-4",
+        "input": "We discussed about the project.",
+        "languagetool_text": "We discussed the project.",
+        "paraphrased_text": "We discussed the project.",
+        "output": "We discussed the project.",
+        "wall_ms": 30.672900029458106,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 30.58320004492998,
+          "languagetool_applied_edit_count": 1,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": false,
+          "qwen_call_count": 0,
+          "qwen_duration_ms": 0,
+          "qwen_first_token_ms": [],
+          "qwen_accepted_sections": 0,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0,
+          "result_category": "languagetool_only",
+          "completion_status": "Corrected"
+        }
+      },
+      {
+        "id": "spelling-5",
+        "input": "I recieved the adress yesterday.",
+        "languagetool_text": "I received the address yesterday.",
+        "paraphrased_text": "I received the address yesterday.",
+        "output": "I received the address yesterday.",
+        "wall_ms": 48.75359998550266,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 48.659700027201325,
+          "languagetool_applied_edit_count": 2,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": false,
+          "qwen_call_count": 0,
+          "qwen_duration_ms": 0,
+          "qwen_first_token_ms": [],
+          "qwen_accepted_sections": 0,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0,
+          "result_category": "languagetool_only",
+          "completion_status": "Corrected"
+        }
+      },
+      {
+        "id": "grammar-5",
+        "input": "He go to work every day.",
+        "languagetool_text": "He goes to work every day.",
+        "paraphrased_text": "He goes to work every day.",
+        "output": "He goes to work every day.",
+        "wall_ms": 30.895100033376366,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 30.79370001796633,
+          "languagetool_applied_edit_count": 1,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": false,
+          "qwen_call_count": 0,
+          "qwen_duration_ms": 0,
+          "qwen_first_token_ms": [],
+          "qwen_accepted_sections": 0,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0,
+          "result_category": "languagetool_only",
+          "completion_status": "Corrected"
+        }
+      },
+      {
+        "id": "esl-mechanical-5",
+        "input": "We discussed about the project.",
+        "languagetool_text": "We discussed the project.",
+        "paraphrased_text": "We discussed the project.",
+        "output": "We discussed the project.",
+        "wall_ms": 42.448699998203665,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 42.34390001511201,
+          "languagetool_applied_edit_count": 1,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": false,
+          "qwen_call_count": 0,
+          "qwen_duration_ms": 0,
+          "qwen_first_token_ms": [],
+          "qwen_accepted_sections": 0,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0,
+          "result_category": "languagetool_only",
+          "completion_status": "Corrected"
+        }
+      }
+    ],
+    "median_ms": 47.67910001100972,
+    "p95_ms": 96.95430999272494,
+    "qwen_calls": 0
+  },
+  "paraphrase_path": {
+    "records": [
+      {
+        "id": "awkward-1",
+        "input": "I am writing this email for informing you about the issue.",
+        "languagetool_text": "I am writing this email for informing you about the issue.",
+        "paraphrased_text": "I am writing this email to inform you about the issue.",
+        "output": "I am writing this email to inform you about the issue.",
+        "wall_ms": 1810.738299973309,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 49.378099967725575,
+          "languagetool_applied_edit_count": 0,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": true,
+          "qwen_call_count": 1,
+          "qwen_duration_ms": 1760.6143999728374,
+          "qwen_first_token_ms": [
+            1196.9994999817573
+          ],
+          "qwen_accepted_sections": 1,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0.6250999867916107,
+          "result_category": "paraphrased",
+          "completion_status": "Revised"
+        }
+      },
+      {
+        "id": "awkward-2",
+        "input": "The meeting was very good and we discussed many important things.",
+        "languagetool_text": "The meeting was very good and we discussed many important things.",
+        "paraphrased_text": "The meeting was very good and we discussed many important topics.",
+        "output": "The meeting was very good and we discussed many important topics.",
+        "wall_ms": 1271.6469000442885,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 44.07900001388043,
+          "languagetool_applied_edit_count": 0,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": true,
+          "qwen_call_count": 1,
+          "qwen_duration_ms": 1226.885600015521,
+          "qwen_first_token_ms": [
+            638.6237000115216
+          ],
+          "qwen_accepted_sections": 1,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0.5722999921999872,
+          "result_category": "paraphrased",
+          "completion_status": "Revised"
+        }
+      },
+      {
+        "id": "awkward-3",
+        "input": "The new process made a big improvement to the speed of our work.",
+        "languagetool_text": "The new process made a big improvement to the speed of our work.",
+        "paraphrased_text": "The new process significantly improved the speed of our work.",
+        "output": "The new process significantly improved the speed of our work.",
+        "wall_ms": 1488.8835999881849,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 59.52169996453449,
+          "languagetool_applied_edit_count": 0,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": true,
+          "qwen_call_count": 1,
+          "qwen_duration_ms": 1428.7116000195965,
+          "qwen_first_token_ms": [
+            943.3757999795489
+          ],
+          "qwen_accepted_sections": 1,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0.5517000099644065,
+          "result_category": "paraphrased",
+          "completion_status": "Revised"
+        }
+      },
+      {
+        "id": "awkward-4",
+        "input": "At this point in time, we are currently reviewing each and every request individually.",
+        "languagetool_text": "At this point in time, we are currently reviewing each and every request individually.",
+        "paraphrased_text": "At this point, we are reviewing each request individually.",
+        "output": "At this point, we are reviewing each request individually.",
+        "wall_ms": 1183.5674000321887,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 39.56790000665933,
+          "languagetool_applied_edit_count": 0,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": true,
+          "qwen_call_count": 1,
+          "qwen_duration_ms": 1143.3456999948248,
+          "qwen_first_token_ms": [
+            681.7808999912813
+          ],
+          "qwen_accepted_sections": 1,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0.5610000225715339,
+          "result_category": "paraphrased",
+          "completion_status": "Revised"
+        }
+      },
+      {
+        "id": "awkward-5",
+        "input": "The app is pretty good, but the setup part is kind of hard to get through.",
+        "languagetool_text": "The app is pretty good, but the setup part is kind of hard to get through.",
+        "paraphrased_text": "The app is pretty good, but the setup process is a bit challenging.",
+        "output": "The app is pretty good, but the setup process is a bit challenging.",
+        "wall_ms": 1520.0940999784507,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 54.6755000250414,
+          "languagetool_applied_edit_count": 0,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": true,
+          "qwen_call_count": 1,
+          "qwen_duration_ms": 1464.6905999979936,
+          "qwen_first_token_ms": [
+            839.5975999883376
+          ],
+          "qwen_accepted_sections": 1,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0.6290999590419233,
+          "result_category": "paraphrased",
+          "completion_status": "Revised"
+        }
+      }
+    ],
+    "median_ms": 1488.8835999881849,
+    "p95_ms": 1752.6094599743374,
+    "qwen_calls": 5
+  },
+  "fixed_corpus": {
+    "records": [
+      {
+        "id": "natural",
+        "input": "The meeting starts at nine tomorrow morning.",
+        "languagetool_text": "The meeting starts at nine tomorrow morning.",
+        "paraphrased_text": "The meeting starts at nine tomorrow morning.",
+        "output": "The meeting starts at nine tomorrow morning.",
+        "wall_ms": 29.746900021564215,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 29.650799988303334,
+          "languagetool_applied_edit_count": 0,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": false,
+          "qwen_call_count": 0,
+          "qwen_duration_ms": 0,
+          "qwen_first_token_ms": [],
+          "qwen_accepted_sections": 0,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0,
+          "result_category": "unchanged",
+          "completion_status": "Unchanged"
+        }
+      },
+      {
+        "id": "lt-clean-only",
+        "input": "I recieved the adress yesterday.",
+        "languagetool_text": "I received the address yesterday.",
+        "paraphrased_text": "I received the address yesterday.",
+        "output": "I received the address yesterday.",
+        "wall_ms": 36.990299995522946,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 36.88579995650798,
+          "languagetool_applied_edit_count": 2,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": false,
+          "qwen_call_count": 0,
+          "qwen_duration_ms": 0,
+          "qwen_first_token_ms": [],
+          "qwen_accepted_sections": 0,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0,
+          "result_category": "languagetool_only",
+          "completion_status": "Corrected"
+        }
+      },
+      {
+        "id": "awkward",
+        "input": "The way in which we carry out the review takes more time than it should take.",
+        "languagetool_text": "The way in which we carry out the review takes more time than it should take.",
+        "paraphrased_text": "The manner in which we conduct the review requires more time than it should.",
+        "output": "The manner in which we conduct the review requires more time than it should.",
+        "wall_ms": 1787.9454999929294,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 59.40159998135641,
+          "languagetool_applied_edit_count": 0,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": true,
+          "qwen_call_count": 1,
+          "qwen_duration_ms": 1727.799899992533,
+          "qwen_first_token_ms": [
+            1089.71540001221
+          ],
+          "qwen_accepted_sections": 1,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0.6365000153891742,
+          "result_category": "paraphrased",
+          "completion_status": "Revised"
+        }
+      },
+      {
+        "id": "esl",
+        "input": "I am writing this email for informing you about the issue.",
+        "languagetool_text": "I am writing this email for informing you about the issue.",
+        "paraphrased_text": "I am writing this email to inform you about the issue.",
+        "output": "I am writing this email to inform you about the issue.",
+        "wall_ms": 1342.901099997107,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 30.484599992632866,
+          "languagetool_applied_edit_count": 0,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": true,
+          "qwen_call_count": 1,
+          "qwen_duration_ms": 1311.7165999719873,
+          "qwen_first_token_ms": [
+            786.6167000029236
+          ],
+          "qwen_accepted_sections": 1,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0.6003000307828188,
+          "result_category": "paraphrased",
+          "completion_status": "Revised"
+        }
+      },
+      {
+        "id": "vocabulary",
+        "input": "The new process made a big improvement to the speed of our work.",
+        "languagetool_text": "The new process made a big improvement to the speed of our work.",
+        "paraphrased_text": "The new process significantly improved the speed of our work.",
+        "output": "The new process significantly improved the speed of our work.",
+        "wall_ms": 1294.308100012131,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 32.34330000123009,
+          "languagetool_applied_edit_count": 0,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": true,
+          "qwen_call_count": 1,
+          "qwen_duration_ms": 1261.278800026048,
+          "qwen_first_token_ms": [
+            787.158899998758
+          ],
+          "qwen_accepted_sections": 1,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0.5672999541275203,
+          "result_category": "paraphrased",
+          "completion_status": "Revised"
+        }
+      },
+      {
+        "id": "redundant",
+        "input": "At this point in time, we are currently reviewing each and every request individually.",
+        "languagetool_text": "At this point in time, we are currently reviewing each and every request individually.",
+        "paraphrased_text": "At this point, we are reviewing each request individually.",
+        "output": "At this point, we are reviewing each request individually.",
+        "wall_ms": 1349.1760999895632,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 42.57869999855757,
+          "languagetool_applied_edit_count": 0,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": true,
+          "qwen_call_count": 1,
+          "qwen_duration_ms": 1305.91519997688,
+          "qwen_first_token_ms": [
+            830.9837999986485
+          ],
+          "qwen_accepted_sections": 1,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0.577000027988106,
+          "result_category": "paraphrased",
+          "completion_status": "Revised"
+        }
+      },
+      {
+        "id": "professional-email",
+        "input": "I wanted to reach out to you in order to let you know that the proposal is ready for you to look at.",
+        "languagetool_text": "I wanted to reach out to you in order to let you know that the proposal is ready for you to look at.",
+        "paraphrased_text": "I wanted to reach out to you to let you know that the proposal is ready for your review.",
+        "output": "I wanted to reach out to you to let you know that the proposal is ready for your review.",
+        "wall_ms": 1797.8058999869972,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 31.702599953860044,
+          "languagetool_applied_edit_count": 0,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": true,
+          "qwen_call_count": 1,
+          "qwen_duration_ms": 1765.2359000057913,
+          "qwen_first_token_ms": [
+            923.1489999801852
+          ],
+          "qwen_accepted_sections": 1,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0.7726000039838254,
+          "result_category": "paraphrased",
+          "completion_status": "Revised"
+        }
+      },
+      {
+        "id": "conversational",
+        "input": "The app is pretty good, but the setup part is kind of hard to get through.",
+        "languagetool_text": "The app is pretty good, but the setup part is kind of hard to get through.",
+        "paraphrased_text": "The app is pretty good, but the setup process is a bit challenging.",
+        "output": "The app is pretty good, but the setup process is a bit challenging.",
+        "wall_ms": 1442.0554999960586,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 32.277600024826825,
+          "languagetool_applied_edit_count": 0,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": true,
+          "qwen_call_count": 1,
+          "qwen_duration_ms": 1408.9167999918573,
+          "qwen_first_token_ms": [
+            766.0738999838941
+          ],
+          "qwen_accepted_sections": 1,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0.7309999782592058,
+          "result_category": "paraphrased",
+          "completion_status": "Revised"
+        }
+      },
+      {
+        "id": "restructure",
+        "input": "Because the approval arrived late, which was unexpected, the team had to move the launch to next week.",
+        "languagetool_text": "Because the approval arrived late, which was unexpected, the team had to move the launch to next week.",
+        "paraphrased_text": "Because the approval arrived late, which was unexpected, the team had to move the launch to next week.",
+        "output": "Because the approval arrived late, which was unexpected, the team had to move the launch to next week.",
+        "wall_ms": 49.59489998873323,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 49.48750004405156,
+          "languagetool_applied_edit_count": 0,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": false,
+          "qwen_call_count": 0,
+          "qwen_duration_ms": 0,
+          "qwen_first_token_ms": [],
+          "qwen_accepted_sections": 0,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0,
+          "result_category": "unchanged",
+          "completion_status": "Unchanged"
+        }
+      },
+      {
+        "id": "concision",
+        "input": "There are a number of different reasons why the update was delayed in its completion.",
+        "languagetool_text": "There are a number of different reasons why the update was delayed in its completion.",
+        "paraphrased_text": "There are several reasons why the update was delayed in its completion.",
+        "output": "There are several reasons why the update was delayed in its completion.",
+        "wall_ms": 1540.2269999613054,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 42.12670004926622,
+          "languagetool_applied_edit_count": 0,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": true,
+          "qwen_call_count": 1,
+          "qwen_duration_ms": 1497.5866000168025,
+          "qwen_first_token_ms": [
+            927.83880000934
+          ],
+          "qwen_accepted_sections": 1,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0.39439997635781765,
+          "result_category": "paraphrased",
+          "completion_status": "Revised"
+        }
+      },
+      {
+        "id": "name-org",
+        "input": "Priya Raman may send the revised accessibility report to Microsoft tomorrow.",
+        "languagetool_text": "Priya Raman may send the revised accessibility report to Microsoft tomorrow.",
+        "paraphrased_text": "Priya Raman may send the revised accessibility report to Microsoft tomorrow.",
+        "output": "Priya Raman may send the revised accessibility report to Microsoft tomorrow.",
+        "wall_ms": 212.87639997899532,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 212.7972999587655,
+          "languagetool_applied_edit_count": 0,
+          "languagetool_skipped_edit_count": 1,
+          "qwen_invoked": false,
+          "qwen_call_count": 0,
+          "qwen_duration_ms": 0,
+          "qwen_first_token_ms": [],
+          "qwen_accepted_sections": 0,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0,
+          "result_category": "unchanged",
+          "completion_status": "Unchanged"
+        }
+      },
+      {
+        "id": "numbers",
+        "input": "Jordan approved 12 licenses for 18 employees across 3 offices.",
+        "languagetool_text": "Jordan approved 12 licenses for 18 employees across 3 offices.",
+        "paraphrased_text": "Jordan approved 12 licenses for 18 employees across 3 offices.",
+        "output": "Jordan approved 12 licenses for 18 employees across 3 offices.",
+        "wall_ms": 23.522600007709116,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 23.427699983585626,
+          "languagetool_applied_edit_count": 0,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": false,
+          "qwen_call_count": 0,
+          "qwen_duration_ms": 0,
+          "qwen_first_token_ms": [],
+          "qwen_accepted_sections": 0,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0,
+          "result_category": "unchanged",
+          "completion_status": "Unchanged"
+        }
+      },
+      {
+        "id": "date-time",
+        "input": "The review is scheduled for September 15, 2026, at 9:30 AM.",
+        "languagetool_text": "The review is scheduled for September 15, 2026, at 9:30 AM.",
+        "paraphrased_text": "The review is scheduled for September 15, 2026, at 9:30 AM.",
+        "output": "The review is scheduled for September 15, 2026, at 9:30 AM.",
+        "wall_ms": 29.27810000255704,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 29.17579998029396,
+          "languagetool_applied_edit_count": 0,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": false,
+          "qwen_call_count": 0,
+          "qwen_duration_ms": 0,
+          "qwen_first_token_ms": [],
+          "qwen_accepted_sections": 0,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0,
+          "result_category": "unchanged",
+          "completion_status": "Unchanged"
+        }
+      },
+      {
+        "id": "currency",
+        "input": "The registration fee remains CAD 1,250.50, and the refund cannot exceed CAD 300.00.",
+        "languagetool_text": "The registration fee remains CAD 1,250.50, and the refund cannot exceed CAD 300.00.",
+        "paraphrased_text": "The registration fee remains CAD 1,250.50, and the refund cannot exceed CAD 300.00.",
+        "output": "The registration fee remains CAD 1,250.50, and the refund cannot exceed CAD 300.00.",
+        "wall_ms": 23.15729996189475,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 23.052800039295107,
+          "languagetool_applied_edit_count": 0,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": false,
+          "qwen_call_count": 0,
+          "qwen_duration_ms": 0,
+          "qwen_first_token_ms": [],
+          "qwen_accepted_sections": 0,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0,
+          "result_category": "unchanged",
+          "completion_status": "Unchanged"
+        }
+      },
+      {
+        "id": "url-email",
+        "input": "Email ops@example.com or visit https://example.com/release-7.2 for the current instructions.",
+        "languagetool_text": "Email ops@example.com or visit https://example.com/release-7.2 for the current instructions.",
+        "paraphrased_text": "Email ops@example.com or visit https://example.com/release-7.2 for the current instructions.",
+        "output": "Email ops@example.com or visit https://example.com/release-7.2 for the current instructions.",
+        "wall_ms": 42.228100006468594,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 42.13680000975728,
+          "languagetool_applied_edit_count": 0,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": false,
+          "qwen_call_count": 0,
+          "qwen_duration_ms": 0,
+          "qwen_first_token_ms": [],
+          "qwen_accepted_sections": 0,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0,
+          "result_category": "unchanged",
+          "completion_status": "Unchanged"
+        }
+      },
+      {
+        "id": "identifiers",
+        "input": "Do not deploy build API-42 before ticket OWR-2048 is closed.",
+        "languagetool_text": "Do not deploy build API-42 before ticket OWR-2048 is closed.",
+        "paraphrased_text": "Do not deploy build API-42 before ticket OWR-2048 is closed.",
+        "output": "Do not deploy build API-42 before ticket OWR-2048 is closed.",
+        "wall_ms": 44.63429999304935,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 44.555800035595894,
+          "languagetool_applied_edit_count": 0,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": false,
+          "qwen_call_count": 0,
+          "qwen_duration_ms": 0,
+          "qwen_first_token_ms": [],
+          "qwen_accepted_sections": 0,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0,
+          "result_category": "unchanged",
+          "completion_status": "Unchanged"
+        }
+      },
+      {
+        "id": "negation",
+        "input": "The backup must not be deleted, and we never share it with external vendors.",
+        "languagetool_text": "The backup must not be deleted, and we never share it with external vendors.",
+        "paraphrased_text": "The backup must not be deleted, and we never share it with external vendors.",
+        "output": "The backup must not be deleted, and we never share it with external vendors.",
+        "wall_ms": 58.187699993140996,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 58.11320000793785,
+          "languagetool_applied_edit_count": 0,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": false,
+          "qwen_call_count": 0,
+          "qwen_duration_ms": 0,
+          "qwen_first_token_ms": [],
+          "qwen_accepted_sections": 0,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0,
+          "result_category": "unchanged",
+          "completion_status": "Unchanged"
+        }
+      },
+      {
+        "id": "modality-commitment",
+        "input": "Alex may approve the change, and I will deliver all three files by Friday.",
+        "languagetool_text": "Alex may approve the change, and I will deliver all three files by Friday.",
+        "paraphrased_text": "Alex may approve the change, and I will deliver all three files by Friday.",
+        "output": "Alex may approve the change, and I will deliver all three files by Friday.",
+        "wall_ms": 39.98959995806217,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 39.90959998918697,
+          "languagetool_applied_edit_count": 0,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": false,
+          "qwen_call_count": 0,
+          "qwen_duration_ms": 0,
+          "qwen_first_token_ms": [],
+          "qwen_accepted_sections": 0,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0,
+          "result_category": "unchanged",
+          "completion_status": "Unchanged"
+        }
+      },
+      {
+        "id": "question",
+        "input": "Could you send the signed agreement by Friday, or should I ask Elena to collect it?",
+        "languagetool_text": "Could you send the signed agreement by Friday, or should I ask Elena to collect it?",
+        "paraphrased_text": "Could you send the signed agreement by Friday, or should I ask Elena to collect it?",
+        "output": "Could you send the signed agreement by Friday, or should I ask Elena to collect it?",
+        "wall_ms": 47.85269999410957,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 47.77260002447292,
+          "languagetool_applied_edit_count": 0,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": false,
+          "qwen_call_count": 0,
+          "qwen_duration_ms": 0,
+          "qwen_first_token_ms": [],
+          "qwen_accepted_sections": 0,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0,
+          "result_category": "unchanged",
+          "completion_status": "Unchanged"
+        }
+      },
+      {
+        "id": "ambiguous",
+        "input": "Morgan saw Alex with the revised draft near the bank.",
+        "languagetool_text": "Morgan saw Alex with the revised draft near the bank.",
+        "paraphrased_text": "Morgan saw Alex with the revised draft near the bank.",
+        "output": "Morgan saw Alex with the revised draft near the bank.",
+        "wall_ms": 25.111199996899813,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 25.0139000127092,
+          "languagetool_applied_edit_count": 0,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": false,
+          "qwen_call_count": 0,
+          "qwen_duration_ms": 0,
+          "qwen_first_token_ms": [],
+          "qwen_accepted_sections": 0,
+          "qwen_rejected_sections": 0,
+          "fallback_sections": 0,
+          "validation_duration_ms": 0,
+          "result_category": "unchanged",
+          "completion_status": "Unchanged"
+        }
+      },
+      {
+        "id": "short-paragraph",
+        "input": "The current review process takes a long time and creates unnecessary work for the support team. Employees must open three separate screens before they can answer a simple request. A shorter checklist would make the work clearer and faster without removing the final security review.",
+        "languagetool_text": "The current review process takes a long time and creates unnecessary work for the support team. Employees must open three separate screens before they can answer a simple request. A shorter checklist would make the work clearer and faster without removing the final security review.",
+        "paraphrased_text": "The current review process is time-consuming and adds unnecessary workload for the support team. Employees must open three separate screens to address a simple request. A shorter checklist would make the work more clear and efficient without eliminating the final security review.",
+        "output": "The current review process takes a long time and creates unnecessary work for the support team. Employees must open three separate screens before they can answer a simple request. A shorter checklist would make the work clearer and faster without removing the final security review.",
+        "wall_ms": 3715.6216999865137,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 61.44619995029643,
+          "languagetool_applied_edit_count": 0,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": true,
+          "qwen_call_count": 1,
+          "qwen_duration_ms": 3652.6673000189476,
+          "qwen_first_token_ms": [
+            1528.3242000150494
+          ],
+          "qwen_accepted_sections": 0,
+          "qwen_rejected_sections": 1,
+          "fallback_sections": 1,
+          "validation_duration_ms": 1.3713000225834548,
+          "result_category": "partial_paraphrase",
+          "completion_status": "Completed with some sections corrected but not paraphrased"
+        }
+      },
+      {
+        "id": "professional-paragraph",
+        "input": "Thank you for sharing the first version of the plan. I think the overall direction is good, but some parts are difficult to follow and could be presented in a clearer way. Please focus especially on the explanation of the customer handoff, because new employees have said that this section is confusing.",
+        "languagetool_text": "Thank you for sharing the first version of the plan. I think the overall direction is good, but some parts are difficult to follow and could be presented in a clearer way. Please focus especially on the explanation of the customer handoff, because new employees have said that this section is confusing.",
+        "paraphrased_text": "Thank you for sharing the first version of the plan. The overall direction is good, but some parts are difficult to follow and could be presented in a clearer way. Please focus especially on the explanation of the customer handoff, as new employees have found this section confusing.",
+        "output": "Thank you for sharing the first version of the plan. I think the overall direction is good, but some parts are difficult to follow and could be presented in a clearer way. Please focus especially on the explanation of the customer handoff, because new employees have said that this section is confusing.",
+        "wall_ms": 4178.588799957652,
+        "metadata": {
+          "section_count": 1,
+          "languagetool_duration_ms": 52.856900030747056,
+          "languagetool_applied_edit_count": 0,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": true,
+          "qwen_call_count": 1,
+          "qwen_duration_ms": 4123.922400001902,
+          "qwen_first_token_ms": [
+            1290.7990999519825
+          ],
+          "qwen_accepted_sections": 0,
+          "qwen_rejected_sections": 1,
+          "fallback_sections": 1,
+          "validation_duration_ms": 1.6757000121288002,
+          "result_category": "partial_paraphrase",
+          "completion_status": "Completed with some sections corrected but not paraphrased"
+        }
+      },
+      {
+        "id": "several-paragraphs",
+        "input": "Hello Mina,\n\nThe report is ready for review, but the summary is longer than it needs to be. Please send your comments by Thursday.\n\nI will not publish build API-42 until you approve it. The release may move to Friday if the final security check takes longer than expected.\n\nRegards,\nCarlos",
+        "languagetool_text": "Hello Mina,\n\nThe report is ready for review, but the summary is longer than it needs to be. Please send your comments by Thursday.\n\nI will not publish build API-42 until you approve it. The release may move to Friday if the final security check takes longer than expected.\n\nRegards,\nCarlos",
+        "paraphrased_text": "Hello Mina,\n\nThe report is ready for review, but the summary is longer than it should be. Please send your comments by Thursday.\n\nI will not publish build API-42 until you approve it. The release may move to Friday if the final security check takes longer than expected.\n\nRegards,\nCarlos",
+        "output": "Hello Mina,\n\nThe report is ready for review, but the summary is longer than it needs to be. Please send your comments by Thursday.\n\nI will not publish build API-42 until you approve it. The release may move to Friday if the final security check takes longer than expected.\n\nRegards,\nCarlos",
+        "wall_ms": 2372.544599988032,
+        "metadata": {
+          "section_count": 4,
+          "languagetool_duration_ms": 165.84049997618422,
+          "languagetool_applied_edit_count": 0,
+          "languagetool_skipped_edit_count": 0,
+          "qwen_invoked": true,
+          "qwen_call_count": 1,
+          "qwen_duration_ms": 2205.6484000058845,
+          "qwen_first_token_ms": [
+            964.8652999894693
+          ],
+          "qwen_accepted_sections": 0,
+          "qwen_rejected_sections": 1,
+          "fallback_sections": 1,
+          "validation_duration_ms": 0.7047000108286738,
+          "result_category": "partial_paraphrase",
+          "completion_status": "Completed with some sections corrected but not paraphrased"
+        }
+      }
+    ],
+    "median_ms": 58.187699993140996,
+    "p95_ms": 3581.3139899866637,
+    "qwen_operations": 10,
+    "languagetool_only_operations": 13,
+    "qwen_calls": 10,
+    "qwen_rejections": 3,
+    "fallback_sections": 3
+  },
+  "chunk_comparison": [
+    {
+      "id": "whole_paragraph",
+      "input": "Hello Priya, I am writing this email for informing you about the quarterly planning issue. The operations team have reviewed the draft, and they discussed about the schedule with Microsoft yesterday. We recieved three updated documents, but the final adress for the Vancouver workshop is still missing. Please do not send build API-42 to clients before September 15, 2026, because Jordan Lee may need to approve it first. The registration fee remains CAD 1,250.50 for 12 participants, and the meeting starts at 9:30 AM.\n\nThe current process is very slow in nature and it creates a large amount of unnecessary extra work for the support team. We need to make an improvement to the process so employees can complete requests in a faster and more clear way. According to me, the second option is more better because it removes duplicate steps and gives staff a simple checklist. However, we must not remove the final security review, and we cannot change ticket OWR-2048 until Legal confirms the requirement.\n\nCould you please send me the informations that Ana Torres shared after Tuesday's meeting? You can email the files to ops@example.com or place them at https://example.com/release-7.2. The first attachment contains 18 pages, the second contains 7 pages, and the third contains the signed quotation. Do not rename customer identifier ACCT-00917 or invoice INV-2026-044. If any amount, date, name, URL, email address, or identifier is uncertain, please ask me before making a change.\n\nFor the next step, I made a decision to repeat the test again on Friday. Samir Patel will run the Windows checks, Mina Chen will review the macOS results, and I will summarize the findings. The test may finish by 4:00 PM, but it could continue until 6:30 PM if the network is unstable. We will not claim that the change is ready unless every required scenario passes. Did the Toronto office confirm that it can participate remotely?\n\nThe training section also need attention. There is five short lessons, and each lesson contain examples that are useful for new employees. We want to reduce the total duration from 90 minutes to 60 minutes without removing the privacy notice or the emergency procedure. Elena Garcia should review lesson TRN-105, and Northwind Health must approve the final wording. The pilot could begin on October 3, 2026, at 10:15 AM, but it will not begin earlier. Participants should send questions to training@example.org rather than contacting customers directly.\n\nPlease return back your comments by August 12, 2026. I would be grateful if you could focus on clarity, natural English, and sentence flow while preserving every fact and commitment. The final note should remain professional and concise, but it should not add new promises or change who is responsible for each action. Once we have your approval, we will prepare the final package and notify the project team. Regards, Carlos",
+      "languagetool_text": "Hello Priya, I am writing this email for informing you about the quarterly planning issue. The operations team have reviewed the draft, and they discussed the schedule with Microsoft yesterday. We received three updated documents, but the final address for the Vancouver workshop is still missing. Please do not send build API-42 to clients before September 15, 2026, because Jordan Lee may need to approve it first. The registration fee remains CAD 1,250.50 for 12 participants, and the meeting starts at 9:30 AM.\n\nThe current process is very slow in nature, and it creates a large amount of unnecessary extra work for the support team. We need to make an improvement to the process, so employees can complete requests in a faster and more clear way. In my opinion, the second option is better because it removes duplicate steps and gives staff a simple checklist. However, we must not remove the final security review, and we cannot change ticket OWR-2048 until Legal confirms the requirement.\n\nCould you please send me the information that Ana Torres shared after Tuesday's meeting? You can email the files to ops@example.com or place them at https://example.com/release-7.2. The first attachment contains 18 pages, the second contains 7 pages, and the third contains the signed quotation. Do not rename customer identifier ACCT-00917 or invoice INV-2026-044. If any amount, date, name, URL, email address, or identifier is uncertain, please ask me before making a change.\n\nFor the next step, I made a decision to repeat the test again on Friday. Samir Patel will run the Windows checks, Mina Chen will review the macOS results, and I will summarize the findings. The test may finish by 4:00 PM, but it could continue until 6:30 PM if the network is unstable. We will not claim that the change is ready unless every required scenario passes. Did the Toronto office confirm that it can participate remotely?\n\nThe training section also need attention. There are five short lessons, and each lesson contain examples that are useful for new employees. We want to reduce the total duration from 90 minutes to 60 minutes without removing the privacy notice or the emergency procedure. Elena Garcia should review lesson TRN-105, and Northwind Health must approve the final wording. The pilot could begin on October 3, 2026, at 10:15 AM, but it will not begin earlier. Participants should send questions to training@example.org rather than contacting customers directly.\n\nPlease return back your comments by August 12, 2026. I would be grateful if you could focus on clarity, natural English, and sentence flow while preserving every fact and commitment. The final note should remain professional and concise, but it should not add new promises or change who is responsible for each action. Once we have your approval, we will prepare the final package and notify the project team. Regards, Carlos",
+      "paraphrased_text": "Hello Priya, I am writing to inform you about the quarterly planning issue. The operations team has reviewed the draft and discussed the schedule with Microsoft yesterday. We received three updated documents, but the final address for the Vancouver workshop is still missing. Please do not send the build API-42 to clients before September 15, 2026, as Jordan Lee may need to approve it first. The registration fee remains CAD 1,250.50 for 12 participants, and the meeting starts at 9:30 AM.\n\nThe current process is slow and generates a significant amount of unnecessary work for the support team. We need to improve it so that employees can complete requests more efficiently and clearly. In my opinion, the second option is better because it eliminates duplicate steps and provides staff with a simple checklist. However, we must not remove the final security review, and we cannot modify ticket OWR-2048 until Legal confirms the requirement.\n\nPlease send me the information that Ana Torres shared after Tuesday's meeting. You may email the files to ops@example.com or place them at https://example.com/release-7.2. The first attachment includes 18 pages, the second 7 pages, and the third contains the signed quotation. Do not rename the customer identifier ACCT-00917 or the invoice INV-2026-044. If any amount, date, name, URL, email address, or identifier is uncertain, please ask me before making a change.\n\nI will repeat the test again on Friday. Samir Patel will run the Windows checks, Mina Chen will review the macOS results, and I will summarize the findings. The test may finish by 4:00 PM, but it could continue until 6:30 PM if the network is unstable. We will not claim that the change is ready unless every required scenario passes. Did the Toronto office confirm that it can participate remotely?\n\nThe training section also requires attention. There are five short lessons, each containing examples that are useful for new employees. We want to reduce the total duration from 90 minutes to 60 minutes without removing the privacy notice or the emergency procedure. Elena Garcia should review lesson TRN-105, and Northwind Health must approve the final wording. The pilot could begin on October 3, 2026, at 10:15 AM, but it will not begin earlier. Participants should send questions to training@example.org rather than contacting customers directly.\n\nPlease return your comments by August 12, 2026. I would be grateful if you could focus on clarity, natural English, and sentence flow while preserving every fact and commitment. Once we have your approval, we will prepare the final package and notify the project team. Regards, Carlos",
+      "output": "Hello Priya, I am writing this email for informing you about the quarterly planning issue. The operations team have reviewed the draft, and they discussed the schedule with Microsoft yesterday. We received three updated documents, but the final address for the Vancouver workshop is still missing. Please do not send build API-42 to clients before September 15, 2026, because Jordan Lee may need to approve it first. The registration fee remains CAD 1,250.50 for 12 participants, and the meeting starts at 9:30 AM.\n\nThe current process is slow and generates a significant amount of unnecessary work for the support team. We need to improve it so that employees can complete requests more efficiently and clearly. In my opinion, the second option is better because it eliminates duplicate steps and provides staff with a simple checklist. However, we must not remove the final security review, and we cannot modify ticket OWR-2048 until Legal confirms the requirement.\n\nCould you please send me the information that Ana Torres shared after Tuesday's meeting? You can email the files to ops@example.com or place them at https://example.com/release-7.2. The first attachment contains 18 pages, the second contains 7 pages, and the third contains the signed quotation. Do not rename customer identifier ACCT-00917 or invoice INV-2026-044. If any amount, date, name, URL, email address, or identifier is uncertain, please ask me before making a change.\n\nFor the next step, I made a decision to repeat the test again on Friday. Samir Patel will run the Windows checks, Mina Chen will review the macOS results, and I will summarize the findings. The test may finish by 4:00 PM, but it could continue until 6:30 PM if the network is unstable. We will not claim that the change is ready unless every required scenario passes. Did the Toronto office confirm that it can participate remotely?\n\nThe training section also requires attention. There are five short lessons, each containing examples that are useful for new employees. We want to reduce the total duration from 90 minutes to 60 minutes without removing the privacy notice or the emergency procedure. Elena Garcia should review lesson TRN-105, and Northwind Health must approve the final wording. The pilot could begin on October 3, 2026, at 10:15 AM, but it will not begin earlier. Participants should send questions to training@example.org rather than contacting customers directly.\n\nPlease return back your comments by August 12, 2026. I would be grateful if you could focus on clarity, natural English, and sentence flow while preserving every fact and commitment. The final note should remain professional and concise, but it should not add new promises or change who is responsible for each action. Once we have your approval, we will prepare the final package and notify the project team. Regards, Carlos",
+      "wall_ms": 48554.64440002106,
+      "metadata": {
+        "section_count": 6,
+        "languagetool_duration_ms": 1228.635800012853,
+        "languagetool_applied_edit_count": 9,
+        "languagetool_skipped_edit_count": 2,
+        "qwen_invoked": true,
+        "qwen_call_count": 6,
+        "qwen_duration_ms": 47309.19110000832,
+        "qwen_first_token_ms": [
+          2309.2372000101022,
+          1910.0521999644116,
+          2756.9081999827176,
+          2657.3293999535963,
+          2435.041800024919,
+          2024.008899985347
+        ],
+        "qwen_accepted_sections": 2,
+        "qwen_rejected_sections": 4,
+        "fallback_sections": 4,
+        "validation_duration_ms": 15.953600057400763,
+        "result_category": "partial_paraphrase",
+        "completion_status": "Completed with some sections corrected but not paraphrased"
+      },
+      "strategy": "whole_paragraph",
+      "target_characters": 1000
+    },
+    {
+      "id": "approximately_700_characters",
+      "input": "Hello Priya, I am writing this email for informing you about the quarterly planning issue. The operations team have reviewed the draft, and they discussed about the schedule with Microsoft yesterday. We recieved three updated documents, but the final adress for the Vancouver workshop is still missing. Please do not send build API-42 to clients before September 15, 2026, because Jordan Lee may need to approve it first. The registration fee remains CAD 1,250.50 for 12 participants, and the meeting starts at 9:30 AM.\n\nThe current process is very slow in nature and it creates a large amount of unnecessary extra work for the support team. We need to make an improvement to the process so employees can complete requests in a faster and more clear way. According to me, the second option is more better because it removes duplicate steps and gives staff a simple checklist. However, we must not remove the final security review, and we cannot change ticket OWR-2048 until Legal confirms the requirement.\n\nCould you please send me the informations that Ana Torres shared after Tuesday's meeting? You can email the files to ops@example.com or place them at https://example.com/release-7.2. The first attachment contains 18 pages, the second contains 7 pages, and the third contains the signed quotation. Do not rename customer identifier ACCT-00917 or invoice INV-2026-044. If any amount, date, name, URL, email address, or identifier is uncertain, please ask me before making a change.\n\nFor the next step, I made a decision to repeat the test again on Friday. Samir Patel will run the Windows checks, Mina Chen will review the macOS results, and I will summarize the findings. The test may finish by 4:00 PM, but it could continue until 6:30 PM if the network is unstable. We will not claim that the change is ready unless every required scenario passes. Did the Toronto office confirm that it can participate remotely?\n\nThe training section also need attention. There is five short lessons, and each lesson contain examples that are useful for new employees. We want to reduce the total duration from 90 minutes to 60 minutes without removing the privacy notice or the emergency procedure. Elena Garcia should review lesson TRN-105, and Northwind Health must approve the final wording. The pilot could begin on October 3, 2026, at 10:15 AM, but it will not begin earlier. Participants should send questions to training@example.org rather than contacting customers directly.\n\nPlease return back your comments by August 12, 2026. I would be grateful if you could focus on clarity, natural English, and sentence flow while preserving every fact and commitment. The final note should remain professional and concise, but it should not add new promises or change who is responsible for each action. Once we have your approval, we will prepare the final package and notify the project team. Regards, Carlos",
+      "languagetool_text": "Hello Priya, I am writing this email for informing you about the quarterly planning issue. The operations team have reviewed the draft, and they discussed the schedule with Microsoft yesterday. We received three updated documents, but the final address for the Vancouver workshop is still missing. Please do not send build API-42 to clients before September 15, 2026, because Jordan Lee may need to approve it first. The registration fee remains CAD 1,250.50 for 12 participants, and the meeting starts at 9:30 AM.\n\nThe current process is very slow in nature, and it creates a large amount of unnecessary extra work for the support team. We need to make an improvement to the process, so employees can complete requests in a faster and more clear way. In my opinion, the second option is better because it removes duplicate steps and gives staff a simple checklist. However, we must not remove the final security review, and we cannot change ticket OWR-2048 until Legal confirms the requirement.\n\nCould you please send me the information that Ana Torres shared after Tuesday's meeting? You can email the files to ops@example.com or place them at https://example.com/release-7.2. The first attachment contains 18 pages, the second contains 7 pages, and the third contains the signed quotation. Do not rename customer identifier ACCT-00917 or invoice INV-2026-044. If any amount, date, name, URL, email address, or identifier is uncertain, please ask me before making a change.\n\nFor the next step, I made a decision to repeat the test again on Friday. Samir Patel will run the Windows checks, Mina Chen will review the macOS results, and I will summarize the findings. The test may finish by 4:00 PM, but it could continue until 6:30 PM if the network is unstable. We will not claim that the change is ready unless every required scenario passes. Did the Toronto office confirm that it can participate remotely?\n\nThe training section also need attention. There are five short lessons, and each lesson contain examples that are useful for new employees. We want to reduce the total duration from 90 minutes to 60 minutes without removing the privacy notice or the emergency procedure. Elena Garcia should review lesson TRN-105, and Northwind Health must approve the final wording. The pilot could begin on October 3, 2026, at 10:15 AM, but it will not begin earlier. Participants should send questions to training@example.org rather than contacting customers directly.\n\nPlease return back your comments by August 12, 2026. I would be grateful if you could focus on clarity, natural English, and sentence flow while preserving every fact and commitment. The final note should remain professional and concise, but it should not add new promises or change who is responsible for each action. Once we have your approval, we will prepare the final package and notify the project team. Regards, Carlos",
+      "paraphrased_text": "Hello Priya, I am writing to inform you about the quarterly planning issue. The operations team has reviewed the draft and discussed the schedule with Microsoft yesterday. We received three updated documents, but the final address for the Vancouver workshop is still missing. Please do not send the build API-42 to clients before September 15, 2026, as Jordan Lee may need to approve it first. The registration fee remains CAD 1,250.50 for 12 participants, and the meeting starts at 9:30 AM.\n\nThe current process is slow and generates a significant amount of unnecessary work for the support team. We need to improve it so that employees can complete requests more efficiently and clearly. In my opinion, the second option is better because it eliminates duplicate steps and provides staff with a simple checklist. However, we must not remove the final security review, and we cannot modify ticket OWR-2048 until Legal confirms the requirement.\n\nPlease send me the information that Ana Torres shared after Tuesday's meeting. You may email the files to ops@example.com or place them at https://example.com/release-7.2. The first attachment includes 18 pages, the second contains 7 pages, and the third includes the signed quotation. Do not rename the customer identifier ACCT-00917 or the invoice INV-2026-044. If any amount, date, name, URL, email address, or identifier is uncertain, please ask me before making a change.\n\nFor the next step, I decided to repeat the test again on Friday. Samir Patel will run the Windows checks, Mina Chen will review the macOS results, and I will summarize the findings. The test may finish by 4:00 PM, but it could continue until 6:30 PM if the network is unstable. We will not claim that the change is ready unless every required scenario passes. Did the Toronto office confirm that it can participate remotely?\n\nThe training section also requires attention. There are five short lessons, each containing examples that are useful for new employees. We want to reduce the total duration from 90 minutes to 60 minutes without removing the privacy notice or the emergency procedure. Elena Garcia should review lesson TRN-105, and Northwind Health must approve the final wording. The pilot could begin on October 3, 2026, at 10:15 AM, but it will not begin earlier. Participants should send questions to training@example.org rather than contacting customers directly.\n\nPlease return your comments by August 12, 2026. I would be grateful if you could focus on clarity, natural English, and sentence flow while preserving every fact and commitment. Once we have your approval, we will prepare the final package and notify the project team. Regards, Carlos",
+      "output": "Hello Priya, I am writing this email for informing you about the quarterly planning issue. The operations team have reviewed the draft, and they discussed the schedule with Microsoft yesterday. We received three updated documents, but the final address for the Vancouver workshop is still missing. Please do not send build API-42 to clients before September 15, 2026, because Jordan Lee may need to approve it first. The registration fee remains CAD 1,250.50 for 12 participants, and the meeting starts at 9:30 AM.\n\nThe current process is slow and generates a significant amount of unnecessary work for the support team. We need to improve it so that employees can complete requests more efficiently and clearly. In my opinion, the second option is better because it eliminates duplicate steps and provides staff with a simple checklist. However, we must not remove the final security review, and we cannot modify ticket OWR-2048 until Legal confirms the requirement.\n\nCould you please send me the information that Ana Torres shared after Tuesday's meeting? You can email the files to ops@example.com or place them at https://example.com/release-7.2. The first attachment contains 18 pages, the second contains 7 pages, and the third contains the signed quotation. Do not rename customer identifier ACCT-00917 or invoice INV-2026-044. If any amount, date, name, URL, email address, or identifier is uncertain, please ask me before making a change.\n\nFor the next step, I decided to repeat the test again on Friday. Samir Patel will run the Windows checks, Mina Chen will review the macOS results, and I will summarize the findings. The test may finish by 4:00 PM, but it could continue until 6:30 PM if the network is unstable. We will not claim that the change is ready unless every required scenario passes. Did the Toronto office confirm that it can participate remotely?\n\nThe training section also requires attention. There are five short lessons, each containing examples that are useful for new employees. We want to reduce the total duration from 90 minutes to 60 minutes without removing the privacy notice or the emergency procedure. Elena Garcia should review lesson TRN-105, and Northwind Health must approve the final wording. The pilot could begin on October 3, 2026, at 10:15 AM, but it will not begin earlier. Participants should send questions to training@example.org rather than contacting customers directly.\n\nPlease return back your comments by August 12, 2026. I would be grateful if you could focus on clarity, natural English, and sentence flow while preserving every fact and commitment. The final note should remain professional and concise, but it should not add new promises or change who is responsible for each action. Once we have your approval, we will prepare the final package and notify the project team. Regards, Carlos",
+      "wall_ms": 39662.051299994346,
+      "metadata": {
+        "section_count": 6,
+        "languagetool_duration_ms": 833.0444000312127,
+        "languagetool_applied_edit_count": 9,
+        "languagetool_skipped_edit_count": 2,
+        "qwen_invoked": true,
+        "qwen_call_count": 6,
+        "qwen_duration_ms": 38810.72810012847,
+        "qwen_first_token_ms": [
+          995.3425999847241,
+          2340.7588000409305,
+          767.7927000331692,
+          920.813700009603,
+          1043.097600049805,
+          885.6557999970391
+        ],
+        "qwen_accepted_sections": 3,
+        "qwen_rejected_sections": 3,
+        "fallback_sections": 3,
+        "validation_duration_ms": 17.437800066545606,
+        "result_category": "partial_paraphrase",
+        "completion_status": "Completed with some sections corrected but not paraphrased"
+      },
+      "strategy": "approximately_700_characters",
+      "target_characters": 700
+    },
+    {
+      "id": "approximately_1000_characters",
+      "input": "Hello Priya, I am writing this email for informing you about the quarterly planning issue. The operations team have reviewed the draft, and they discussed about the schedule with Microsoft yesterday. We recieved three updated documents, but the final adress for the Vancouver workshop is still missing. Please do not send build API-42 to clients before September 15, 2026, because Jordan Lee may need to approve it first. The registration fee remains CAD 1,250.50 for 12 participants, and the meeting starts at 9:30 AM.\n\nThe current process is very slow in nature and it creates a large amount of unnecessary extra work for the support team. We need to make an improvement to the process so employees can complete requests in a faster and more clear way. According to me, the second option is more better because it removes duplicate steps and gives staff a simple checklist. However, we must not remove the final security review, and we cannot change ticket OWR-2048 until Legal confirms the requirement.\n\nCould you please send me the informations that Ana Torres shared after Tuesday's meeting? You can email the files to ops@example.com or place them at https://example.com/release-7.2. The first attachment contains 18 pages, the second contains 7 pages, and the third contains the signed quotation. Do not rename customer identifier ACCT-00917 or invoice INV-2026-044. If any amount, date, name, URL, email address, or identifier is uncertain, please ask me before making a change.\n\nFor the next step, I made a decision to repeat the test again on Friday. Samir Patel will run the Windows checks, Mina Chen will review the macOS results, and I will summarize the findings. The test may finish by 4:00 PM, but it could continue until 6:30 PM if the network is unstable. We will not claim that the change is ready unless every required scenario passes. Did the Toronto office confirm that it can participate remotely?\n\nThe training section also need attention. There is five short lessons, and each lesson contain examples that are useful for new employees. We want to reduce the total duration from 90 minutes to 60 minutes without removing the privacy notice or the emergency procedure. Elena Garcia should review lesson TRN-105, and Northwind Health must approve the final wording. The pilot could begin on October 3, 2026, at 10:15 AM, but it will not begin earlier. Participants should send questions to training@example.org rather than contacting customers directly.\n\nPlease return back your comments by August 12, 2026. I would be grateful if you could focus on clarity, natural English, and sentence flow while preserving every fact and commitment. The final note should remain professional and concise, but it should not add new promises or change who is responsible for each action. Once we have your approval, we will prepare the final package and notify the project team. Regards, Carlos",
+      "languagetool_text": "Hello Priya, I am writing this email for informing you about the quarterly planning issue. The operations team have reviewed the draft, and they discussed the schedule with Microsoft yesterday. We received three updated documents, but the final address for the Vancouver workshop is still missing. Please do not send build API-42 to clients before September 15, 2026, because Jordan Lee may need to approve it first. The registration fee remains CAD 1,250.50 for 12 participants, and the meeting starts at 9:30 AM.\n\nThe current process is very slow in nature, and it creates a large amount of unnecessary extra work for the support team. We need to make an improvement to the process, so employees can complete requests in a faster and more clear way. In my opinion, the second option is better because it removes duplicate steps and gives staff a simple checklist. However, we must not remove the final security review, and we cannot change ticket OWR-2048 until Legal confirms the requirement.\n\nCould you please send me the information that Ana Torres shared after Tuesday's meeting? You can email the files to ops@example.com or place them at https://example.com/release-7.2. The first attachment contains 18 pages, the second contains 7 pages, and the third contains the signed quotation. Do not rename customer identifier ACCT-00917 or invoice INV-2026-044. If any amount, date, name, URL, email address, or identifier is uncertain, please ask me before making a change.\n\nFor the next step, I made a decision to repeat the test again on Friday. Samir Patel will run the Windows checks, Mina Chen will review the macOS results, and I will summarize the findings. The test may finish by 4:00 PM, but it could continue until 6:30 PM if the network is unstable. We will not claim that the change is ready unless every required scenario passes. Did the Toronto office confirm that it can participate remotely?\n\nThe training section also need attention. There are five short lessons, and each lesson contain examples that are useful for new employees. We want to reduce the total duration from 90 minutes to 60 minutes without removing the privacy notice or the emergency procedure. Elena Garcia should review lesson TRN-105, and Northwind Health must approve the final wording. The pilot could begin on October 3, 2026, at 10:15 AM, but it will not begin earlier. Participants should send questions to training@example.org rather than contacting customers directly.\n\nPlease return back your comments by August 12, 2026. I would be grateful if you could focus on clarity, natural English, and sentence flow while preserving every fact and commitment. The final note should remain professional and concise, but it should not add new promises or change who is responsible for each action. Once we have your approval, we will prepare the final package and notify the project team. Regards, Carlos",
+      "paraphrased_text": "Hello Priya, I am writing to inform you about the quarterly planning issue. The operations team has reviewed the draft and discussed the schedule with Microsoft yesterday. We received three updated documents, but the final address for the Vancouver workshop is still missing. Please do not send the build API-42 to clients before September 15, 2026, as Jordan Lee may need to approve it first. The registration fee remains CAD 1,250.50 for 12 participants, and the meeting starts at 9:30 AM.\n\nThe current process is slow and generates a significant amount of unnecessary work for the support team. We need to improve the process so that employees can complete requests more efficiently and clearly. In my opinion, the second option is better because it eliminates duplicate steps and provides staff with a simple checklist. However, we must not remove the final security review, and we cannot modify ticket OWR-2048 until Legal confirms the requirement.\n\nPlease send me the information that Ana Torres shared after Tuesday's meeting. You may email the files to ops@example.com or place them at https://example.com/release-7.2. The first attachment includes 18 pages, the second contains 7 pages, and the third includes the signed quotation. Do not rename the customer identifier ACCT-00917 or the invoice INV-2026-044. If any amount, date, name, URL, email address, or identifier is uncertain, please ask me before making a change.\n\nFor the next step, I decided to repeat the test again on Friday. Samir Patel will run the Windows checks, Mina Chen will review the macOS results, and I will summarize the findings. The test may finish by 4:00 PM, but it could continue until 6:30 PM if the network is unstable. We will not claim that the change is ready unless every required scenario passes. Did the Toronto office confirm that it can participate remotely?\n\nThe training section also requires attention. There are five short lessons, each containing examples that are useful for new employees. We want to reduce the total duration from 90 minutes to 60 minutes without removing the privacy notice or the emergency procedure. Elena Garcia should review lesson TRN-105, and Northwind Health must approve the final wording. The pilot could begin on October 3, 2026, at 10:15 AM, but it will not begin earlier. Participants should send questions to training@example.org rather than contacting customers directly.\n\nPlease return your comments by August 12, 2026. I would be grateful if you could focus on clarity, natural English, and sentence flow while preserving every fact and commitment. Once we have your approval, we will prepare the final package and notify the project team. Regards, Carlos",
+      "output": "Hello Priya, I am writing this email for informing you about the quarterly planning issue. The operations team have reviewed the draft, and they discussed the schedule with Microsoft yesterday. We received three updated documents, but the final address for the Vancouver workshop is still missing. Please do not send build API-42 to clients before September 15, 2026, because Jordan Lee may need to approve it first. The registration fee remains CAD 1,250.50 for 12 participants, and the meeting starts at 9:30 AM.\n\nThe current process is slow and generates a significant amount of unnecessary work for the support team. We need to improve the process so that employees can complete requests more efficiently and clearly. In my opinion, the second option is better because it eliminates duplicate steps and provides staff with a simple checklist. However, we must not remove the final security review, and we cannot modify ticket OWR-2048 until Legal confirms the requirement.\n\nCould you please send me the information that Ana Torres shared after Tuesday's meeting? You can email the files to ops@example.com or place them at https://example.com/release-7.2. The first attachment contains 18 pages, the second contains 7 pages, and the third contains the signed quotation. Do not rename customer identifier ACCT-00917 or invoice INV-2026-044. If any amount, date, name, URL, email address, or identifier is uncertain, please ask me before making a change.\n\nFor the next step, I decided to repeat the test again on Friday. Samir Patel will run the Windows checks, Mina Chen will review the macOS results, and I will summarize the findings. The test may finish by 4:00 PM, but it could continue until 6:30 PM if the network is unstable. We will not claim that the change is ready unless every required scenario passes. Did the Toronto office confirm that it can participate remotely?\n\nThe training section also requires attention. There are five short lessons, each containing examples that are useful for new employees. We want to reduce the total duration from 90 minutes to 60 minutes without removing the privacy notice or the emergency procedure. Elena Garcia should review lesson TRN-105, and Northwind Health must approve the final wording. The pilot could begin on October 3, 2026, at 10:15 AM, but it will not begin earlier. Participants should send questions to training@example.org rather than contacting customers directly.\n\nPlease return back your comments by August 12, 2026. I would be grateful if you could focus on clarity, natural English, and sentence flow while preserving every fact and commitment. The final note should remain professional and concise, but it should not add new promises or change who is responsible for each action. Once we have your approval, we will prepare the final package and notify the project team. Regards, Carlos",
+      "wall_ms": 37957.75279996451,
+      "metadata": {
+        "section_count": 6,
+        "languagetool_duration_ms": 551.0551001643762,
+        "languagetool_applied_edit_count": 9,
+        "languagetool_skipped_edit_count": 2,
+        "qwen_invoked": true,
+        "qwen_call_count": 6,
+        "qwen_duration_ms": 37387.049999961164,
+        "qwen_first_token_ms": [
+          960.8052000403404,
+          756.9745000218973,
+          892.5466000218876,
+          858.3027999848127,
+          701.7272000084631,
+          839.487699966412
+        ],
+        "qwen_accepted_sections": 3,
+        "qwen_rejected_sections": 3,
+        "fallback_sections": 3,
+        "validation_duration_ms": 18.71890004258603,
+        "result_category": "partial_paraphrase",
+        "completion_status": "Completed with some sections corrected but not paraphrased"
+      },
+      "strategy": "approximately_1000_characters",
+      "target_characters": 1000
+    },
+    {
+      "id": "paragraph_groups_1000",
+      "input": "Hello Priya, I am writing this email for informing you about the quarterly planning issue. The operations team have reviewed the draft, and they discussed about the schedule with Microsoft yesterday. We recieved three updated documents, but the final adress for the Vancouver workshop is still missing. Please do not send build API-42 to clients before September 15, 2026, because Jordan Lee may need to approve it first. The registration fee remains CAD 1,250.50 for 12 participants, and the meeting starts at 9:30 AM.\n\nThe current process is very slow in nature and it creates a large amount of unnecessary extra work for the support team. We need to make an improvement to the process so employees can complete requests in a faster and more clear way. According to me, the second option is more better because it removes duplicate steps and gives staff a simple checklist. However, we must not remove the final security review, and we cannot change ticket OWR-2048 until Legal confirms the requirement.\n\nCould you please send me the informations that Ana Torres shared after Tuesday's meeting? You can email the files to ops@example.com or place them at https://example.com/release-7.2. The first attachment contains 18 pages, the second contains 7 pages, and the third contains the signed quotation. Do not rename customer identifier ACCT-00917 or invoice INV-2026-044. If any amount, date, name, URL, email address, or identifier is uncertain, please ask me before making a change.\n\nFor the next step, I made a decision to repeat the test again on Friday. Samir Patel will run the Windows checks, Mina Chen will review the macOS results, and I will summarize the findings. The test may finish by 4:00 PM, but it could continue until 6:30 PM if the network is unstable. We will not claim that the change is ready unless every required scenario passes. Did the Toronto office confirm that it can participate remotely?\n\nThe training section also need attention. There is five short lessons, and each lesson contain examples that are useful for new employees. We want to reduce the total duration from 90 minutes to 60 minutes without removing the privacy notice or the emergency procedure. Elena Garcia should review lesson TRN-105, and Northwind Health must approve the final wording. The pilot could begin on October 3, 2026, at 10:15 AM, but it will not begin earlier. Participants should send questions to training@example.org rather than contacting customers directly.\n\nPlease return back your comments by August 12, 2026. I would be grateful if you could focus on clarity, natural English, and sentence flow while preserving every fact and commitment. The final note should remain professional and concise, but it should not add new promises or change who is responsible for each action. Once we have your approval, we will prepare the final package and notify the project team. Regards, Carlos",
+      "languagetool_text": "Hello Priya, I am writing this email for informing you about the quarterly planning issue. The operations team have reviewed the draft, and they discussed the schedule with Microsoft yesterday. We received three updated documents, but the final address for the Vancouver workshop is still missing. Please do not send build API-42 to clients before September 15, 2026, because Jordan Lee may need to approve it first. The registration fee remains CAD 1,250.50 for 12 participants, and the meeting starts at 9:30 AM.\n\nThe current process is very slow in nature, and it creates a large amount of unnecessary extra work for the support team. We need to make an improvement to the process, so employees can complete requests in a faster and more clear way. In my opinion, the second option is better because it removes duplicate steps and gives staff a simple checklist. However, we must not remove the final security review, and we cannot change ticket OWR-2048 until Legal confirms the requirement.\n\nCould you please send me the information that Ana Torres shared after Tuesday's meeting? You can email the files to ops@example.com or place them at https://example.com/release-7.2. The first attachment contains 18 pages, the second contains 7 pages, and the third contains the signed quotation. Do not rename customer identifier ACCT-00917 or invoice INV-2026-044. If any amount, date, name, URL, email address, or identifier is uncertain, please ask me before making a change.\n\nFor the next step, I made a decision to repeat the test again on Friday. Samir Patel will run the Windows checks, Mina Chen will review the macOS results, and I will summarize the findings. The test may finish by 4:00 PM, but it could continue until 6:30 PM if the network is unstable. We will not claim that the change is ready unless every required scenario passes. Did the Toronto office confirm that it can participate remotely?\n\nThe training section also need attention. There are five short lessons, and each lesson contain examples that are useful for new employees. We want to reduce the total duration from 90 minutes to 60 minutes without removing the privacy notice or the emergency procedure. Elena Garcia should review lesson TRN-105, and Northwind Health must approve the final wording. The pilot could begin on October 3, 2026, at 10:15 AM, but it will not begin earlier. Participants should send questions to training@example.org rather than contacting customers directly.\n\nPlease return back your comments by August 12, 2026. I would be grateful if you could focus on clarity, natural English, and sentence flow while preserving every fact and commitment. The final note should remain professional and concise, but it should not add new promises or change who is responsible for each action. Once we have your approval, we will prepare the final package and notify the project team. Regards, Carlos",
+      "paraphrased_text": "Hello Priya, I am writing to inform you about the quarterly planning issue. The operations team has reviewed the draft and discussed the schedule with Microsoft yesterday. We received three updated documents, but the final address for the Vancouver workshop is still missing. Please do not send the build API-42 to clients before September 15, 2026, as Jordan Lee may need to approve it first. The registration fee remains CAD 1,250.50 for 12 participants, and the meeting starts at 9:30 AM.\n\nThe current process is very slow and creates a significant amount of unnecessary work for the support team. We need to make an improvement to the process so that employees can complete requests more quickly and clearly. In my opinion, the second option is better because it removes duplicate steps and provides staff with a simple checklist. However, we must not remove the final security review, and we cannot change ticket OWR-2048 until Legal confirms the requirement.\n\nCould you please send me the information that Ana Torres shared after Tuesday's meeting? You can email the files to ops@example.com or place them at https://example.com/release-7.2. The first attachment contains 18 pages, the second contains 7 pages, and the third contains the signed quotation. Do not rename the customer identifier ACCT-00917 or the invoice INV-2026-044. If any amount, date, name, URL, email address, or identifier is uncertain, please ask me before making a change.\n\nFor the next step, I decided to repeat the test again on Friday. Samir Patel will run the Windows checks, Mina Chen will review the macOS results, and I will summarize the findings. The test may finish by 4:00 PM, but it could continue until 6:30 PM if the network is unstable. We will not claim that the change is ready unless every required scenario passes. Did the Toronto office confirm that it can participate remotely?\n\nThe training section also needs attention. There are five short lessons, and each contains examples that are useful for new employees. We want to reduce the total duration from 90 minutes to 60 minutes without removing the privacy notice or the emergency procedure. Elena Garcia should review lesson TRN-105, and Northwind Health must approve the final wording. The pilot could begin on October 3, 2026, at 10:15 AM, but it will not begin earlier. Participants should send questions to training@example.org rather than contacting customers directly.\n\nPlease return your comments by August 12, 2026. I would be grateful if you could focus on clarity, natural English, and sentence flow while preserving every fact and commitment. Once we have your approval, we will prepare the final package and notify the project team. Regards, Carlos",
+      "output": "Hello Priya, I am writing this email for informing you about the quarterly planning issue. The operations team have reviewed the draft, and they discussed the schedule with Microsoft yesterday. We received three updated documents, but the final address for the Vancouver workshop is still missing. Please do not send build API-42 to clients before September 15, 2026, because Jordan Lee may need to approve it first. The registration fee remains CAD 1,250.50 for 12 participants, and the meeting starts at 9:30 AM.\n\nThe current process is very slow and creates a significant amount of unnecessary work for the support team. We need to make an improvement to the process so that employees can complete requests more quickly and clearly. In my opinion, the second option is better because it removes duplicate steps and provides staff with a simple checklist. However, we must not remove the final security review, and we cannot change ticket OWR-2048 until Legal confirms the requirement.\n\nCould you please send me the information that Ana Torres shared after Tuesday's meeting? You can email the files to ops@example.com or place them at https://example.com/release-7.2. The first attachment contains 18 pages, the second contains 7 pages, and the third contains the signed quotation. Do not rename the customer identifier ACCT-00917 or the invoice INV-2026-044. If any amount, date, name, URL, email address, or identifier is uncertain, please ask me before making a change.\n\nFor the next step, I decided to repeat the test again on Friday. Samir Patel will run the Windows checks, Mina Chen will review the macOS results, and I will summarize the findings. The test may finish by 4:00 PM, but it could continue until 6:30 PM if the network is unstable. We will not claim that the change is ready unless every required scenario passes. Did the Toronto office confirm that it can participate remotely?\n\nThe training section also needs attention. There are five short lessons, and each contains examples that are useful for new employees. We want to reduce the total duration from 90 minutes to 60 minutes without removing the privacy notice or the emergency procedure. Elena Garcia should review lesson TRN-105, and Northwind Health must approve the final wording. The pilot could begin on October 3, 2026, at 10:15 AM, but it will not begin earlier. Participants should send questions to training@example.org rather than contacting customers directly.\n\nPlease return back your comments by August 12, 2026. I would be grateful if you could focus on clarity, natural English, and sentence flow while preserving every fact and commitment. The final note should remain professional and concise, but it should not add new promises or change who is responsible for each action. Once we have your approval, we will prepare the final package and notify the project team. Regards, Carlos",
+      "wall_ms": 42225.106599973515,
+      "metadata": {
+        "section_count": 4,
+        "languagetool_duration_ms": 509.54459997592494,
+        "languagetool_applied_edit_count": 9,
+        "languagetool_skipped_edit_count": 2,
+        "qwen_invoked": true,
+        "qwen_call_count": 4,
+        "qwen_duration_ms": 41697.41500006057,
+        "qwen_first_token_ms": [
+          929.3983000097796,
+          2770.791699993424,
+          2871.5352000435814,
+          948.5764999990351
+        ],
+        "qwen_accepted_sections": 2,
+        "qwen_rejected_sections": 2,
+        "fallback_sections": 2,
+        "validation_duration_ms": 17.448000027798116,
+        "result_category": "partial_paraphrase",
+        "completion_status": "Completed with some sections corrected but not paraphrased"
+      },
+      "strategy": "paragraph_groups_1000",
+      "target_characters": 1000
+    },
+    {
+      "id": "paragraph_groups_1400",
+      "input": "Hello Priya, I am writing this email for informing you about the quarterly planning issue. The operations team have reviewed the draft, and they discussed about the schedule with Microsoft yesterday. We recieved three updated documents, but the final adress for the Vancouver workshop is still missing. Please do not send build API-42 to clients before September 15, 2026, because Jordan Lee may need to approve it first. The registration fee remains CAD 1,250.50 for 12 participants, and the meeting starts at 9:30 AM.\n\nThe current process is very slow in nature and it creates a large amount of unnecessary extra work for the support team. We need to make an improvement to the process so employees can complete requests in a faster and more clear way. According to me, the second option is more better because it removes duplicate steps and gives staff a simple checklist. However, we must not remove the final security review, and we cannot change ticket OWR-2048 until Legal confirms the requirement.\n\nCould you please send me the informations that Ana Torres shared after Tuesday's meeting? You can email the files to ops@example.com or place them at https://example.com/release-7.2. The first attachment contains 18 pages, the second contains 7 pages, and the third contains the signed quotation. Do not rename customer identifier ACCT-00917 or invoice INV-2026-044. If any amount, date, name, URL, email address, or identifier is uncertain, please ask me before making a change.\n\nFor the next step, I made a decision to repeat the test again on Friday. Samir Patel will run the Windows checks, Mina Chen will review the macOS results, and I will summarize the findings. The test may finish by 4:00 PM, but it could continue until 6:30 PM if the network is unstable. We will not claim that the change is ready unless every required scenario passes. Did the Toronto office confirm that it can participate remotely?\n\nThe training section also need attention. There is five short lessons, and each lesson contain examples that are useful for new employees. We want to reduce the total duration from 90 minutes to 60 minutes without removing the privacy notice or the emergency procedure. Elena Garcia should review lesson TRN-105, and Northwind Health must approve the final wording. The pilot could begin on October 3, 2026, at 10:15 AM, but it will not begin earlier. Participants should send questions to training@example.org rather than contacting customers directly.\n\nPlease return back your comments by August 12, 2026. I would be grateful if you could focus on clarity, natural English, and sentence flow while preserving every fact and commitment. The final note should remain professional and concise, but it should not add new promises or change who is responsible for each action. Once we have your approval, we will prepare the final package and notify the project team. Regards, Carlos",
+      "languagetool_text": "Hello Priya, I am writing this email for informing you about the quarterly planning issue. The operations team have reviewed the draft, and they discussed the schedule with Microsoft yesterday. We received three updated documents, but the final address for the Vancouver workshop is still missing. Please do not send build API-42 to clients before September 15, 2026, because Jordan Lee may need to approve it first. The registration fee remains CAD 1,250.50 for 12 participants, and the meeting starts at 9:30 AM.\n\nThe current process is very slow in nature, and it creates a large amount of unnecessary extra work for the support team. We need to make an improvement to the process, so employees can complete requests in a faster and more clear way. In my opinion, the second option is better because it removes duplicate steps and gives staff a simple checklist. However, we must not remove the final security review, and we cannot change ticket OWR-2048 until Legal confirms the requirement.\n\nCould you please send me the information that Ana Torres shared after Tuesday's meeting? You can email the files to ops@example.com or place them at https://example.com/release-7.2. The first attachment contains 18 pages, the second contains 7 pages, and the third contains the signed quotation. Do not rename customer identifier ACCT-00917 or invoice INV-2026-044. If any amount, date, name, URL, email address, or identifier is uncertain, please ask me before making a change.\n\nFor the next step, I made a decision to repeat the test again on Friday. Samir Patel will run the Windows checks, Mina Chen will review the macOS results, and I will summarize the findings. The test may finish by 4:00 PM, but it could continue until 6:30 PM if the network is unstable. We will not claim that the change is ready unless every required scenario passes. Did the Toronto office confirm that it can participate remotely?\n\nThe training section also need attention. There are five short lessons, and each lesson contain examples that are useful for new employees. We want to reduce the total duration from 90 minutes to 60 minutes without removing the privacy notice or the emergency procedure. Elena Garcia should review lesson TRN-105, and Northwind Health must approve the final wording. The pilot could begin on October 3, 2026, at 10:15 AM, but it will not begin earlier. Participants should send questions to training@example.org rather than contacting customers directly.\n\nPlease return back your comments by August 12, 2026. I would be grateful if you could focus on clarity, natural English, and sentence flow while preserving every fact and commitment. The final note should remain professional and concise, but it should not add new promises or change who is responsible for each action. Once we have your approval, we will prepare the final package and notify the project team. Regards, Carlos",
+      "paraphrased_text": "Hello Priya, I am writing to inform you about the quarterly planning issue. The operations team has reviewed the draft and discussed the schedule with Microsoft yesterday. We received three updated documents, but the final address for the Vancouver workshop is still missing. Please do not send the build API-42 to clients before September 15, 2026, as Jordan Lee may need to approve it first. The registration fee remains CAD 1,250.50 for 12 participants, and the meeting starts at 9:30 AM.\n\nThe current process is slow and creates a significant amount of unnecessary work for the support team. We need to improve the process so that employees can complete requests more quickly and clearly. In my opinion, the second option is better as it removes duplicate steps and provides staff with a simple checklist. However, we must not remove the final security review, and we cannot change ticket OWR-2048 until Legal confirms the requirement.\n\nPlease send me the information that Ana Torres shared after Tuesday's meeting. You may email the files to ops@example.com or place them at https://example.com/release-7.2. The first attachment includes 18 pages, the second 7 pages, and the third contains the signed quotation. Do not rename the customer identifier ACCT-00917 or the invoice INV-2026-044. If any amount, date, name, URL, email address, or identifier is uncertain, please ask me before making a change.\n\nFor the next step, I decided to repeat the test again on Friday. Samir Patel will run the Windows checks, Mina Chen will review the macOS results, and I will summarize the findings. The test may finish by 4:00 PM, but it could continue until 6:30 PM if the network is unstable. We will not claim that the change is ready unless every required scenario passes. Did the Toronto office confirm that it can participate remotely?\n\nThe training section requires attention. There are five short lessons, each containing examples that are useful for new employees. We want to reduce the total duration from 90 minutes to 60 minutes without removing the privacy notice or the emergency procedure. Elena Garcia should review lesson TRN-105, and Northwind Health must approve the final wording. The pilot could begin on October 3, 2026, at 10:15 AM, but it will not begin earlier. Participants should send questions to training@example.org rather than contacting customers directly.\n\nPlease return your comments by August 12, 2026. I would be grateful if you could focus on clarity, natural English, and sentence flow while preserving every fact and commitment. The final note should remain professional and concise, but it should not add new promises or change who is responsible for each action. Once we have your approval, we will prepare the final package and notify the project team. Regards, Carlos",
+      "output": "Hello Priya, I am writing this email for informing you about the quarterly planning issue. The operations team have reviewed the draft, and they discussed the schedule with Microsoft yesterday. We received three updated documents, but the final address for the Vancouver workshop is still missing. Please do not send build API-42 to clients before September 15, 2026, because Jordan Lee may need to approve it first. The registration fee remains CAD 1,250.50 for 12 participants, and the meeting starts at 9:30 AM.\n\nThe current process is very slow in nature, and it creates a large amount of unnecessary extra work for the support team. We need to make an improvement to the process, so employees can complete requests in a faster and more clear way. In my opinion, the second option is better because it removes duplicate steps and gives staff a simple checklist. However, we must not remove the final security review, and we cannot change ticket OWR-2048 until Legal confirms the requirement.\n\nCould you please send me the information that Ana Torres shared after Tuesday's meeting? You can email the files to ops@example.com or place them at https://example.com/release-7.2. The first attachment contains 18 pages, the second contains 7 pages, and the third contains the signed quotation. Do not rename customer identifier ACCT-00917 or invoice INV-2026-044. If any amount, date, name, URL, email address, or identifier is uncertain, please ask me before making a change.\n\nFor the next step, I made a decision to repeat the test again on Friday. Samir Patel will run the Windows checks, Mina Chen will review the macOS results, and I will summarize the findings. The test may finish by 4:00 PM, but it could continue until 6:30 PM if the network is unstable. We will not claim that the change is ready unless every required scenario passes. Did the Toronto office confirm that it can participate remotely?\n\nThe training section requires attention. There are five short lessons, each containing examples that are useful for new employees. We want to reduce the total duration from 90 minutes to 60 minutes without removing the privacy notice or the emergency procedure. Elena Garcia should review lesson TRN-105, and Northwind Health must approve the final wording. The pilot could begin on October 3, 2026, at 10:15 AM, but it will not begin earlier. Participants should send questions to training@example.org rather than contacting customers directly.\n\nPlease return your comments by August 12, 2026. I would be grateful if you could focus on clarity, natural English, and sentence flow while preserving every fact and commitment. The final note should remain professional and concise, but it should not add new promises or change who is responsible for each action. Once we have your approval, we will prepare the final package and notify the project team. Regards, Carlos",
+      "wall_ms": 41918.744099966716,
+      "metadata": {
+        "section_count": 3,
+        "languagetool_duration_ms": 428.6119999596849,
+        "languagetool_applied_edit_count": 9,
+        "languagetool_skipped_edit_count": 2,
+        "qwen_invoked": true,
+        "qwen_call_count": 3,
+        "qwen_duration_ms": 41470.81299999263,
+        "qwen_first_token_ms": [
+          2568.0679000215605,
+          2476.5626000007614,
+          2364.3006999627687
+        ],
+        "qwen_accepted_sections": 1,
+        "qwen_rejected_sections": 2,
+        "fallback_sections": 2,
+        "validation_duration_ms": 18.695599981583655,
+        "result_category": "partial_paraphrase",
+        "completion_status": "Completed with some sections corrected but not paraphrased"
+      },
+      "strategy": "paragraph_groups_1400",
+      "target_characters": 1400
+    }
+  ],
+  "combined_runtime": {
+    "app": {
+      "working_set_bytes": 22622208,
+      "private_bytes": 20140032
+    },
+    "languagetool": {
+      "working_set_bytes": 423698432,
+      "private_bytes": 581046272
+    },
+    "qwen_loaded_size_bytes": 1882424605,
+    "qwen_vram_bytes": 0,
+    "qwen_context_length": 4096,
+    "qwen_backend": "cpu",
+    "gemma_loaded": false
+  },
+  "languagetool_shutdown_ms": 65.43519999831915
+}

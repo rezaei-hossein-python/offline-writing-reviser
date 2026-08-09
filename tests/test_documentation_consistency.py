@@ -14,7 +14,6 @@ CURRENT_DOCS = (
     ROOT / "docs" / "development.md",
     ROOT / "docs" / "installation.md",
     ROOT / "docs" / "installer.md",
-    ROOT / "docs" / "release-0.4.0.md",
     ROOT / "docs" / "troubleshooting.md",
     ROOT / "docs" / "user-guide.md",
 )
@@ -28,7 +27,7 @@ def test_current_documentation_describes_only_unified_production_action():
     combined = "\n".join(_text(path) for path in CURRENT_DOCS)
     assert "Ctrl+Alt+P" in combined
     assert "Ctrl+Alt+W" not in combined
-    assert "gemma3:4b" in combined
+    assert "qwen3:1.7b" in combined
     for stale_instruction in (
         "install Java",
         "install LanguageTool",
@@ -38,14 +37,21 @@ def test_current_documentation_describes_only_unified_production_action():
         assert stale_instruction.lower() not in combined.lower()
 
 
+def test_third_party_notice_identifies_current_production_model():
+    notices = _text(ROOT / "THIRD_PARTY_NOTICES.md")
+    assert "qwen3:1.7b" in notices
+    assert "Apache License 2.0" in notices
+    assert "gemma3:4b" not in notices
+
+
 def test_final_version_is_consistent_in_release_metadata():
-    assert 'version = "0.4.0"' in _text(ROOT / "pyproject.toml")
-    assert '__version__ = "0.4.0"' in _text(
+    assert 'version = "0.5.0b1"' in _text(ROOT / "pyproject.toml")
+    assert '__version__ = "0.5.0b1"' in _text(
         ROOT / "src" / "offline_writing_reviser" / "version.py"
     )
     installer = _text(ROOT / "installer" / "OfflineWritingReviser.iss")
-    assert '#define AppVersion "0.4.0"' in installer
-    assert '#define AppNumericVersion "0.4.0.0"' in installer
+    assert '#define AppVersion "0.5.0b1"' in installer
+    assert '#define AppNumericVersion "0.5.0.1"' in installer
 
 
 def test_release_notes_identify_current_artifact():

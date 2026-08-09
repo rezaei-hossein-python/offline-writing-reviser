@@ -251,7 +251,7 @@ def test_logs_never_include_selected_or_revised_content(caplog):
     assert "SECRET-OUTPUT-9a31" not in caplog.text
 
 
-def test_packaging_contains_no_removed_engine_or_private_runtime():
+def test_packaging_contains_private_runtime_without_removed_hybrid_engine():
     root = Path(__file__).resolve().parents[1]
     build = (root / "scripts" / "build.ps1").read_text(encoding="utf-8")
     installer = (
@@ -262,10 +262,17 @@ def test_packaging_contains_no_removed_engine_or_private_runtime():
         for path in (root / "src" / "offline_writing_reviser").rglob("*.py")
     )
 
-    assert "runtime\\java" not in build
-    assert "runtime\\languagetool" not in build
-    assert "vendor\\java" not in build
-    assert "vendor\\languagetool" not in build
+    assert "runtime\\java" in build
+    assert "runtime\\languagetool" in build
+    assert "vendor\\java" in build
+    assert "vendor\\languagetool" in build
+    assert "bin\\javaw.exe" in build
+    preparation = (
+        root / "scripts" / "prepare-languagetool-runtime.ps1"
+    ).read_text(encoding="utf-8")
+    assert "testrules.bat" in preparation
+    assert "testrules.sh" in preparation
+    assert "languagetool-core-tests.jar" in preparation
     assert "gemma3:4b" not in build
     assert ".gguf" not in build.casefold()
     assert "runtime\\java" not in installer
@@ -274,7 +281,9 @@ def test_packaging_contains_no_removed_engine_or_private_runtime():
     assert "vendor\\languagetool" not in installer
     assert "gemma3:4b" not in installer
     assert ".gguf" not in installer.casefold()
-    assert "LanguageTool" not in production
+    assert "HybridProofreadingService" not in production
+    assert "hybrid_service" not in production
+    assert "proofreading.policy" not in production
     assert "ParaphraseService" not in production
     assert "Ctrl+Alt+W" not in installer
 

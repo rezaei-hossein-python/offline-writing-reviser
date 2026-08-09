@@ -13,3 +13,7 @@ class WritingRevisionResult:
     model: str
     duration_ms: float
     metadata: dict[str, Any] = field(default_factory=dict)
+    original_text: str | None = None
+    languagetool_text: str | None = None
+    paraphrased_text: str | None = None
+    final_text: str | None = None

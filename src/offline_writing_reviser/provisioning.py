@@ -9,12 +9,22 @@ import time
 import urllib.error
 import urllib.request
 from collections.abc import Callable
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
 from offline_writing_reviser.config import (
     APP_DATA_DIR,
+    DEFAULT_MODEL,
     OfflineWritingConfig,
+)
+from offline_writing_reviser.core.sequential import SequentialWritingService
+from offline_writing_reviser.correction.languagetool import (
+    LanguageToolCorrectionService,
+    LanguageToolRuntime,
+)
+from offline_writing_reviser.proofreading.semantic import (
+    validate_semantic_preservation,
 )
 from offline_writing_reviser.providers.base import (
     OfflineWritingProviderError,
@@ -40,10 +50,21 @@ WM_PROVISIONING_SHOW = 0x8000 + 201
 ProgressCallback = Callable[[str, int | None, int | None], None]
 CancelCheck = Callable[[], bool]
 StateCallback = Callable[[ProvisioningSnapshot], None]
+PREVIOUS_OFFICIAL_MODEL = "gemma3:4b"
+MIGRATION_TEST_TEXT = (
+    "The meeting was very good and we discussed many important things."
+)
 
 
 class ProvisioningCancelled(OfflineWritingProviderError):
     pass
+
+
+@dataclass(frozen=True)
+class ModelMigrationResult:
+    target_model: str
+    removed_model: str | None = None
+    recovered_bytes: int | None = None
 
 
 class ModelProvisioner:
@@ -57,13 +78,57 @@ class ModelProvisioner:
             model=config.model, executable=config.ollama_executable
         )
 
-    def model_installed(self) -> bool:
-        return self.config.model in self.provider.api_models(
-            timeout_seconds=5.0
-        )
+    def installed_models(self) -> list[str]:
+        return self.provider.api_models(timeout_seconds=5.0)
+
+    def model_installed(self, model: str | None = None) -> bool:
+        return (model or self.config.model) in self.installed_models()
 
     def verify_inference(self, timeout_seconds: float = 120.0) -> None:
         self.provider.verify_minimal_inference(timeout_seconds=timeout_seconds)
+
+    def verify_end_to_end(self) -> None:
+        runtime = LanguageToolRuntime()
+        runtime.warmup()
+        try:
+            service = SequentialWritingService(
+                provider=self.provider,
+                correction_service=LanguageToolCorrectionService(runtime),
+                config=self.config,
+            )
+            result = service.revise(MIGRATION_TEST_TEXT)
+        finally:
+            runtime.stop()
+        semantic = validate_semantic_preservation(
+            MIGRATION_TEST_TEXT, result.revised_text
+        )
+        if (
+            not semantic.accepted
+            or result.metadata.get("qwen_call_count") != 1
+            or result.metadata.get("qwen_accepted_sections") != 1
+        ):
+            raise OfflineWritingProviderError(
+                "The new model failed the end-to-end semantic revision test"
+            )
+
+    def model_size(self, model: str) -> int | None:
+        return self.provider.api_model_size(model, timeout_seconds=5.0)
+
+    def remove_previous_official_model(self, model: str) -> None:
+        if model != PREVIOUS_OFFICIAL_MODEL:
+            raise OfflineWritingProviderError(
+                "Refusing to remove a model other than the exact previous official model"
+            )
+        self.provider.remove_model(model, timeout_seconds=120.0)
+        installed = self.installed_models()
+        if model in installed:
+            raise OfflineWritingProviderError(
+                "The previous official model is still installed after removal"
+            )
+        if self.config.model not in installed:
+            raise OfflineWritingProviderError(
+                "The new production model disappeared during migration"
+            )
 
     def pull_model(
         self,
@@ -133,12 +198,17 @@ class AIProvisioner:
         config: OfflineWritingConfig,
         model_provisioner: ModelProvisioner | None = None,
         cache_directory: Path | None = None,
+        settings_store: Any | None = None,
+        previous_config: OfflineWritingConfig | None = None,
     ):
         self.config = config
         self.model = model_provisioner or ModelProvisioner(config)
         self.cache_directory = (
             cache_directory or APP_DATA_DIR / "provisioning"
         )
+        self.settings_store = settings_store
+        self.previous_config = previous_config
+        self.last_result = ModelMigrationResult(config.model)
 
     def provision(
         self,
@@ -146,7 +216,7 @@ class AIProvisioner:
         *,
         cancelled: CancelCheck | None = None,
         install_stage: Callable[[bool], None] | None = None,
-    ) -> None:
+    ) -> ModelMigrationResult:
         cancelled = cancelled or (lambda: False)
         logger = logging.getLogger("offline-writing-reviser")
         progress("Checking for Ollama", None, None)
@@ -214,10 +284,71 @@ class AIProvisioner:
         progress("Testing minimal inference", None, None)
         logger.info("Model provisioning state=testing_inference")
         self.model.verify_inference(timeout_seconds=120.0)
+        progress("Testing complete revision", None, None)
+        logger.info("Model provisioning state=testing_end_to_end")
+        self.model.verify_end_to_end()
+
+        previous_present = self.model.model_installed(PREVIOUS_OFFICIAL_MODEL)
+        previous_size = (
+            self.model.model_size(PREVIOUS_OFFICIAL_MODEL)
+            if previous_present
+            else None
+        )
+        if self.settings_store is not None:
+            self.settings_store.save(self.config)
+            logger.info(
+                "Model provisioning configuration switched model=%s",
+                self.config.model,
+            )
+
+        removed_model = None
+        recovered_bytes = None
+        if previous_present and self.config.model != PREVIOUS_OFFICIAL_MODEL:
+            progress(
+                f"Replacing previous official model {PREVIOUS_OFFICIAL_MODEL}",
+                None,
+                None,
+            )
+            logger.info(
+                "Model migration removing previous official model=%s",
+                PREVIOUS_OFFICIAL_MODEL,
+            )
+            try:
+                self.model.remove_previous_official_model(
+                    PREVIOUS_OFFICIAL_MODEL
+                )
+            except Exception:
+                if (
+                    self.settings_store is not None
+                    and self.previous_config is not None
+                    and self.model.model_installed(PREVIOUS_OFFICIAL_MODEL)
+                ):
+                    self.settings_store.save(self.previous_config)
+                    logger.warning(
+                        "Model migration restored previous configuration model=%s",
+                        self.previous_config.model,
+                    )
+                raise
+            progress("Verifying migration after model removal", None, None)
+            self.model.verify_inference(timeout_seconds=120.0)
+            self.model.verify_end_to_end()
+            removed_model = PREVIOUS_OFFICIAL_MODEL
+            recovered_bytes = previous_size
+            logger.info(
+                "Model migration complete removed_model=%s recovered_bytes=%s",
+                removed_model,
+                recovered_bytes,
+            )
         logger.info(
             "Model provisioning state=ready model=%s", self.config.model
         )
         progress("Intelligent revision is ready", 1, 1)
+        self.last_result = ModelMigrationResult(
+            target_model=self.config.model,
+            removed_model=removed_model,
+            recovered_bytes=recovered_bytes,
+        )
+        return self.last_result
 
     def download_ollama(
         self,
@@ -385,11 +516,11 @@ class ProvisioningController:
 
     def _run(self) -> None:
         try:
-            self.provisioner.provision(
+            result = self.provisioner.provision(
                 self._progress,
                 cancelled=self._cancel_event.is_set,
                 install_stage=self._install_stage,
-            )
+            ) or ModelMigrationResult(self.config.model)
         except ProvisioningCancelled as exc:
             self.logger.warning("Model provisioning controller state=cancelled")
             self._finish(
@@ -419,6 +550,8 @@ class ProvisioningController:
                 phase=ProvisioningPhase.READY,
                 stage="Intelligent revision is ready.",
                 ready=True,
+                removed_model=result.removed_model,
+                recovered_bytes=result.recovered_bytes,
             )
 
     def _progress(
@@ -465,6 +598,8 @@ class ProvisioningController:
         error: str | None = None,
         retry_available: bool = False,
         ready: bool = False,
+        removed_model: str | None = None,
+        recovered_bytes: int | None = None,
     ) -> None:
         with self._lock:
             self._publish_locked(
@@ -475,6 +610,8 @@ class ProvisioningController:
                 active=False,
                 ready=ready,
                 process_id=os.getpid(),
+                removed_model=removed_model,
+                recovered_bytes=recovered_bytes,
             )
 
     def _publish_locked(self, **updates: Any) -> None:
@@ -489,6 +626,8 @@ class ProvisioningController:
             "active": self._snapshot.active,
             "ready": self._snapshot.ready,
             "process_id": self._snapshot.process_id,
+            "removed_model": self._snapshot.removed_model,
+            "recovered_bytes": self._snapshot.recovered_bytes,
             "updated_at": time.time(),
         }
         values.update(updates)
@@ -522,7 +661,11 @@ def _phase_for_progress(
         return ProvisioningPhase.STARTING_OLLAMA
     if stage == "Verifying installed model":
         return ProvisioningPhase.VERIFYING_MODEL
-    if stage == "Testing minimal inference":
+    if stage in {
+        "Testing minimal inference",
+        "Testing complete revision",
+        "Verifying migration after model removal",
+    }:
         return ProvisioningPhase.TESTING_INFERENCE
     if downloaded is not None or total is not None or "pull" in lowered:
         return ProvisioningPhase.DOWNLOADING_MODEL
@@ -531,6 +674,17 @@ def _phase_for_progress(
     if stage == "Intelligent revision is ready":
         return ProvisioningPhase.READY
     return ProvisioningPhase.CHECKING_MODEL
+
+
+def provisioning_start_required(
+    snapshot: ProvisioningSnapshot,
+    previous_config: OfflineWritingConfig,
+    target_config: OfflineWritingConfig,
+) -> bool:
+    return (
+        snapshot.phase is ProvisioningPhase.IDLE
+        or previous_config.model != target_config.model
+    )
 
 
 def run_model_provisioning(config: OfflineWritingConfig | None = None) -> int:
@@ -548,10 +702,19 @@ def run_model_provisioning(config: OfflineWritingConfig | None = None) -> int:
 
     from offline_writing_reviser.logging_config import configure_logging
     from offline_writing_reviser.settings import SettingsStore
-    from offline_writing_reviser.windows.control import WindowsControlServer
+    from offline_writing_reviser.windows.control import (
+        ControlCommand,
+        WindowsControlServer,
+        send_control_command,
+    )
     from offline_writing_reviser.windows.single_instance import WindowsSingleInstance
 
-    config = config or SettingsStore().load()
+    settings_store = None
+    previous_config = config
+    if config is None:
+        settings_store = SettingsStore()
+        previous_config = settings_store.load()
+        config = replace(previous_config, model=DEFAULT_MODEL)
     configure_logging(config.log_file)
     logger = logging.getLogger("offline-writing-reviser")
     instance = WindowsSingleInstance(PROVISIONING_MUTEX_NAME)
@@ -569,7 +732,15 @@ def run_model_provisioning(config: OfflineWritingConfig | None = None) -> int:
 
     app = QApplication.instance() or QApplication([])
     app.setQuitOnLastWindowClosed(False)
-    controller = ProvisioningController(config, logger=logger)
+    controller = ProvisioningController(
+        config,
+        provisioner=AIProvisioner(
+            config,
+            settings_store=settings_store,
+            previous_config=previous_config,
+        ),
+        logger=logger,
+    )
 
     class AccessibleProvisioningDialog(QDialog):
         allow_close = False
@@ -617,7 +788,11 @@ def run_model_provisioning(config: OfflineWritingConfig | None = None) -> int:
     layout.addWidget(progress_bar)
     layout.addLayout(button_layout)
 
-    latest = {"snapshot": controller.snapshot, "announcement": None}
+    latest = {
+        "snapshot": controller.snapshot,
+        "announcement": None,
+        "restart_sent": False,
+    }
 
     def announce(text: str) -> None:
         _announce_provisioning(dialog, text, logger)
@@ -646,11 +821,29 @@ def run_model_provisioning(config: OfflineWritingConfig | None = None) -> int:
                 f"{_format_bytes(snapshot.total_bytes)}"
             )
         elif snapshot.ready:
-            detail.setText(
-                "Offline Writing Reviser is ready. Choose Close when finished."
-            )
+            if snapshot.removed_model:
+                recovered = (
+                    _format_bytes(snapshot.recovered_bytes)
+                    if snapshot.recovered_bytes is not None
+                    else "an unknown amount of disk space"
+                )
+                detail.setText(
+                    f"{snapshot.removed_model} was replaced by {config.model}. "
+                    f"Recovered {recovered}. Offline Writing Reviser is ready."
+                )
+            else:
+                detail.setText(
+                    f"{config.model} is verified. Offline Writing Reviser is ready."
+                )
             progress_bar.setRange(0, 100)
             progress_bar.setValue(100)
+            if settings_store is not None and not latest["restart_sent"]:
+                latest["restart_sent"] = True
+                restarted = send_control_command(ControlCommand.RESTART)
+                logger.info(
+                    "Model migration background restart requested success=%s",
+                    restarted,
+                )
         elif snapshot.active:
             detail.setText(
                 "Provisioning is active. You may hide this window and reopen "
@@ -747,8 +940,8 @@ def run_model_provisioning(config: OfflineWritingConfig | None = None) -> int:
                 "Set up intelligent revision",
                 f"Setup reuses a compatible Ollama installation when present "
                 f"and otherwise downloads the official Ollama installer. It "
-                f"then downloads {config.model} (approximately 3 GB, subject "
-                "to the Gemma Terms of Use). The application installation does "
+                f"then downloads {config.model} (approximately 1.4 GB, subject "
+                "to the model license). The application installation does "
                 "not depend on this step, but intelligent revision requires "
                 "the model.\n\nContinue?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
@@ -758,7 +951,9 @@ def run_model_provisioning(config: OfflineWritingConfig | None = None) -> int:
                 return 0
         dialog.show()
         show_dialog()
-        if controller.snapshot.phase is ProvisioningPhase.IDLE:
+        if provisioning_start_required(
+            controller.snapshot, previous_config, config
+        ):
             controller.start()
         app.exec()
         return 0 if controller.snapshot.ready else 1

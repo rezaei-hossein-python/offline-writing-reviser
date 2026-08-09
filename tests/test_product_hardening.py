@@ -12,6 +12,7 @@ from offline_writing_reviser.application import (
     execute_control_command,
 )
 from offline_writing_reviser.config import OfflineWritingConfig
+from offline_writing_reviser.core.errors import OfflineWritingCorrectionUnavailable
 from offline_writing_reviser.desktop_status import (
     ApplicationState,
     user_message_for_error,
@@ -61,7 +62,7 @@ def clear_settings_environment(monkeypatch):
 
 class DiagnosticProvider:
     provider_name = "ollama_cli"
-    model_identifier = "gemma3:4b"
+    model_identifier = "qwen3:1.7b"
 
     def resolved_executable(self):
         return "ollama.exe"
@@ -76,7 +77,7 @@ class DiagnosticProvider:
         return "1.2.3"
 
     def api_models(self, timeout_seconds):
-        return ["gemma3:4b"]
+        return ["qwen3:1.7b"]
 
     def runtime_diagnostics(self, timeout_seconds):
         return {
@@ -88,11 +89,14 @@ class DiagnosticProvider:
             "backend": None,
         }
 
+    def verify_minimal_inference(self, timeout_seconds):
+        return None
+
     def is_available(self):
         return True
 
     def revise(self, text, instruction, timeout_seconds):
-        return "She works in the finance department."
+        return "The meeting was productive, and we discussed several important topics."
 
 
 def test_diagnostics_formats_unknown_backend_and_device(tmp_path):
@@ -113,7 +117,7 @@ def test_diagnostics_formats_unknown_backend_and_device(tmp_path):
 def test_diagnostics_health_output_reports_success(tmp_path):
     report, healthy = collect_diagnostics(
         OfflineWritingConfig(log_file=tmp_path / "app.log"),
-        include_gemma_test=True,
+        include_model_test=True,
         provider=DiagnosticProvider(),
     )
 
@@ -170,10 +174,10 @@ def test_default_settings_are_sensible(tmp_path):
     defaults = OfflineWritingConfig(log_file=tmp_path / "app.log")
     loaded = SettingsStore(tmp_path / "settings.json", defaults=defaults).load()
 
-    assert loaded.model == "gemma3:4b"
+    assert loaded.model == "qwen3:1.7b"
     assert loaded.timeout_seconds == 45.0
     assert loaded.max_characters == 20_000
-    assert loaded.chunk_characters == 700
+    assert loaded.chunk_characters == 1000
     assert loaded.hotkey == "Ctrl+Alt+P"
 
 
@@ -233,7 +237,7 @@ def test_legacy_default_model_is_migrated_to_current_production_default(
         defaults=OfflineWritingConfig(log_file=tmp_path / "app.log"),
     ).load()
 
-    assert loaded.model == "gemma3:4b"
+    assert loaded.model == "qwen3:1.7b"
     saved = json.loads(path.read_text(encoding="utf-8"))
     assert saved["settings_version"] == 2
     assert saved["hotkey"] == "Ctrl+Alt+P"
@@ -395,7 +399,26 @@ def test_active_model_download_has_in_progress_hotkey_message(monkeypatch):
 
 class FakeService:
     def revise(self, _text):
-        return type("Result", (), {"revised_text": "Revised."})()
+        return type(
+            "Result",
+            (),
+            {
+                "revised_text": "Revised.",
+                "metadata": {
+                    "section_count": 1,
+                    "languagetool_duration_ms": 12.0,
+                    "languagetool_applied_edit_count": 1,
+                    "languagetool_skipped_edit_count": 0,
+                    "qwen_invoked": False,
+                    "qwen_duration_ms": 0.0,
+                    "qwen_accepted_sections": 0,
+                    "qwen_rejected_sections": 0,
+                    "fallback_sections": 0,
+                    "validation_duration_ms": 0.0,
+                    "result_category": "languagetool_only",
+                },
+            },
+        )()
 
 
 class FakeAdapter:
@@ -420,6 +443,35 @@ def test_successful_revision_changes_state_without_notification_spam():
 
     assert states == [ApplicationState.REVISING, ApplicationState.READY]
     assert notifications == []
+
+
+def test_controller_logs_privacy_safe_end_to_end_summary(caplog):
+    controller = OfflineWritingController(FakeService(), FakeAdapter())
+
+    with caplog.at_level(logging.INFO, logger="offline-writing-reviser"):
+        controller._run_revision()
+
+    summary = next(
+        record.message
+        for record in caplog.records
+        if record.message.startswith("Production revision summary")
+    )
+    assert "lt_applied=1" in summary
+    assert "qwen_invoked=False" in summary
+    assert "paste_duration_ms=" in summary
+    assert "total_duration_ms=" in summary
+    assert "Original." not in summary
+    assert "Revised." not in summary
+
+
+def test_languagetool_failure_has_actionable_message():
+    message = user_message_for_error(
+        OfflineWritingCorrectionUnavailable("private runtime failed")
+    )
+
+    assert message.title == "Grammar correction unavailable"
+    assert "Restart Offline Writing Reviser" in message.message
+    assert "private runtime failed" not in message.message
 
 
 def test_no_selection_has_one_actionable_notification():
@@ -467,7 +519,7 @@ def test_missing_model_state_transition_in_background_coordinator(
 
     assert states == [ApplicationState.MODEL_UNAVAILABLE]
     assert messages[0].title == "AI model setup required"
-    assert "gemma3:4b is not installed yet" in messages[0].message
+    assert "qwen3:1.7b is not installed yet" in messages[0].message
 
 
 def test_actionable_error_dialogs_are_rate_limited(monkeypatch, tmp_path):
@@ -714,6 +766,15 @@ def test_application_wires_hidden_control_to_clean_shutdown(
         def stop(self):
             lifecycle.append("runtime_stopped")
 
+    class FakeLanguageToolRuntime:
+        logger = None
+
+        def start_in_background(self):
+            lifecycle.append("languagetool_started")
+
+        def stop(self):
+            lifecycle.append("languagetool_stopped")
+
     class FakeInstance:
         def acquire(self):
             return True
@@ -762,18 +823,40 @@ def test_application_wires_hidden_control_to_clean_shutdown(
         stop_event=stop_event,
         instance=FakeInstance(),
         control_server_factory=FakeControlServer,
+        language_tool_runtime=FakeLanguageToolRuntime(),
     )
 
     assert app.run() == 0
     assert lifecycle == [
+        "languagetool_started",
         "background_started",
         "control_started",
         "background_run",
         "control_stopped",
         "background_stopped",
         "runtime_stopped",
+        "languagetool_stopped",
         "instance_released",
     ]
+
+
+def test_exit_command_waits_for_complete_process_shutdown(monkeypatch):
+    import offline_writing_reviser.application as application
+
+    waited = []
+    monkeypatch.setattr(application.sys, "platform", "win32")
+    monkeypatch.setattr(application, "send_control_command", lambda _command: True)
+    monkeypatch.setattr(
+        application, "wait_for_control_server_stop", lambda: waited.append("window")
+    )
+    monkeypatch.setattr(
+        application,
+        "wait_for_single_instance_stop",
+        lambda name: waited.append(name),
+    )
+
+    assert application.execute_control_command(ControlCommand.EXIT) == 0
+    assert waited == ["window", application.MUTEX_NAME]
 
 
 def test_packaged_restart_resets_pyinstaller_environment(monkeypatch):
@@ -812,5 +895,5 @@ def test_version_command_reports_release_version(capsys):
         main(["--version"])
 
     assert exit_info.value.code == 0
-    assert __version__ == "0.4.0"
-    assert "0.4.0" in capsys.readouterr().out
+    assert __version__ == "0.5.0b1"
+    assert "0.5.0b1" in capsys.readouterr().out

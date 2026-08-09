@@ -1,0 +1,18 @@
+{
+  "java": {
+    "distribution": "Eclipse Temurin JRE",
+    "version": "17.0.20+8",
+    "architecture": "x64",
+    "url": "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.20%2B8/OpenJDK17U-jre_x64_windows_hotspot_17.0.20_8.zip",
+    "sha256": "7fe2324cc5901a89aaa0e8dc232075c59f2aca5270c533bdb1b861a5274af834",
+    "archive_size_bytes": 43776637
+  },
+  "languagetool": {
+    "distribution": "LanguageTool standalone",
+    "version": "6.6",
+    "language": "en-US",
+    "url": "https://languagetool.org/download/LanguageTool-6.6.zip",
+    "sha256": "53600506b399bb5ffe1e4c8dec794fd378212f14aaf38ccef9b6f89314d11631",
+    "archive_size_bytes": 251998221
+  }
+}

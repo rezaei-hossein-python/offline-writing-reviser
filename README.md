@@ -1,20 +1,20 @@
 # Offline Writing Reviser
 
-Offline Writing Reviser is a Windows background utility that intelligently revises selected English text in place. Select text in an editable application, press `Ctrl+Alt+P`, and the local `gemma3:4b` model corrects spelling, grammar, punctuation, vocabulary, clarity, and naturalness. It may restructure sentences when doing so preserves the original meaning and intent.
+Offline Writing Reviser is a Windows background utility that intelligently revises selected English text in place. Select text in an editable application and press `Ctrl+Alt+P`: bundled LanguageTool performs fast mechanical correction, then the local `qwen3:1.7b` model optionally improves awkward wording. Qwen output is used only when semantic validation against the original text succeeds.
 
 The product has one production action and hotkey: Intelligent Revision on `Ctrl+Alt+P`. It was manually validated in Windows Notepad and Microsoft Word. Browser-editor support is not yet fully manually verified, so treat it as application-dependent.
 
 ## Why it is safe and private
 
-All selected text is processed locally through Ollama after initial setup; the application does not send it to a cloud API. Ollama manages the model files. The prompt, output sanitizer, and deterministic semantic validator protect facts and identifiers including names, numbers and their roles, dates, times, amounts, URLs, email addresses, quoted text, negation, modality, and intent. Unsafe sections remain unchanged. These controls reduce risk but cannot mathematically guarantee perfect semantic equivalence; review sensitive revisions. The application is not a security boundary.
+All selected text is processed locally through bundled LanguageTool and, when needed, Ollama; the application does not send it to a cloud API. Ollama manages the model files. The prompt, output sanitizer, and deterministic semantic validator protect facts and identifiers including names, numbers and their roles, dates, times, amounts, URLs, email addresses, quoted text, negation, modality, and intent. Unsafe Qwen output falls back to the safe LanguageTool result. These controls reduce risk but cannot mathematically guarantee perfect semantic equivalence; review sensitive revisions. The application is not a security boundary.
 
 Selected and revised text are not logged by default. Logs contain operational metadata such as character and section counts, timing, process name, state, and failure codes.
 
 ## Requirements and disk space
 
 - 64-bit Windows 10 or Windows 11.
-- Internet access for first-time Ollama installation and `gemma3:4b` download; normal revision is offline afterward.
-- Approximately 5 GB of free disk space is recommended for Ollama, the several-gigabyte model, and working headroom. The 31 MB installer does not bundle either one.
+- Internet access for first-time Ollama installation and `qwen3:1.7b` download; normal revision is offline afterward.
+- Approximately 3 GB of free disk space is recommended for Ollama, the model, and working headroom. The installer bundles LanguageTool and a private Java runtime, but does not bundle Ollama or Qwen model data.
 - CPU-only systems work but are slower. Ollama may use a supported GPU automatically.
 - Python 3.11 or newer is required only for source development.
 
@@ -23,7 +23,7 @@ Selected and revised text are not logged by default. Logs contain operational me
 1. Download `OfflineWritingReviser-Setup.exe` and its checksum from the release.
 2. Verify it with `Get-FileHash .\OfflineWritingReviser-Setup.exe -Algorithm SHA256`.
 3. Run the per-user installer. Administrator rights should not normally be required.
-4. Model Setup opens automatically. It reuses or installs Ollama, reuses or downloads `gemma3:4b`, verifies the model list, and runs a minimal inference test.
+4. Model Setup opens automatically. It reuses or installs Ollama, reuses or downloads only `qwen3:1.7b`, verifies the model list, runs a minimal inference, and completes a LanguageTool + Qwen semantic revision test.
 5. You may hide Model Setup while it continues. Reopen **Start > Offline Writing Reviser > Set up intelligent revision** to reconnect to the same job. Progress and the Ready state persist.
 
 The download takes several gigabytes and setup time depends on the connection. First inference can be slower while the model loads. See the [installation guide](docs/installation.md) for checksum details, upgrade/uninstall behavior, and setup troubleshooting.
@@ -50,7 +50,7 @@ $app = "$env:LOCALAPPDATA\Programs\Offline Writing Reviser\OfflineWritingReviser
 & $app --version
 & $app --diagnostics
 & $app --diagnostics-json
-& $app --diagnostics --gemma-test
+& $app --diagnostics --model-test
 & $app --validate-startup
 & $app --settings
 & $app --provision-model
@@ -78,6 +78,7 @@ Known limitations include the unsigned installer (Windows SmartScreen or antivir
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -e ".[dev,build]"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\prepare-languagetool-runtime.ps1
 python -m offline_writing_reviser --validate-startup
 python -m pytest -p no:cacheprovider --basetemp .pytest-temp\full
 python -m compileall -q src tests

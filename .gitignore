@@ -2,12 +2,15 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .pytest-temp/
+.phase25-*/
 .ruff_cache/
 .mypy_cache/
 .venv/
 .conda/
 build/
 dist/
+.runtime-download/
+vendor/
 OfflineWritingReviser.spec
 *.egg-info/
 *.log

@@ -1,0 +1,135 @@
+{
+  "review_method": "Manual qualitative review of every synthetic output after deterministic sanitizer and original-text semantic validation.",
+  "allowed_primary_outcomes": [
+    "excellent unchanged",
+    "useful paraphrase",
+    "acceptable paraphrase",
+    "unnecessary rewrite",
+    "weaker wording",
+    "grammatical regression",
+    "semantic regression",
+    "factual regression",
+    "protected-token regression",
+    "negation/modality regression",
+    "commentary/wrapper",
+    "malformed",
+    "timeout"
+  ],
+  "models": {
+    "gemma3:1b": {
+      "classifications": {
+        "natural": "unnecessary rewrite",
+        "lt-clean-only": "excellent unchanged",
+        "awkward": "useful paraphrase",
+        "esl": "weaker wording",
+        "vocabulary": "useful paraphrase",
+        "redundant": "acceptable paraphrase",
+        "professional-email": "acceptable paraphrase",
+        "conversational": "useful paraphrase",
+        "restructure": "weaker wording",
+        "concision": "weaker wording",
+        "name-org": "negation/modality regression",
+        "numbers": "protected-token regression",
+        "date-time": "excellent unchanged",
+        "currency": "negation/modality regression",
+        "url-email": "excellent unchanged",
+        "identifiers": "excellent unchanged",
+        "negation": "negation/modality regression",
+        "modality-commitment": "negation/modality regression",
+        "question": "semantic regression",
+        "ambiguous": "excellent unchanged",
+        "short-paragraph": "useful paraphrase",
+        "professional-paragraph": "semantic regression",
+        "several-paragraphs": "semantic regression"
+      },
+      "languagetool_alone_better": [
+        "natural", "esl", "restructure", "concision", "name-org", "numbers",
+        "currency", "negation", "modality-commitment", "question",
+        "professional-paragraph", "several-paragraphs"
+      ],
+      "hard_gate_failures": "Repeated modality changes, one protected-number rewrite, reference deletion, and severe paragraph deletion.",
+      "decision": "disqualified"
+    },
+    "qwen3:1.7b": {
+      "classifications": {
+        "natural": "excellent unchanged",
+        "lt-clean-only": "excellent unchanged",
+        "awkward": "useful paraphrase",
+        "esl": "useful paraphrase",
+        "vocabulary": "useful paraphrase",
+        "redundant": "weaker wording",
+        "professional-email": "acceptable paraphrase",
+        "conversational": "useful paraphrase",
+        "restructure": "excellent unchanged",
+        "concision": "acceptable paraphrase",
+        "name-org": "excellent unchanged",
+        "numbers": "excellent unchanged",
+        "date-time": "excellent unchanged",
+        "currency": "acceptable paraphrase",
+        "url-email": "excellent unchanged",
+        "identifiers": "unnecessary rewrite",
+        "negation": "excellent unchanged",
+        "modality-commitment": "excellent unchanged",
+        "question": "excellent unchanged",
+        "ambiguous": "excellent unchanged",
+        "short-paragraph": "excellent unchanged",
+        "professional-paragraph": "excellent unchanged",
+        "several-paragraphs": "unnecessary rewrite"
+      },
+      "languagetool_alone_better": ["redundant", "identifiers", "several-paragraphs"],
+      "hard_gate_failures": "None repeated. One semantically equivalent before-to-until rewrite was rejected by the current deterministic relation guard.",
+      "decision": "winner"
+    },
+    "llama3.2:1b": {
+      "classifications": {
+        "natural": "negation/modality regression",
+        "lt-clean-only": "excellent unchanged",
+        "awkward": "acceptable paraphrase",
+        "esl": "commentary/wrapper",
+        "vocabulary": "semantic regression",
+        "redundant": "useful paraphrase",
+        "professional-email": "commentary/wrapper",
+        "conversational": "negation/modality regression",
+        "restructure": "factual regression",
+        "concision": "factual regression",
+        "name-org": "negation/modality regression",
+        "numbers": "excellent unchanged",
+        "date-time": "grammatical regression",
+        "currency": "negation/modality regression",
+        "url-email": "protected-token regression",
+        "identifiers": "protected-token regression",
+        "negation": "negation/modality regression",
+        "modality-commitment": "semantic regression",
+        "question": "semantic regression",
+        "ambiguous": "semantic regression",
+        "short-paragraph": "acceptable paraphrase",
+        "professional-paragraph": "commentary/wrapper",
+        "several-paragraphs": "factual regression"
+      },
+      "languagetool_alone_better": [
+        "natural", "esl", "vocabulary", "professional-email", "conversational",
+        "restructure", "concision", "name-org", "date-time", "currency",
+        "url-email", "identifiers", "negation", "modality-commitment",
+        "question", "ambiguous", "professional-paragraph", "several-paragraphs"
+      ],
+      "hard_gate_failures": "Repeated hallucination, factual and modality drift, protected-token corruption, commentary, refusal, and unrelated expansion.",
+      "decision": "disqualified"
+    }
+  },
+  "v0_4_0_exact_input_comparison_for_qwen3_1_7b": {
+    "natural": "better",
+    "lt-clean-only": "equivalent",
+    "esl": "equivalent",
+    "vocabulary": "equivalent",
+    "identifiers": "worse",
+    "all_other_cases": "not directly comparable because the source text differs"
+  },
+  "qwen3_1_7b_long_sections": {
+    "1": "useful paraphrase",
+    "2": "useful paraphrase",
+    "3": "negation/modality regression",
+    "4": "acceptable paraphrase",
+    "5": "useful paraphrase",
+    "6": "semantic regression"
+  }
+}

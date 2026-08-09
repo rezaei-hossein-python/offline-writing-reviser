@@ -17,6 +17,11 @@ from offline_writing_reviser.core.errors import (
     OfflineWritingError,
 )
 from offline_writing_reviser.core.service import OfflineWritingService
+from offline_writing_reviser.core.sequential import SequentialWritingService
+from offline_writing_reviser.correction.languagetool import (
+    LanguageToolCorrectionService,
+    shared_languagetool_runtime,
+)
 from offline_writing_reviser.providers.base import (
     OfflineWritingProviderError,
     OfflineWritingProviderUnavailable,
@@ -34,7 +39,7 @@ from offline_writing_reviser.windows.text_selection import (
 class OfflineWritingController:
     def __init__(
         self,
-        service: OfflineWritingService,
+        service: OfflineWritingService | SequentialWritingService,
         text_adapter: WindowsSelectedTextAdapter,
         logger: logging.Logger | None = None,
         state_callback: Callable[[ApplicationState], None] | None = None,
@@ -202,9 +207,24 @@ class OfflineWritingController:
             if result.revised_text == capture.text:
                 if hasattr(self.text_adapter, "complete_without_replacement"):
                     self.text_adapter.complete_without_replacement(capture)
+                self._log_production_summary(
+                    result,
+                    input_chars=len(capture.text),
+                    paste_duration_ms=0.0,
+                    total_duration_ms=(time.perf_counter() - started) * 1000,
+                )
                 self.state_callback(ApplicationState.READY)
                 return
-            if not self.text_adapter.replace(capture, result.revised_text):
+            paste_started = time.perf_counter()
+            replaced = self.text_adapter.replace(capture, result.revised_text)
+            paste_duration_ms = (time.perf_counter() - paste_started) * 1000
+            self._log_production_summary(
+                result,
+                input_chars=len(capture.text),
+                paste_duration_ms=paste_duration_ms,
+                total_duration_ms=(time.perf_counter() - started) * 1000,
+            )
+            if not replaced:
                 failure_code = (
                     getattr(capture, "operation", None).failure_code
                     if getattr(capture, "operation", None) is not None
@@ -249,6 +269,37 @@ class OfflineWritingController:
     def _progress(self, message: str) -> None:
         self.logger.info("Revision progress status=%s", message)
         self.state_callback(message)
+
+    def _log_production_summary(
+        self,
+        result,
+        *,
+        input_chars: int,
+        paste_duration_ms: float,
+        total_duration_ms: float,
+    ) -> None:
+        metadata = getattr(result, "metadata", {})
+        self.logger.info(
+            "Production revision summary input_chars=%s sections=%s "
+            "lt_duration_ms=%.2f lt_applied=%s lt_skipped=%s "
+            "qwen_invoked=%s qwen_duration_ms=%.2f qwen_accepted=%s "
+            "qwen_rejected=%s fallback_sections=%s validation_ms=%.2f "
+            "paste_duration_ms=%.2f total_duration_ms=%.2f result_category=%s",
+            input_chars,
+            metadata.get("section_count", 1),
+            metadata.get("languagetool_duration_ms", 0.0),
+            metadata.get("languagetool_applied_edit_count", 0),
+            metadata.get("languagetool_skipped_edit_count", 0),
+            metadata.get("qwen_invoked", False),
+            metadata.get("qwen_duration_ms", 0.0),
+            metadata.get("qwen_accepted_sections", 0),
+            metadata.get("qwen_rejected_sections", 0),
+            metadata.get("fallback_sections", 0),
+            metadata.get("validation_duration_ms", 0.0),
+            paste_duration_ms,
+            total_duration_ms,
+            metadata.get("result_category", "unknown"),
+        )
 
 
 class OfflineWritingRuntime:
@@ -322,8 +373,11 @@ class OfflineWritingRuntime:
             model=config.model,
             executable=config.ollama_executable,
         )
-        self.controller.service = OfflineWritingService(
+        self.controller.service = SequentialWritingService(
             provider=provider,
+            correction_service=LanguageToolCorrectionService(
+                shared_languagetool_runtime(), logger=self.logger
+            ),
             config=config,
             logger=self.logger,
         )
@@ -375,15 +429,18 @@ def start_offline_writing_runtime(
 def build_production_service(
     config: OfflineWritingConfig,
     logger: logging.Logger | None = None,
-) -> OfflineWritingService:
+) -> SequentialWritingService:
     """Construct the exact service graph used by the installed application."""
     logger = logger or logging.getLogger("offline-writing-reviser")
     provider = OllamaCliOfflineWritingProvider(
         model=config.model,
         executable=config.ollama_executable,
     )
-    return OfflineWritingService(
+    return SequentialWritingService(
         provider=provider,
+        correction_service=LanguageToolCorrectionService(
+            shared_languagetool_runtime(), logger=logger
+        ),
         config=config,
         logger=logger,
     )
