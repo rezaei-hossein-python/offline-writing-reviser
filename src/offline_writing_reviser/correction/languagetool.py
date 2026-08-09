@@ -21,6 +21,7 @@ LANGUAGE = "en-US"
 LANGUAGETOOL_VERSION = "6.6"
 JAVA_VERSION = "17.0.20+8"
 SERVER_MAIN_CLASS = "org.languagetool.server.HTTPServer"
+READINESS_PROBE_TEXT = "This sentence is correct."
 MECHANICAL_ISSUE_TYPES = frozenset(
     {"misspelling", "grammar", "typographical", "duplication"}
 )
@@ -44,9 +45,16 @@ PROTECTED_CATEGORIES = (
 
 
 class LanguageToolRuntimeError(RuntimeError):
-    def __init__(self, message: str, *, code: str):
+    def __init__(
+        self,
+        message: str,
+        *,
+        code: str,
+        duration_ms: float | None = None,
+    ):
         super().__init__(message)
         self.code = code
+        self.duration_ms = duration_ms
 
 
 @dataclass(frozen=True)
@@ -111,7 +119,12 @@ class LanguageToolClient:
     base_url: str
     timeout_seconds: float = 5.0
 
-    def check(self, text: str) -> tuple[dict[str, Any], float]:
+    def check(
+        self,
+        text: str,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> tuple[dict[str, Any], float]:
         body = urllib.parse.urlencode(
             {"language": LANGUAGE, "text": text, "level": "default"}
         ).encode("utf-8")
@@ -122,20 +135,29 @@ class LanguageToolClient:
             method="POST",
         )
         started = time.perf_counter()
+        timeout = (
+            self.timeout_seconds
+            if timeout_seconds is None
+            else timeout_seconds
+        )
         try:
             with urllib.request.urlopen(
-                request, timeout=self.timeout_seconds
+                request, timeout=timeout
             ) as response:
                 payload = json.loads(response.read().decode("utf-8"))
         except (TimeoutError, urllib.error.URLError) as exc:
+            duration_ms = (time.perf_counter() - started) * 1000
             raise LanguageToolRuntimeError(
                 "The private LanguageTool request timed out",
                 code="request_timeout",
+                duration_ms=duration_ms,
             ) from exc
         except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            duration_ms = (time.perf_counter() - started) * 1000
             raise LanguageToolRuntimeError(
                 "The private LanguageTool response was unavailable",
                 code="malformed_response",
+                duration_ms=duration_ms,
             ) from exc
         if not isinstance(payload, dict) or not isinstance(
             payload.get("matches"), list
@@ -143,6 +165,7 @@ class LanguageToolClient:
             raise LanguageToolRuntimeError(
                 "LanguageTool returned an invalid response",
                 code="malformed_response",
+                duration_ms=(time.perf_counter() - started) * 1000,
             )
         return payload, (time.perf_counter() - started) * 1000
 
@@ -169,6 +192,7 @@ class LanguageToolRuntime:
         self._process: subprocess.Popen[bytes] | None = None
         self._client: LanguageToolClient | None = None
         self._port: int | None = None
+        self._ready = False
         self._lock = threading.RLock()
         self._shutdown = threading.Event()
         self._warm_thread: threading.Thread | None = None
@@ -185,10 +209,14 @@ class LanguageToolRuntime:
         return bool(self._process and self._process.poll() is None)
 
     @property
+    def is_ready(self) -> bool:
+        return bool(self._ready and self.is_running and self._client is not None)
+
+    @property
     def base_url(self) -> str | None:
         return (
             f"http://127.0.0.1:{self._port}"
-            if self._port is not None and self.is_running
+            if self._port is not None and self.is_ready
             else None
         )
 
@@ -197,8 +225,14 @@ class LanguageToolRuntime:
         return self._startup_duration_ms
 
     def status(self) -> dict[str, Any]:
+        if self.is_ready:
+            state = "ready"
+        elif self.is_running:
+            state = "starting"
+        else:
+            state = "stopped"
         return {
-            "state": "ready" if self.is_running else "stopped",
+            "state": state,
             "version": LANGUAGETOOL_VERSION,
             "java_version": JAVA_VERSION,
             "language": LANGUAGE,
@@ -213,7 +247,7 @@ class LanguageToolRuntime:
 
     def start_in_background(self) -> None:
         with self._lock:
-            if self._shutdown.is_set() or self.is_running:
+            if self._shutdown.is_set() or self.is_ready:
                 return
             if self._warm_thread and self._warm_thread.is_alive():
                 return
@@ -234,23 +268,16 @@ class LanguageToolRuntime:
             )
 
     def warmup(self) -> float:
-        """Start once and initialize the English rules before user input."""
+        """Start once and prove the production correction API is usable."""
         started = time.perf_counter()
-        with self._lock:
-            self.start()
-            assert self._client is not None
-            try:
-                self._client.check("This sentence is correct.")
-            except LanguageToolRuntimeError:
-                self._stop_locked()
-                raise
-            duration_ms = (time.perf_counter() - started) * 1000
-            self._warmup_duration_ms = duration_ms
-            self.logger.info(
-                "LanguageTool private English warmup duration_ms=%.2f",
-                duration_ms,
-            )
-            return duration_ms
+        self.check(READINESS_PROBE_TEXT)
+        duration_ms = (time.perf_counter() - started) * 1000
+        self._warmup_duration_ms = duration_ms
+        self.logger.info(
+            "LanguageTool private English warmup duration_ms=%.2f",
+            duration_ms,
+        )
+        return duration_ms
 
     def start(self) -> float:
         with self._lock:
@@ -259,10 +286,10 @@ class LanguageToolRuntime:
                     "LanguageTool runtime is shutting down",
                     code="runtime_stopped",
                 )
-            if self.is_running and self._client is not None:
+            if self.is_ready:
                 return self._startup_duration_ms or 0.0
             self._validate_paths()
-            self._stop_locked()
+            self._stop_locked(reason="startup_replacing_stale_state")
             port = _find_loopback_port()
             command = [
                 str(self.javaw_path),
@@ -276,13 +303,14 @@ class LanguageToolRuntime:
             ]
             started = time.perf_counter()
             self.logger.info(
-                "LanguageTool private startup version=%s java_version=%s "
-                "port=%s java_private=true loopback_only=true",
+                "LanguageTool private startup initiated version=%s "
+                "java_version=%s port=%s java_private=true loopback_only=true",
                 LANGUAGETOOL_VERSION,
                 JAVA_VERSION,
                 port,
             )
             try:
+                spawn_started = time.perf_counter()
                 process = subprocess.Popen(
                     command,
                     cwd=str(self.server_jar_path.parent),
@@ -303,14 +331,25 @@ class LanguageToolRuntime:
                 ) from exc
             self._process = process
             self._port = port
-            self._client = LanguageToolClient(
+            self._client = None
+            self._ready = False
+            client = LanguageToolClient(
                 f"http://127.0.0.1:{port}", self.request_timeout_seconds
+            )
+            self.logger.info(
+                "LanguageTool private process spawned pid=%s port=%s "
+                "spawn_ms=%.2f alive=%s stdout=devnull stderr=devnull",
+                process.pid,
+                port,
+                (time.perf_counter() - spawn_started) * 1000,
+                process.poll() is None,
             )
             deadline = time.monotonic() + self.startup_timeout_seconds
             last_error: Exception | None = None
+            listener_attempts = 0
             while time.monotonic() < deadline:
                 if self._shutdown.is_set():
-                    self._stop_locked()
+                    self._stop_locked(reason="shutdown_during_startup")
                     raise LanguageToolRuntimeError(
                         "LanguageTool startup cancelled during shutdown",
                         code="runtime_stopped",
@@ -318,52 +357,190 @@ class LanguageToolRuntime:
                 if process.poll() is not None:
                     code = process.returncode
                     self._last_error = f"early_exit_{code}"
-                    self._stop_locked()
+                    self._stop_locked(reason="process_exit_during_startup")
                     raise LanguageToolRuntimeError(
                         f"LanguageTool exited before readiness (code {code})",
                         code="early_exit",
                     )
                 try:
-                    request = urllib.request.Request(
-                        f"http://127.0.0.1:{port}/v2/languages", method="GET"
-                    )
-                    with urllib.request.urlopen(request, timeout=0.5) as response:
-                        if response.status == 200:
-                            duration_ms = (time.perf_counter() - started) * 1000
-                            self._startup_duration_ms = duration_ms
-                            self._last_error = None
-                            self.logger.info(
-                                "LanguageTool private ready version=%s port=%s "
-                                "startup_ms=%.2f",
-                                LANGUAGETOOL_VERSION,
-                                port,
-                                duration_ms,
-                            )
-                            return duration_ms
-                except (OSError, urllib.error.URLError) as exc:
+                    listener_attempts += 1
+                    with socket.create_connection(
+                        ("127.0.0.1", port), timeout=0.1
+                    ):
+                        break
+                except OSError as exc:
                     last_error = exc
                     time.sleep(0.05)
-            self._last_error = "startup_timeout"
-            self._stop_locked()
-            raise LanguageToolRuntimeError(
-                "LanguageTool startup timed out", code="startup_timeout"
-            ) from last_error
+            else:
+                self._last_error = "startup_timeout"
+                self.logger.warning(
+                    "LanguageTool readiness listener timeout pid=%s port=%s "
+                    "attempts=%s alive=%s",
+                    process.pid,
+                    port,
+                    listener_attempts,
+                    process.poll() is None,
+                )
+                self._stop_locked(reason="listener_startup_timeout")
+                raise LanguageToolRuntimeError(
+                    "LanguageTool startup timed out", code="startup_timeout"
+                ) from last_error
+
+            listener_ms = (time.perf_counter() - started) * 1000
+            self.logger.info(
+                "LanguageTool readiness listener available pid=%s port=%s "
+                "attempts=%s duration_ms=%.2f alive=%s",
+                process.pid,
+                port,
+                listener_attempts,
+                listener_ms,
+                process.poll() is None,
+            )
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                self._last_error = "startup_timeout"
+                self._stop_locked(reason="readiness_deadline_elapsed")
+                raise LanguageToolRuntimeError(
+                    "LanguageTool startup timed out", code="startup_timeout"
+                )
+            probe_started = time.perf_counter()
+            self.logger.info(
+                "LanguageTool readiness probe initiated pid=%s port=%s "
+                "attempt=1 endpoint=/v2/check",
+                process.pid,
+                port,
+            )
+            try:
+                client.check(
+                    READINESS_PROBE_TEXT,
+                    timeout_seconds=max(0.1, remaining),
+                )
+            except LanguageToolRuntimeError as exc:
+                probe_ms = (time.perf_counter() - probe_started) * 1000
+                self._last_error = "startup_timeout"
+                self.logger.warning(
+                    "LanguageTool readiness probe failed pid=%s port=%s "
+                    "attempt=1 endpoint=/v2/check result=%s duration_ms=%.2f "
+                    "alive=%s exit_code=%s",
+                    process.pid,
+                    port,
+                    exc.code,
+                    probe_ms,
+                    process.poll() is None,
+                    process.poll(),
+                )
+                self._stop_locked(reason=f"readiness_probe_{exc.code}")
+                raise LanguageToolRuntimeError(
+                    "LanguageTool correction API did not become ready",
+                    code="startup_timeout",
+                    duration_ms=probe_ms,
+                ) from exc
+
+            if process.poll() is not None:
+                code = process.returncode
+                self._last_error = f"early_exit_{code}"
+                self._stop_locked(reason="process_exit_after_readiness_probe")
+                raise LanguageToolRuntimeError(
+                    f"LanguageTool exited after readiness probe (code {code})",
+                    code="early_exit",
+                )
+            probe_ms = (time.perf_counter() - probe_started) * 1000
+            duration_ms = (time.perf_counter() - started) * 1000
+            self._client = client
+            self._ready = True
+            self._startup_duration_ms = duration_ms
+            self._last_error = None
+            self.logger.info(
+                "LanguageTool readiness probe succeeded pid=%s port=%s "
+                "attempt=1 endpoint=/v2/check result=valid duration_ms=%.2f",
+                process.pid,
+                port,
+                probe_ms,
+            )
+            self.logger.info(
+                "LanguageTool private ready version=%s pid=%s port=%s "
+                "startup_ms=%.2f endpoint=/v2/check",
+                LANGUAGETOOL_VERSION,
+                process.pid,
+                port,
+                duration_ms,
+            )
+            return duration_ms
 
     def check(self, text: str) -> tuple[dict[str, Any], float]:
         with self._lock:
-            self.start()
-            assert self._client is not None
-            try:
-                return self._client.check(text)
-            except LanguageToolRuntimeError:
-                self._stop_locked()
-                raise
+            last_error: LanguageToolRuntimeError | None = None
+            for retry in range(2):
+                try:
+                    self.start()
+                    assert self._client is not None
+                    process = self._process
+                    port = self._port
+                    request_started = time.perf_counter()
+                    self.logger.info(
+                        "LanguageTool correction request initiated pid=%s "
+                        "port=%s retry=%s chars=%s alive=%s",
+                        process.pid if process else None,
+                        port,
+                        retry,
+                        len(text),
+                        bool(process and process.poll() is None),
+                    )
+                    payload, duration_ms = self._client.check(text)
+                    if process is None or process.poll() is not None:
+                        raise LanguageToolRuntimeError(
+                            "LanguageTool exited during correction request",
+                            code="process_exited",
+                            duration_ms=(
+                                time.perf_counter() - request_started
+                            ) * 1000,
+                        )
+                    self.logger.info(
+                        "LanguageTool correction request succeeded pid=%s "
+                        "port=%s retry=%s duration_ms=%.2f alive=true",
+                        process.pid,
+                        port,
+                        retry,
+                        duration_ms,
+                    )
+                    return payload, duration_ms
+                except LanguageToolRuntimeError as exc:
+                    last_error = exc
+                    process = self._process
+                    exit_code = process.poll() if process else None
+                    self.logger.warning(
+                        "LanguageTool correction request failed pid=%s port=%s "
+                        "retry=%s category=%s duration_ms=%.2f alive=%s "
+                        "exit_code=%s",
+                        process.pid if process else None,
+                        self._port,
+                        retry,
+                        exc.code,
+                        exc.duration_ms or 0.0,
+                        bool(process and exit_code is None),
+                        exit_code,
+                    )
+                    self._stop_locked(reason=f"request_{exc.code}")
+                    if retry == 0 and not self._shutdown.is_set() and exc.code not in {
+                        "java_missing",
+                        "invalid_java_path",
+                        "languagetool_missing",
+                        "runtime_stopped",
+                    }:
+                        self.logger.warning(
+                            "LanguageTool private restart reason=%s retry=1",
+                            exc.code,
+                        )
+                        continue
+                    raise
+            assert last_error is not None
+            raise last_error
 
     def stop(self) -> float:
         started = time.perf_counter()
         self._shutdown.set()
         with self._lock:
-            self._stop_locked()
+            self._stop_locked(reason="application_shutdown")
         duration_ms = (time.perf_counter() - started) * 1000
         self.logger.info(
             "LanguageTool private shutdown duration_ms=%.2f", duration_ms
@@ -385,19 +562,56 @@ class LanguageToolRuntime:
                 code="languagetool_missing",
             )
 
-    def _stop_locked(self) -> None:
+    def _stop_locked(self, *, reason: str) -> None:
         process = self._process
+        port = self._port
         self._process = None
         self._client = None
         self._port = None
-        if process is None or process.poll() is not None:
+        self._ready = False
+        if process is None:
             return
-        process.terminate()
+        exit_code = process.poll()
+        if exit_code is not None:
+            self.logger.info(
+                "LanguageTool private state cleared pid=%s port=%s reason=%s "
+                "alive=false exit_code=%s",
+                process.pid,
+                port,
+                reason,
+                exit_code,
+            )
+            return
+        self.logger.info(
+            "LanguageTool private termination initiated pid=%s port=%s "
+            "reason=%s alive=true",
+            process.pid,
+            port,
+            reason,
+        )
+        try:
+            process.terminate()
+        except OSError:
+            self.logger.warning(
+                "LanguageTool private terminate failed pid=%s port=%s reason=%s",
+                process.pid,
+                port,
+                reason,
+            )
         try:
             process.wait(timeout=5.0)
         except subprocess.TimeoutExpired:
             process.kill()
             process.wait(timeout=2.0)
+        self.logger.info(
+            "LanguageTool private termination completed pid=%s port=%s "
+            "reason=%s alive=%s exit_code=%s",
+            process.pid,
+            port,
+            reason,
+            process.poll() is None,
+            process.poll(),
+        )
 
 
 class LanguageToolCorrectionService:

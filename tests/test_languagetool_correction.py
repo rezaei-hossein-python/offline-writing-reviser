@@ -297,7 +297,22 @@ def test_private_runtime_uses_javaw_dynamic_port_reuses_and_stops_owned_process(
         def __exit__(self, *_args):
             return None
 
+        def read(self):
+            return b'{"matches": []}'
+
+    class Connection:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return None
+
     monkeypatch.setattr(languagetool.subprocess, "Popen", popen)
+    monkeypatch.setattr(
+        languagetool.socket,
+        "create_connection",
+        lambda *_args, **_kwargs: Connection(),
+    )
     monkeypatch.setattr(
         languagetool.urllib.request, "urlopen", lambda *_args, **_kwargs: Response()
     )
@@ -366,8 +381,23 @@ def test_failed_warmup_stops_the_owned_process(monkeypatch, tmp_path):
         def __exit__(self, *_args):
             return None
 
+        def read(self):
+            return b'{"matches": []}'
+
+    class Connection:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return None
+
     process = Process()
     monkeypatch.setattr(languagetool.subprocess, "Popen", lambda *_a, **_k: process)
+    monkeypatch.setattr(
+        languagetool.socket,
+        "create_connection",
+        lambda *_args, **_kwargs: Connection(),
+    )
     monkeypatch.setattr(
         languagetool.urllib.request,
         "urlopen",
